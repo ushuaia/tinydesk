@@ -91,7 +91,7 @@ App 侧需要：
 需要 Flutter 3.47 或更新的稳定版。
 
 ```bash
-git clone <repo-url> tinydesk
+git clone https://github.com/ushuaia/tinydesk.git tinydesk
 cd tinydesk
 flutter pub get
 ```
