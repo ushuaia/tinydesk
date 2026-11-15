@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'core/app_language.dart';
 import 'core/app_session_manager.dart';
 import 'core/session_scope.dart';
 import 'core/theme.dart';
@@ -12,6 +13,7 @@ import 'data/private_key_store.dart';
 import 'features/documents/floating_file_browser_host.dart';
 import 'features/terminal/floating_terminal_host.dart';
 import 'features/workspace/workspace_screen.dart';
+import 'l10n/gen/app_localizations.dart';
 import 'platform/window_close.dart';
 
 class OpenCodeApp extends StatefulWidget {
@@ -37,6 +39,7 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
   late final HostRepository _repository =
       widget.repository ?? HostRepository(SharedPreferencesHostStore());
   late final PrivateKeyStore _keyStore = widget.keyStore ?? PrivateKeyStore();
+  final AppLanguageController _language = AppLanguageController();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _quitDialogOpen = false;
 
@@ -121,27 +124,37 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
   Widget build(BuildContext context) {
     return SessionScope(
       manager: _session,
-      child: MaterialApp(
-        title: '方寸台',
-        navigatorKey: _navigatorKey,
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        builder: (context, child) => Stack(
-          children: [
-            if (child != null) Positioned.fill(child: child),
-            Positioned.fill(
-              child: FloatingFileBrowserHost(manager: _session),
-            ),
-            Positioned.fill(
-              child: FloatingTerminalHost(manager: _session),
-            ),
-          ],
-        ),
-        home: WorkspaceScreen(
-          session: _session,
-          repository: _repository,
-          keyStore: _keyStore,
+      child: ListenableBuilder(
+        listenable: _language,
+        builder: (context, _) => MaterialApp(
+          title: 'TinyDesk',
+          navigatorKey: _navigatorKey,
+          debugShowCheckedModeBanner: false,
+          locale: _language.locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: buildTheme(Brightness.light),
+          darkTheme: buildTheme(Brightness.dark),
+          builder: (context, child) {
+            AppL10n.update(AppLocalizations.of(context));
+            return Stack(
+              children: [
+                if (child != null) Positioned.fill(child: child),
+                Positioned.fill(
+                  child: FloatingFileBrowserHost(manager: _session),
+                ),
+                Positioned.fill(
+                  child: FloatingTerminalHost(manager: _session),
+                ),
+              ],
+            );
+          },
+          home: WorkspaceScreen(
+            session: _session,
+            language: _language,
+            repository: _repository,
+            keyStore: _keyStore,
+          ),
         ),
       ),
     );

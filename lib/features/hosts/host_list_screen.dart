@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/session_scope.dart';
+import '../../core/app_language.dart';
 import '../../data/host.dart';
 import '../../data/host_repository.dart';
 import '../../data/port_allocator.dart';
@@ -26,6 +27,7 @@ class HostListScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.keyStore,
+    required this.language,
     this.popOnOpen = false,
     this.embedded = false,
     this.onHostOpened,
@@ -33,6 +35,7 @@ class HostListScreen extends StatefulWidget {
 
   final HostRepository repository;
   final PrivateKeyStore keyStore;
+  final AppLanguageController language;
 
   /// When true this page acts as the session launcher opened from the
   /// workspace: tapping a host opens/activates its session and returns.
@@ -119,6 +122,7 @@ class _HostListScreenState extends State<HostListScreen> {
           repository: widget.repository,
           keyStore: widget.keyStore,
           manager: session,
+          language: widget.language,
         ),
       ),
     );
@@ -257,6 +261,7 @@ class _HostListScreenState extends State<HostListScreen> {
       MaterialPageRoute<void>(
         builder: (_) => WorkspaceScreen(
           session: session,
+          language: widget.language,
           initialHostId: resolved.id,
           repository: widget.repository,
           keyStore: widget.keyStore,

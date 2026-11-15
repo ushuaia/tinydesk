@@ -7,6 +7,8 @@ import 'package:tinydesk/data/host.dart';
 import 'package:tinydesk/data/host_repository.dart';
 import 'package:tinydesk/data/host_store.dart';
 import 'package:tinydesk/data/private_key_store.dart';
+import 'package:tinydesk/core/app_language.dart';
+import 'package:tinydesk/l10n/gen/app_localizations.dart';
 import 'package:tinydesk/features/hosts/host_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,7 +33,11 @@ void main() {
     addTearDown(session.dispose);
     return SessionScope(
       manager: session,
-      child: MaterialApp(home: child),
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: child,
+      ),
     );
   }
 
@@ -43,6 +49,7 @@ void main() {
         HostListScreen(
           repository: repo,
           keyStore: PrivateKeyStore(),
+          language: AppLanguageController(),
         ),
       ),
     );
@@ -59,6 +66,7 @@ void main() {
         HostListScreen(
           repository: repo,
           keyStore: PrivateKeyStore(),
+          language: AppLanguageController(),
         ),
       ),
     );
@@ -101,6 +109,7 @@ void main() {
         HostListScreen(
           repository: repo,
           keyStore: keyStore,
+          language: AppLanguageController(),
         ),
       ),
     );

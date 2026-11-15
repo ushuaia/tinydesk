@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../core/app_language.dart';
 import '../../core/app_session_manager.dart';
 import '../../data/app_settings.dart';
 import '../../data/host_repository.dart';
 import '../../data/local_data_cleaner.dart';
 import '../../data/private_key_store.dart';
+import '../../l10n/gen/app_localizations.dart';
 import '../../platform/background_task.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -12,11 +16,13 @@ class SettingsPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.keyStore,
+    required this.language,
     this.manager,
   });
 
   final HostRepository repository;
   final PrivateKeyStore keyStore;
+  final AppLanguageController language;
   final AppSessionManager? manager;
 
   @override
@@ -38,20 +44,20 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  Future<void> _confirmClear() async {
+  Future<void> _confirmClear(AppLocalizations l10n) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清除数据'),
-        content: const Text('将删除所有主机配置和密钥，此操作不可撤销。'),
+        title: Text(l10n.clearDataConfirmTitle),
+        content: Text(l10n.clearDataConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('清除'),
+            child: Text(l10n.clear),
           ),
         ],
       ),
@@ -66,32 +72,67 @@ class _SettingsPageState extends State<SettingsPage> {
       await cleaner.clear();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('数据已清除')),
+        SnackBar(content: Text(l10n.dataCleared)),
       );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('清除失败：$error')),
+        SnackBar(content: Text(l10n.clearFailed(error.toString()))),
       );
     }
   }
 
+  Future<void> _chooseLanguage(AppLocalizations l10n) async {
+    final choice = await showDialog<AppLanguage>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.language),
+        children: [
+          RadioGroup<AppLanguage>(
+            groupValue: widget.language.value,
+            onChanged: (value) => Navigator.pop(context, value),
+            child: Column(
+              children: [
+                for (final option in AppLanguage.values)
+                  RadioListTile<AppLanguage>(
+                    value: option,
+                    title: Text(switch (option) {
+                      AppLanguage.system => l10n.followSystem,
+                      AppLanguage.chinese => l10n.chinese,
+                      AppLanguage.english => l10n.english,
+                    }),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || choice == widget.language.value) return;
+    await widget.language.set(choice);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.languageUpdated)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: AppBar(title: Text(l10n.settings)),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _SectionHeader('外观'),
+            _SectionHeader(l10n.appearanceSection),
             SwitchListTile(
               value: _darkMode,
               onChanged: (v) => setState(() => _darkMode = v),
-              title: const Text('深色模式'),
+              title: Text(l10n.darkMode),
             ),
             ListTile(
-              title: const Text('字体缩放'),
+              title: Text(l10n.fontScale),
               subtitle: Slider(
                 value: _fontScale,
                 min: 0.8,
@@ -101,13 +142,23 @@ class _SettingsPageState extends State<SettingsPage> {
                 onChanged: (v) => setState(() => _fontScale = v),
               ),
             ),
+            ListTile(
+              leading: const Icon(Icons.language),
+              title: Text(l10n.language),
+              subtitle: Text(switch (widget.language.value) {
+                AppLanguage.system => l10n.followSystem,
+                AppLanguage.chinese => l10n.chinese,
+                AppLanguage.english => l10n.english,
+              }),
+              onTap: () => unawaited(_chooseLanguage(l10n)),
+            ),
             const Divider(),
-            const _SectionHeader('连接'),
+            _SectionHeader(l10n.connectionSection),
             SwitchListTile(
               value: _keepAlive,
               onChanged: (v) => setState(() => _keepAlive = v),
-              title: const Text('后台保活'),
-              subtitle: const Text('切到后台时尽量维持 SSH 隧道'),
+              title: Text(l10n.keepAlive),
+              subtitle: Text(l10n.keepAliveSubtitle),
             ),
             SwitchListTile(
               value: _autoBlurKeyboard,
@@ -115,29 +166,29 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() => _autoBlurKeyboard = v);
                 _settings.setAutoBlurKeyboard(v);
               },
-              title: const Text('进入会话时自动收起键盘'),
-              subtitle: const Text('避免打开会话时自动弹出输入法'),
+              title: Text(l10n.autoBlurKeyboard),
+              subtitle: Text(l10n.autoBlurKeyboardSubtitle),
             ),
             ValueListenableBuilder<BackgroundTaskStatus>(
               valueListenable: BackgroundTask.status,
               builder: (context, status, _) => ListTile(
-                title: const Text('长时任务'),
+                title: Text(l10n.backgroundTask),
                 subtitle: Text(status.message),
               ),
             ),
             const Divider(),
-            const _SectionHeader('数据'),
+            _SectionHeader(l10n.dataSection),
             ListTile(
               leading: const Icon(Icons.delete_outline),
-              title: const Text('清除数据'),
-              subtitle: const Text('删除所有主机和密钥'),
-              onTap: _confirmClear,
+              title: Text(l10n.clearData),
+              subtitle: Text(l10n.clearDataSubtitle),
+              onTap: () => unawaited(_confirmClear(l10n)),
             ),
             const Divider(),
-            const _SectionHeader('关于'),
-            const ListTile(
-              title: Text('方寸台 TinyDesk'),
-              subtitle: Text('v1.1.1'),
+            _SectionHeader(l10n.aboutSection),
+            ListTile(
+              title: Text(l10n.appName),
+              subtitle: Text(l10n.appVersion),
             ),
           ],
         ),

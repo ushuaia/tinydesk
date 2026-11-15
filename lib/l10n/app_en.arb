@@ -1,0 +1,37 @@
+{
+  "@@locale": "en",
+  "settings": "Settings",
+  "appearanceSection": "Appearance",
+  "darkMode": "Dark mode",
+  "fontScale": "Font scale",
+  "connectionSection": "Connection",
+  "keepAlive": "Keep alive in background",
+  "keepAliveSubtitle": "Best effort to keep the SSH tunnel alive in the background",
+  "autoBlurKeyboard": "Auto-hide keyboard when opening a session",
+  "autoBlurKeyboardSubtitle": "Avoid popping up the keyboard when opening a session",
+  "backgroundTask": "Long-running task",
+  "dataSection": "Data",
+  "clearData": "Clear data",
+  "clearDataSubtitle": "Delete all hosts and keys",
+  "clearDataConfirmTitle": "Clear data?",
+  "clearDataConfirmBody": "All host configurations and keys will be deleted. This cannot be undone.",
+  "cancel": "Cancel",
+  "clear": "Clear",
+  "dataCleared": "Data cleared",
+  "clearFailed": "Clear failed: {error}",
+  "aboutSection": "About",
+  "appName": "TinyDesk",
+  "appVersion": "v1.1.1",
+  "language": "Language",
+  "followSystem": "Follow system",
+  "chinese": "中文",
+  "english": "English",
+  "languageUpdated": "Language updated",
+  "@clearFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
+}

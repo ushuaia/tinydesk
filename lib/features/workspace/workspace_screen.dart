@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../core/app_language.dart';
 import '../../core/app_session_manager.dart';
 import '../../core/connection_state.dart';
 import '../../core/host_session.dart';
@@ -31,12 +32,14 @@ class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({
     super.key,
     required this.session,
+    required this.language,
     this.initialHostId,
     required this.repository,
     required this.keyStore,
   });
 
   final AppSessionManager session;
+  final AppLanguageController language;
   final String? initialHostId;
   final HostRepository repository;
   final PrivateKeyStore keyStore;
@@ -174,6 +177,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     return HostListScreen(
       repository: widget.repository,
       keyStore: widget.keyStore,
+      language: widget.language,
       embedded: true,
       onHostOpened: () {
         if (mounted) setState(() => _showHosts = false);
