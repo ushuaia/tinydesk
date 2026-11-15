@@ -59,9 +59,6 @@ class HostListPage extends StatelessWidget {
         const _QuickStartSection(),
       ],
     );
-    if (embedded) {
-      return Scaffold(body: body);
-    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('方寸台'),
