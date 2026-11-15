@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../data/reading_progress_store.dart';
+import '../../data/markdown_images.dart';
 import '../../data/remote_file.dart';
 import '../../ssh/tunnel_session.dart';
 import 'markdown_chunks.dart';
@@ -79,6 +80,8 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
   String _buffer = '';
   String _savedText = '';
   DateTime? _lastModified;
+  String? _baseDir;
+  String _imageToken = '';
   bool _dirty = false;
   bool _editable = false;
   bool _editing = false;
@@ -111,7 +114,7 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
       setState(() {
         _buffer = text;
         _savedText = text;
-        _blocks = splitMarkdown(text);
+        _blocks = _splitAndRewrite(text);
       });
       // Rebuild the WebView so the local asset server re-serves the new
       // blocks (same path as returning to reading mode), then restore
@@ -206,6 +209,55 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
     } catch (_) {}
   }
 
+  String _documentDirectory(String path) {
+    final slash = path.lastIndexOf('/');
+    if (slash <= 0) return '/';
+    return path.substring(0, slash);
+  }
+
+  List<String> _splitAndRewrite(String text) {
+    final dir = _baseDir;
+    final blocks = splitMarkdown(text);
+    if (dir == null) return blocks;
+    return [
+      for (final block in blocks)
+        rewriteMarkdownImages(block, baseDir: dir, token: _imageToken),
+    ];
+  }
+
+  Future<void> _serveImage(HttpRequest request) async {
+    final token = request.uri.queryParameters['t'];
+    final encoded = request.uri.queryParameters['p'];
+    final dir = _baseDir;
+    if (token != _imageToken || encoded == null || dir == null) {
+      request.response.statusCode = HttpStatus.forbidden;
+      await request.response.close();
+      return;
+    }
+    try {
+      final remote = utf8.decode(base64Url.decode(encoded));
+      final extension = remote.contains('.')
+          ? remote.substring(remote.lastIndexOf('.') + 1).toLowerCase()
+          : '';
+      if (!isInsideDirectory(remote, dir) ||
+          !allowedImageExtensions.contains(extension)) {
+        request.response.statusCode = HttpStatus.forbidden;
+      } else {
+        final bytes = await widget.session.readBytes(remote);
+        if (bytes.length > 8 * 1024 * 1024) {
+          request.response.statusCode = HttpStatus.requestEntityTooLarge;
+        } else {
+          request.response.headers.contentType =
+              ContentType.parse(contentTypeForExtension(remote));
+          request.response.add(bytes);
+        }
+      }
+    } catch (_) {
+      request.response.statusCode = HttpStatus.notFound;
+    }
+    await request.response.close();
+  }
+
   Future<void> _prepare() async {
     try {
       final textFuture = widget.session.readText(widget.file.path);
@@ -218,7 +270,9 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
       _savedText = text;
       _lastModified = await widget.session.statModified(widget.file.path) ?? _lastModified;
       _opened = widget.file;
-      _blocks = splitMarkdown(text);
+      _baseDir = _documentDirectory(widget.file.path);
+      _imageToken = randomImageToken();
+      _blocks = _splitAndRewrite(text);
       final editableBytes = utf8.encode(text).length;
       _editable = editableBytes <= DocumentEditorSupport.maxEditableBytes;
       _readOnlyReason = _editable ? null : '文件超过 2MB，只读打开';
@@ -241,6 +295,8 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
           } else if (path == '/markdown.html') {
             request.response.headers.contentType = ContentType.html;
             request.response.add(await _asset('assets/viewer/markdown.html'));
+          } else if (path == '/img') {
+            await _serveImage(request);
           } else if (path == '/marked.min.js') {
             request.response.headers.contentType =
                 ContentType('application', 'javascript');
@@ -473,7 +529,7 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
     }
     // Back to reading: render the current buffer, then restore progress.
     _pollTimer?.cancel();
-    _blocks = splitMarkdown(_buffer);
+    _blocks = _splitAndRewrite(_buffer);
     // Refresh the progress snapshot: it may have been advanced by scrolling
     // before the edit switch.
     try {
