@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import '../core/app_language.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -48,7 +50,7 @@ class LocalSession implements TunnelSession {
       port = await _detectServerPort();
     }
     if (port == null) {
-      throw const ServerUnreachable('本机 opencode 未响应，请启动服务后重试');
+      throw ServerUnreachable(AppL10n.t.localServiceUnreachable);
     }
     return port;
   }
@@ -158,7 +160,7 @@ class LocalSession implements TunnelSession {
     final pairResult = await _runOpencode(['pair', '--url', localBaseUrl]);
     final url = parsePairUrl(pairResult);
     if (url == null) {
-      throw PairingFailed('无法解析配对链接：$pairResult');
+      throw PairingFailed(AppL10n.t.parsePairFailedRaw(pairResult));
     }
 
     // Redeem on this machine over plain HTTP (no tunnel hop involved).
@@ -176,13 +178,13 @@ class LocalSession implements TunnelSession {
       final cookies = response.headers['set-cookie'];
       if (cookies == null || cookies.isEmpty) {
         throw PairingFailed(
-          '配对链接没有返回会话 cookie（HTTP ${response.statusCode}）',
+          AppL10n.t.pairingNoCookie(response.statusCode.toString()),
         );
       }
       final first = cookies.first.split(';').first;
       final index = first.indexOf('=');
       if (index <= 0) {
-        throw const PairingFailed('无法解析会话 cookie');
+        throw PairingFailed(AppL10n.t.parseCookieFailed);
       }
       return PairingSession(
         baseUrl: localBaseUrl,
@@ -192,7 +194,7 @@ class LocalSession implements TunnelSession {
     } on OpencodeError {
       rethrow;
     } catch (error) {
-      throw PairingFailed('兑换配对链接失败：$error', cause: error);
+      throw PairingFailed(AppL10n.t.redeemFailed(error.toString()), cause: error);
     } finally {
       client.close(force: true);
     }
@@ -203,19 +205,19 @@ class LocalSession implements TunnelSession {
     final result = await _runOpencode(['service', 'start']);
     final trimmed = result.trim();
     if (!trimmed.contains('http://') && !trimmed.contains('https://')) {
-      throw ServiceStartFailed('本机 opencode 服务启动失败：$trimmed');
+      throw ServiceStartFailed(AppL10n.t.localServiceStartFailed(trimmed));
     }
   }
 
   Future<String> _runOpencode(List<String> args) async {
     final binary = await _findBinary();
     if (binary == null) {
-      throw const OpencodeNotInstalled('本机未安装 opencode，请先安装后重试');
+      throw OpencodeNotInstalled(AppL10n.t.localOpencodeMissing);
     }
     final result = await Process.run(binary, args);
     if (result.exitCode != 0) {
       final err = result.stderr.toString().trim();
-      throw PairingFailed(err.isEmpty ? 'opencode 命令失败' : err);
+      throw PairingFailed(err.isEmpty ? AppL10n.t.opencodeCommandFailed : err);
     }
     return result.stdout.toString();
   }

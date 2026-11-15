@@ -19,12 +19,49 @@ class AppDelegate: FlutterAppDelegate {
 ///
 /// macOS does not suspend apps the way mobile OSes do, so the background
 /// channel is a no-op that simply reports success.
+
+/// Language used by native UI, synced from the Flutter app.
+enum TinyDeskLanguage {
+  static var code: String = "en"
+
+  static func load() {
+    code = UserDefaults.standard.string(forKey: "tinydesk.ui_language") ?? "en"
+  }
+
+  static func store(_ value: String) {
+    code = value == "zh" ? "zh" : "en"
+    UserDefaults.standard.set(code, forKey: "tinydesk.ui_language")
+  }
+
+  /// Picks between the English and Chinese variant of a native UI string.
+  static func text(_ en: String, _ zh: String) -> String {
+    code == "zh" ? zh : en
+  }
+}
+
 enum TinyDeskChannels {
   /// Opens a native camera window and resolves with the scanned QR text.
   private static let hostScan = HostScanCoordinator()
 
   static func register(with controller: FlutterViewController) {
     let messenger = controller.engine.binaryMessenger
+    TinyDeskLanguage.load()
+
+    FlutterMethodChannel(name: "tinydesk/language", binaryMessenger: messenger)
+      .setMethodCallHandler { call, result in
+        switch call.method {
+        case "set":
+          if let args = call.arguments as? [String: Any],
+             let lang = args["lang"] as? String {
+            TinyDeskLanguage.store(lang)
+            result(true)
+          } else {
+            result(FlutterError(code: "BAD_ARGS", message: "bad args", details: nil))
+          }
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
 
     FlutterMethodChannel(name: "opencode/webdata", binaryMessenger: messenger)
       .setMethodCallHandler { call, result in
@@ -39,7 +76,7 @@ enum TinyDeskChannels {
                 let name = args["name"] as? String,
                 let value = args["value"] as? String,
                 let domain = args["domain"] as? String else {
-            result(FlutterError(code: "BAD_ARGS", message: "参数错误", details: nil))
+            result(FlutterError(code: "BAD_ARGS", message: TinyDeskLanguage.text("Invalid arguments", "参数错误"), details: nil))
             return
           }
           if let cookie = HTTPCookie(properties: [
@@ -52,7 +89,7 @@ enum TinyDeskChannels {
               result(true)
             }
           } else {
-            result(FlutterError(code: "BAD_COOKIE", message: "无法构造 cookie", details: nil))
+            result(FlutterError(code: "BAD_COOKIE", message: TinyDeskLanguage.text("Could not build the cookie", "无法构造 cookie"), details: nil))
           }
         default:
           result(FlutterMethodNotImplemented)
@@ -100,7 +137,7 @@ enum TinyDeskChannels {
           let name = args["name"] as? String,
           let typed = args["bytes"] as? FlutterStandardTypedData else {
       result(
-        FlutterError(code: "BAD_ARGS", message: "参数错误", details: nil)
+        FlutterError(code: "BAD_ARGS", message: TinyDeskLanguage.text("Invalid arguments", "参数错误"), details: nil)
       )
       return
     }
@@ -132,8 +169,8 @@ enum TinyDeskChannels {
     panel.canChooseFiles = true
     panel.canChooseDirectories = false
     panel.allowsMultipleSelection = false
-    panel.message = "选择私钥文件"
-    panel.prompt = "选择"
+    panel.message = TinyDeskLanguage.text("Choose a private key file", "选择私钥文件")
+    panel.prompt = TinyDeskLanguage.text("Choose", "选择")
 
     panel.begin { response in
       guard response == .OK, let url = panel.url else {
@@ -179,11 +216,11 @@ final class HostScanCoordinator: NSObject,
 
   func scan(result: @escaping FlutterResult) {
     if self.result != nil {
-      result(FlutterError(code: "BUSY", message: "扫码窗口已打开", details: nil))
+      result(FlutterError(code: "BUSY", message: TinyDeskLanguage.text("Scan window is already open", "扫码窗口已打开"), details: nil))
       return
     }
     guard AVCaptureDevice.default(for: .video) != nil else {
-      result(FlutterError(code: "NO_CAMERA", message: "未找到可用相机", details: nil))
+      result(FlutterError(code: "NO_CAMERA", message: TinyDeskLanguage.text("No available camera", "未找到可用相机"), details: nil))
       return
     }
     self.result = result
@@ -196,7 +233,7 @@ final class HostScanCoordinator: NSObject,
             nil,
             error: FlutterError(
               code: "NO_PERMISSION",
-              message: "未授权相机访问，请在「系统设置 → 隐私与安全性 → 相机」中允许",
+              message: TinyDeskLanguage.text("Camera access not granted — allow it in System Settings → Privacy & Security → Camera", "未授权相机访问，请在「系统设置 → 隐私与安全性 → 相机」中允许"),
               details: nil
             )
           )
@@ -230,7 +267,7 @@ final class HostScanCoordinator: NSObject,
       backing: .buffered,
       defer: false
     )
-    window.title = "扫描二维码"
+    window.title = TinyDeskLanguage.text("Scan QR code", "扫描二维码")
     window.animationBehavior = .none
 
     let preview = CameraPreviewView(
@@ -239,7 +276,7 @@ final class HostScanCoordinator: NSObject,
     )
     preview.translatesAutoresizingMaskIntoConstraints = false
 
-    let hint = NSTextField(labelWithString: "将相机对准主机二维码")
+    let hint = NSTextField(labelWithString: TinyDeskLanguage.text("Point the camera at the host QR code", "将相机对准主机二维码"))
     hint.translatesAutoresizingMaskIntoConstraints = false
 
     let container = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 520))
@@ -272,7 +309,7 @@ final class HostScanCoordinator: NSObject,
           nil,
           error: FlutterError(
             code: "NO_CAMERA",
-            message: "无法访问相机",
+            message: TinyDeskLanguage.text("Cannot access the camera", "无法访问相机"),
             details: nil
           )
         )
@@ -293,7 +330,7 @@ final class HostScanCoordinator: NSObject,
           nil,
           error: FlutterError(
             code: "NO_OUTPUT",
-            message: "无法添加视频输出",
+            message: TinyDeskLanguage.text("Cannot add the video output", "无法添加视频输出"),
             details: nil
           )
         )

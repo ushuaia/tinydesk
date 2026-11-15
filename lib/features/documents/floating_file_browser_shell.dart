@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/app_language.dart';
+
 
 const _ballSize = 56.0;
 const _edge = 12.0;
@@ -108,7 +110,7 @@ class _FileBall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '文件',
+      label: AppL10n.t.filesTitle,
       button: true,
       child: Material(
         elevation: 10,

@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/app_language.dart';
+
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Full-screen QR scanner for Android and iOS. Returns the scanned text
@@ -13,14 +15,14 @@ class HostScanPage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!Platform.isAndroid && !Platform.isIOS) {
       return Scaffold(
-        appBar: AppBar(title: const Text('扫码')),
-        body: const Center(
-          child: Text('当前平台不支持相机扫码，请在导出端复制内容后使用粘贴导入。'),
+        appBar: AppBar(title: Text(AppL10n.t.scanButton)),
+        body: Center(
+          child: Text(AppL10n.t.noCameraFallback),
         ),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('扫码')),
+      appBar: AppBar(title: Text(AppL10n.t.scanButton)),
       body: MobileScanner(
         onDetect: (capture) {
           for (final barcode in capture.barcodes) {

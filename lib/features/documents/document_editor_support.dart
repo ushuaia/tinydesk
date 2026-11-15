@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../core/app_language.dart';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -32,17 +33,17 @@ class DocumentEditorSupport {
   ) async {
     final declaredSize = file.size;
     if (declaredSize != null && declaredSize > maxReadableBytes) {
-      throw const FormatException('文件超过 5MB，暂不支持在 App 内打开');
+      throw FormatException(AppL10n.t.fileTooLarge5MB);
     }
     final bytes = await session.readBytes(file.path);
     if (bytes.length > maxReadableBytes) {
-      throw const FormatException('文件超过 5MB，暂不支持在 App 内打开');
+      throw FormatException(AppL10n.t.fileTooLarge5MB);
     }
     if (_looksBinary(bytes)) {
       return EditorDocument(
         text: '',
         editable: false,
-        readOnlyReason: '检测到二进制内容，无法编辑',
+        readOnlyReason: AppL10n.t.binaryContent,
       );
     }
     final tooBig = bytes.length > maxEditableBytes;
@@ -51,13 +52,13 @@ class DocumentEditorSupport {
       return EditorDocument(
         text: text,
         editable: !tooBig,
-        readOnlyReason: tooBig ? '文件超过 2MB，只读打开' : null,
+        readOnlyReason: tooBig ? AppL10n.t.fileTooLarge2MB : null,
       );
     } on FormatException {
       return EditorDocument(
         text: latin1.decode(bytes),
         editable: false,
-        readOnlyReason: '非 UTF-8 编码，只读打开',
+        readOnlyReason: AppL10n.t.nonUtf8,
       );
     }
   }

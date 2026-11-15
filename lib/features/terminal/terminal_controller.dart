@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
+import '../../core/app_language.dart';
 import 'package:xterm/xterm.dart';
 
 import '../../data/shell_session.dart';
@@ -66,7 +67,7 @@ class TerminalController extends ChangeNotifier {
     final session = sessionProvider();
     if (session == null) {
       status = TerminalStatus.error;
-      error = '连接未就绪';
+      error = AppL10n.t.connectionNotReady;
       _notify();
       return;
     }
@@ -99,7 +100,7 @@ class TerminalController extends ChangeNotifier {
         onError: (Object e) {
           if (_disposed) return;
           status = TerminalStatus.error;
-          error = '终端错误：$e';
+          error = AppL10n.t.terminalErrorDetail(e.toString());
           _notify();
         },
       );
@@ -109,7 +110,7 @@ class TerminalController extends ChangeNotifier {
         _stdout?.cancel();
         _stdout = null;
         status = TerminalStatus.closed;
-        terminal.write('\r\n[连接已关闭]\r\n');
+        terminal.write(AppL10n.t.connectionClosedBanner);
         _notify();
       }));
 
@@ -118,7 +119,7 @@ class TerminalController extends ChangeNotifier {
       _resizeSoon();
     } catch (e) {
       status = TerminalStatus.error;
-      error = '打开终端失败：$e';
+      error = AppL10n.t.openTerminalFailed(e.toString());
       _notify();
     } finally {
       _opening = false;
@@ -157,7 +158,7 @@ class TerminalController extends ChangeNotifier {
   void onConnectionReady() {
     if (_disposed || !_wasOpen) return;
     if (status == TerminalStatus.open || status == TerminalStatus.opening) return;
-    terminal.write('\r\n[连接已恢复，正在重新打开终端…]\r\n');
+    terminal.write(AppL10n.t.connectionResumedBanner);
     unawaited(open());
   }
 

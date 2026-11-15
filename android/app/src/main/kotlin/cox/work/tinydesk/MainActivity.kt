@@ -21,7 +21,7 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "pickPrivateKey" -> {
                     if (pendingPickResult != null) {
-                        result.error("PICK_BUSY", "另一个文件选择正在进行", null)
+                        result.error("PICK_BUSY", getString(R.string.picker_busy), null)
                         return@setMethodCallHandler
                     }
                     pendingPickResult = result
@@ -33,13 +33,13 @@ class MainActivity : FlutterActivity() {
                 }
                 "saveFile" -> {
                     if (pendingSaveResult != null) {
-                        result.error("SAVE_BUSY", "另一个保存正在进行", null)
+                        result.error("SAVE_BUSY", getString(R.string.save_busy), null)
                         return@setMethodCallHandler
                     }
                     val name = call.argument<String>("name") ?: "download"
                     val bytes = call.argument<ByteArray>("bytes")
                     if (bytes == null) {
-                        result.error("BAD_ARGS", "缺少文件内容", null)
+                        result.error("BAD_ARGS", getString(R.string.missing_content), null)
                         return@setMethodCallHandler
                     }
                     pendingSaveResult = result

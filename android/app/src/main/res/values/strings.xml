@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TinyDesk</string>
+    <string name="notification_channel">Remote connection</string>
+    <string name="notification_keep_alive">Keeping the remote connection alive</string>
+    <string name="picker_busy">Another file picker is already running</string>
+    <string name="save_busy">Another save is already running</string>
+    <string name="missing_content">Missing file content</string>
+</resources>

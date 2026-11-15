@@ -1,3 +1,5 @@
+import '../core/app_language.dart';
+
 sealed class SshError implements Exception {
   const SshError(this.userMessage, {this.cause});
 
@@ -39,13 +41,13 @@ SshError mapSshException(
       text.contains('timed out') ||
       text.contains('network is unreachable') ||
       text.contains('no route to host')) {
-    return NetworkUnreachable('无法连接主机 $host:$port，请检查网络', cause: error);
+    return NetworkUnreachable(AppL10n.t.cannotReachHost(host, port.toString()), cause: error);
   }
   if (text.contains('auth') || text.contains('permission denied')) {
-    return SshAuthFailed('密钥被拒绝，请检查公钥是否已加入主机', cause: error);
+    return SshAuthFailed(AppL10n.t.keyRejected, cause: error);
   }
   if (text.contains('host key') || text.contains('fingerprint')) {
-    return HostKeyMismatch('主机指纹校验失败', cause: error);
+    return HostKeyMismatch(AppL10n.t.hostKeyVerificationFailed, cause: error);
   }
-  return UnknownSshError('SSH 连接失败：$error', cause: error);
+  return UnknownSshError(AppL10n.t.sshConnectFailed(error.toString()), cause: error);
 }

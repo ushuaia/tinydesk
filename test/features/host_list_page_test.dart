@@ -20,7 +20,7 @@ void main() {
       const MaterialApp(home: HostListPage(hosts: [])),
     );
 
-    expect(find.text('还没有主机'), findsOneWidget);
+    expect(find.text('No hosts yet'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
   });
 
@@ -47,9 +47,9 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
 
-    expect(find.text('导出私钥'), findsOneWidget);
+    expect(find.text('Export private key'), findsOneWidget);
 
-    await tester.tap(find.text('导出私钥'));
+    await tester.tap(find.text('Export private key'));
     await tester.pumpAndSettle();
     expect(exported?.id, 'h1');
   });
@@ -70,16 +70,16 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑'), findsOneWidget);
-    expect(find.text('删除'), findsOneWidget);
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
 
-    await tester.tap(find.text('编辑'));
+    await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
     expect(edited?.id, 'h1');
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('删除'));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(deleted?.id, 'h1');
   });

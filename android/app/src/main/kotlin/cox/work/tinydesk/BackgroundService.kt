@@ -41,7 +41,7 @@ class BackgroundService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "远程连接",
+            getString(R.string.notification_channel),
             NotificationManager.IMPORTANCE_LOW,
         )
         channel.setShowBadge(false)
@@ -56,8 +56,8 @@ class BackgroundService : Service() {
             Notification.Builder(this)
         }
         return builder
-            .setContentTitle("方寸台")
-            .setContentText("保持远程连接")
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.notification_keep_alive))
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setOngoing(true)
             .build()

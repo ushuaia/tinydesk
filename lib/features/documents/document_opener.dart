@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_language.dart';
+
+
 import '../../core/app_session_manager.dart';
 import '../../core/connection_state.dart';
 import '../../data/favorite_store.dart';
@@ -37,7 +40,7 @@ class DocumentOpener {
     if (!context.mounted) return false;
     if (target == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('该主机已被删除')),
+        SnackBar(content: Text(AppL10n.t.hostDeleted)),
       );
       await FavoriteIndex().removeForHost(hostId);
       return false;
@@ -51,7 +54,7 @@ class DocumentOpener {
       if (!context.mounted) return false;
       if (pair == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('找不到该主机的私钥')),
+          SnackBar(content: Text(AppL10n.t.hostKeyMissing)),
         );
         return false;
       }
@@ -66,16 +69,16 @@ class DocumentOpener {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('连接并打开？'),
-            content: Text('需要先连接 ${host.name}，然后打开这个文件。'),
+            title: Text(AppL10n.t.connectAndOpenTitle),
+            content: Text(AppL10n.t.connectAndOpenBody(host.name)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+                child: Text(AppL10n.t.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('继续'),
+                child: Text(AppL10n.t.continueLabel),
               ),
             ],
           ),
@@ -111,7 +114,7 @@ class DocumentOpener {
     if (tunnel == null || session == null || !session.isReady) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(session?.snapshot.message ?? '连接未就绪'),
+          content: Text(session?.snapshot.message ?? AppL10n.t.connectionNotReady),
         ),
       );
       return false;
@@ -139,7 +142,7 @@ class _ConnectingDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AlertDialog(
+    return AlertDialog(
       content: Row(
         children: [
           SizedBox(
@@ -148,7 +151,7 @@ class _ConnectingDialog extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           SizedBox(width: 16),
-          Text('正在连接主机…'),
+          Text(AppL10n.t.connectingHost),
         ],
       ),
     );

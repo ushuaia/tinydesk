@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_language.dart';
+
+
 import '../../data/remote_file.dart';
 import '../../ssh/tunnel_session.dart';
 import 'document_handle.dart';
@@ -98,7 +101,7 @@ class MarkdownDocumentHandle extends DocumentHandle {
           },
           icon: const Icon(Icons.save_outlined),
           iconSize: 18,
-          tooltip: '保存',
+          tooltip: AppL10n.t.save,
         ),
       IconButton(
         onPressed: () {
@@ -107,7 +110,7 @@ class MarkdownDocumentHandle extends DocumentHandle {
           } catch (error) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('切换编辑失败：$error')),
+                SnackBar(content: Text(AppL10n.t.toggleEditFailed(error.toString()))),
               );
             }
           }
@@ -116,20 +119,20 @@ class MarkdownDocumentHandle extends DocumentHandle {
           editing ? Icons.visibility_outlined : Icons.edit_outlined,
         ),
         iconSize: 18,
-        tooltip: editing ? '阅读' : '编辑',
+        tooltip: editing ? AppL10n.t.reading : AppL10n.t.edit,
       ),
       if (!editing && state != null && wide) ...[
         IconButton(
           onPressed: () => _state?.zoomBy(-0.1),
           icon: const Icon(Icons.text_decrease),
           iconSize: 18,
-          tooltip: '缩小字号',
+          tooltip: AppL10n.t.zoomOutFont,
         ),
         IconButton(
           onPressed: () => _state?.zoomBy(0.1),
           icon: const Icon(Icons.text_increase),
           iconSize: 18,
-          tooltip: '放大字号',
+          tooltip: AppL10n.t.zoomInFont,
         ),
       ],
     ];
@@ -157,20 +160,20 @@ class MarkdownDocumentHandle extends DocumentHandle {
     final action = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('未保存的修改'),
-        content: Text('${file.name} 有未保存的修改。'),
+        title: Text(AppL10n.t.unsavedChanges),
+        content: Text(AppL10n.t.unsavedChangesFile(file.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'cancel'),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 'discard'),
-            child: const Text('放弃'),
+            child: Text(AppL10n.t.discard),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, 'save'),
-            child: const Text('保存'),
+            child: Text(AppL10n.t.save),
           ),
         ],
       ),
@@ -219,13 +222,13 @@ class PdfDocumentHandle extends DocumentHandle {
         onPressed: () => state.zoomBy(-0.2),
         icon: const Icon(Icons.zoom_out),
         iconSize: 18,
-        tooltip: '缩小',
+        tooltip: AppL10n.t.zoomOut,
       ),
       IconButton(
         onPressed: () => state.zoomBy(0.2),
         icon: const Icon(Icons.zoom_in),
         iconSize: 18,
-        tooltip: '放大',
+        tooltip: AppL10n.t.zoomIn,
       ),
     ];
   }

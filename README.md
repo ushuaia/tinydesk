@@ -1,94 +1,97 @@
-# 方寸台 TinyDesk
+# TinyDesk
 
-**让你的 [opencode](https://opencode.ai/) 在手机和电脑上随处可用。**
+English | [简体中文](README.zh-CN.md)
 
-[opencode](https://opencode.ai/) 是一款终端 AI 编码代理，跑在你的电脑或服务器上。它一跑起来就离不开那台机器：AI 的任务常常要执行几分钟甚至更久，但你没法一直守在屏幕前——起身倒杯水、通勤路上、躺在床上想看一眼它改了什么、批准一个权限请求，都做不到；换个设备想接着用，又是重新配置一遍。
+**Keep [opencode](https://opencode.ai/) within reach — on your phone and your computer.**
 
-TinyDesk 就是为这个而生：App 自动建立 SSH 隧道并打开 opencode 的完整界面，同时补上终端、文件浏览与跨设备的收藏和阅读进度——它把 opencode 变成一个随身工作台。
+[opencode](https://opencode.ai/) is a terminal-based AI coding agent that runs on your computer or server. Once it starts a task, it is stuck to that machine: jobs often run for minutes at a time, and you can't stay glued to the screen — step away for coffee, check in on your commute, peek at what it changed from bed, or approve a permission request. Switching to another device means setting everything up again.
+
+TinyDesk exists to fix that: the app establishes an SSH tunnel automatically and opens the full opencode UI, while adding a terminal, file browsing, and cross-device favorites and reading progress. It turns opencode into a workbench you carry with you.
 
 <p align="center">
-  <img src="docs/images/mobile-agent.jpg" width="240" alt="手机上的 opencode 工作区">
+  <img src="docs/images/mobile-agent.jpg" width="240" alt="opencode workspace on a phone">
   &nbsp;&nbsp;
-  <img src="docs/images/mac-agent.png" width="520" alt="Mac 上的 opencode 工作区">
+  <img src="docs/images/mac-agent.png" width="520" alt="opencode workspace on a Mac">
 </p>
 
-机器侧无需任何改造——复用你已有的 `sshd` 和 opencode，不开放公网端口、不安装 Agent。
+No changes are needed on the server — reuse your existing `sshd` and opencode. No public ports, no agent to install.
 
-## 功能
+## Features
 
-- **多主机会话**：同时保持多条 SSH 连接，用标签栏切换；退出后重新打开会恢复上次的会话。
-- **内嵌 opencode Web UI**：通过本地端口转发访问服务器上的 `opencode serve`，不开放公网端口。
-- **本机主机**（macOS）：直接使用本机已安装的 opencode，无需 SSH，也无需配置主机。
-- **终端**：远程主机走 SSH shell；本机使用系统登录 shell（`$SHELL -l`）。支持多会话并行，窗口尺寸变化会同步到 PTY。
-- **悬浮文件浏览器**：悬浮球 + 全屏窗口，随时唤出、最小化保留状态；多工程根并列、目录树懒加载、新建/删除、收藏。
-- **文档查看与编辑**：Markdown（阅读 / 编辑双模式，文档引用的本机图片自动加载显示）、代码与文本（CodeMirror 6）、PDF、Word、Excel/CSV、图片。
-- **二维码跨设备同步**：把主机（含私钥）编码为**两张先后出示的二维码**——一张随机密钥码、一张加密内容码。两码分屏出示、不同时可见，单张截图无法还原；内容 15 分钟内有效。目标设备扫码即导入（macOS/iOS/Android 用相机，鸿蒙用系统扫码，桌面端也可粘贴）。
-- **收藏与阅读进度**：收藏按主机分组；收藏与 Markdown/PDF 的阅读位置写入项目的 `.tinydesk/users/<SSH 用户名>/`，同一用户在多台设备间共享，不同服务器账号互相隔离。
-- **自动同步**：打开的文档与展开的目录每 5 秒检测服务器端变化并自动更新（有未保存编辑时绝不覆盖，只提示冲突）。
-- **opencode 升级**：在主机上读取当前与最新版本，一键升级并重启服务。
-- **安全**：私钥与口令保存在系统安全存储；主机指纹首次确认，变更时阻断连接。
-- **设置**（主机列表右上角）：深色模式、字体缩放、后台保活、进入会话自动收起键盘、清除本机数据。
+- **Multi-host sessions**: keep multiple SSH connections alive at once, switch with the tab bar; reopening the app restores your previous sessions.
+- **Embedded opencode Web UI**: reach `opencode serve` on the server through local port forwarding — no public ports exposed.
+- **This Machine host** (macOS): use the opencode already installed locally; no SSH, no host configuration.
+- **Terminal**: remote hosts get an SSH shell; the local host uses the system login shell (`$SHELL -l`). Multiple sessions in parallel, with PTY size sync on window resize.
+- **Floating file browser**: a draggable floating ball + fullscreen window you can summon anytime; state is preserved when minimized; multiple project roots side by side, lazy directory tree, create/delete, favorites.
+- **Document viewing & editing**: Markdown (dual read/edit mode, local images referenced by the document load automatically), code and text (CodeMirror 6), PDF, Word, Excel/CSV, images.
+- **Cross-device host transfer via QR codes**: encode a host (including its private key) into **two QR codes shown one after another** — one random key code, one encrypted content code. They are shown on separate screens, never visible at the same time, so a single screenshot cannot reconstruct the data; content expires in 15 minutes. The target device imports automatically after scanning both (camera on macOS/iOS/Android, system scanner on HarmonyOS; desktop can also paste).
+- **Favorites & reading progress**: favorites are grouped per host; favorites and Markdown/PDF reading positions are written to `.tinydesk/users/<SSH username>/` in the project — shared across devices for the same user, isolated between different server accounts.
+- **Auto sync**: open documents and expanded directories are checked every 5 seconds for server-side changes and updated automatically (never overwrites unsaved edits — it only reports a conflict).
+- **opencode upgrade**: read the current and latest version on the host, upgrade in one tap and restart the service.
+- **Security**: private keys and passphrases are stored in the system secure storage; host fingerprints are confirmed on first connect and blocked on change.
+- **Languages**: English and Simplified Chinese, switchable in Settings (follow system / Chinese / English).
+- **Settings** (top-right of the host list): dark mode, font scaling, background keep-alive, auto-hide keyboard on entering a session, clear local data.
 
-## 平台支持
+## Platform support
 
-| 平台 | 状态 | 说明 |
+| Platform | Status | Notes |
 |---|---|---|
-| macOS | ✅ | 完整功能，含本机主机与本地终端 |
-| iOS | ✅ | 完整功能；无本机主机 |
-| Android | ✅ | 完整功能；无本机主机 |
-| HarmonyOS NEXT | ✅ | 完整功能；无本机主机 |
-| Linux / Windows | 🚧 计划中 | 依赖桌面 WebView 方案，尚未实现，可自行使用 AI 实现 |
+| macOS | ✅ | Full features, including the This Machine host and local terminal |
+| iOS | ✅ | Full features; no This Machine host |
+| Android | ✅ | Full features; no This Machine host |
+| HarmonyOS NEXT | ✅ | Full features; no This Machine host |
+| Linux / Windows | 🚧 Planned | Needs a desktop WebView solution, not implemented yet |
 
-## 工作原理
+## How it works
 
 ```
-┌─────────────────────────── 设备 ───────────────────────────┐
+┌──────────────────────────── Device ────────────────────────┐
 │  Flutter UI                                                │
-│    ├─ 主机列表 / 会话标签                                   │
-│    ├─ WebView（opencode Web UI）                            │
-│    ├─ 悬浮终端（SSH shell / 本地 PTY）                       │
-│    └─ 悬浮文件浏览器（SFTP / 本地文件）                       │
+│    ├─ Host list / session tabs                             │
+│    ├─ WebView (opencode Web UI)                            │
+│    ├─ Floating terminal (SSH shell / local PTY)            │
+│    └─ Floating file browser (SFTP / local files)           │
 │                                                            │
-│  dartssh2 ── 本地端口转发 127.0.0.1:<local> ──┐              │
-└───────────────────────────────────────────────┼─────────────┘
-                                                │ SSH :22
-┌───────────────────────────────────────────────▼─────────────┐
-│  服务器                                                     │
-│    sshd                                                     │
-│    opencode serve 127.0.0.1:49374                           │
-└─────────────────────────────────────────────────────────────┘
+│  dartssh2 ── local forward 127.0.0.1:<local> ──┐           │
+└────────────────────────────────────────────────┼───────────┘
+                                                 │ SSH :22
+┌────────────────────────────────────────────────▼───────────┐
+│  Server                                                    │
+│    sshd                                                    │
+│    opencode serve 127.0.0.1:49374                          │
+└────────────────────────────────────────────────────────────┘
 ```
 
-- 每条主机连接都会在设备本地分配一个空闲端口，转发到服务器上的 opencode 服务。
-- 文件与终端复用同一条 SSH 连接（SFTP + shell 通道）。
-- 桌面端的「本机」主机直接在本地启动/连接 opencode，通过本地回环地址访问，不建立 SSH。
+- Each host connection allocates a free local port on the device and forwards it to the opencode service on the server.
+- Files and the terminal reuse the same SSH connection (SFTP + shell channel).
+- The desktop "This Machine" host starts/connects to opencode directly on the machine via the loopback interface — no SSH.
 
-## 主机准备
+## Host prerequisites
 
-服务器只需要已有的 `sshd` 和 opencode v2，不安装 Agent，也不开放公网端口。
+The server only needs the existing `sshd` and opencode v2 — no agent, no public ports.
 
 ```bash
-# 确认 opencode 版本（需要 v2）
+# Check the opencode version (v2 required)
 opencode --version
 
-# 服务默认监听 127.0.0.1:49374；
-# 如果你改过配置，用下面两条恢复回环监听与默认端口
+# The service listens on 127.0.0.1:49374 by default;
+# if you changed the config, restore loopback and the default port
 opencode service set hostname 127.0.0.1
 opencode service set port 49374
 
 opencode service start
-opencode service status   # 应输出 http://127.0.0.1:49374
+opencode service status   # should print http://127.0.0.1:49374
 ```
 
-App 侧需要：
+On the app side you need:
 
-- 能用 OpenSSH 格式的私钥通过 SSH 登录该主机（支持带 passphrase 的密钥；不支持 PuTTY `.ppk`，暂不支持密码登录）
-- 首次连接时确认主机指纹
-- 远端端口默认 `49374`，本地端口自动分配，可在主机表单中修改
+- SSH login to that host with an OpenSSH-format private key (passphrase-protected keys are supported; PuTTY `.ppk` is not, and password login is not supported yet)
+- Confirm the host fingerprint on first connect
+- The remote port defaults to `49374`; a local port is allocated automatically and can be changed in the host form
 
-## 安装与构建
+## Install & build
 
-需要 Flutter 3.47 或更新的稳定版。
+Requires Flutter 3.47 or newer stable.
 
 ```bash
 git clone https://github.com/ushuaia/tinydesk.git tinydesk
@@ -103,7 +106,7 @@ flutter build macos --release
 open build/macos/Build/Products/Release/TinyDesk.app
 ```
 
-依赖通过 CocoaPods 管理，建议使用 1.17 或更新版本（旧版本无法解析当前的 SPM 配置）。
+Dependencies are managed with CocoaPods; 1.17 or newer is recommended (older versions cannot resolve the current SPM configuration).
 
 ### iOS
 
@@ -111,7 +114,7 @@ open build/macos/Build/Products/Release/TinyDesk.app
 flutter build ios --release
 ```
 
-工程没有锁定开发团队，首次构建请在 Xcode 中选择你自己的 Team。
+The project does not pin a development team — pick your own Team in Xcode on first build.
 
 ### Android
 
@@ -119,81 +122,82 @@ flutter build ios --release
 flutter build apk --release
 ```
 
-未配置 release keystore 时会使用调试签名；上架前请配置自己的签名。
+Without a release keystore the debug signing is used; configure your own signing before publishing.
 
 ### HarmonyOS NEXT
 
-前置条件：安装 DevEco Studio（含 HarmonyOS SDK 与 `ohpm`/`hdc` 工具链，首次启动登录华为开发者账号），并安装 Flutter-OH（[openharmony-sig/flutter_flutter](https://gitcode.com/openharmony-sig/flutter_flutter)，见 `scripts/env-ohos.sh` 中的说明）；手机需开启开发者模式与 USB 调试。
+Prerequisites: install DevEco Studio (with the HarmonyOS SDK and the `ohpm`/`hdc` toolchain; sign in with a Huawei developer account on first launch) and the Flutter-OH fork ([openharmony-sig/flutter_flutter](https://gitcode.com/openharmony-sig/flutter_flutter), see the notes in `scripts/env-ohos.sh`); enable developer mode and USB debugging on the phone.
 
 ```bash
-# 1. 准备签名配置（只需一次）
+# 1. Prepare signing config (once)
 cp ohos/build-profile.example.json5 ohos/build-profile.json5
-# 用 DevEco Studio 打开 ohos/，在 Project Structure → Signing Configs 中生成自动签名
+# Open ohos/ in DevEco Studio and generate auto signing in
+# Project Structure → Signing Configs
 
-# 2. 构建
+# 2. Build
 source scripts/env-ohos.sh
 export JAVA_TOOL_OPTIONS="-Djdk.util.zip.disableZip64ExtraFieldValidation=true"
 flutter build hap --release
 
-# 3. 安装
+# 3. Install
 hdc install -r build/ohos/hap/entry-default-signed.hap
 ```
 
-常见问题：SDK 未识别用 `flutter config --ohos-sdk <sdk 路径>`；`ohpm`/`hdc` 不在 PATH 时把 DevEco Studio 的 `Contents/tools/ohpm/bin` 与 `Contents/sdk/default/openharmony/toolchains` 加进 PATH；手机连不上时确认 USB 调试并尝试 `hdc kill` 后重试。其余参考华为开发者文档与 Flutter-OHOS 社区文档。
+Troubleshooting: if the SDK is not recognized, run `flutter config --ohos-sdk <sdk path>`; when `ohpm`/`hdc` are not on PATH, add DevEco Studio's `Contents/tools/ohpm/bin` and `Contents/sdk/default/openharmony/toolchains` to PATH; if the phone won't connect, check USB debugging and try `hdc kill` first. For the rest, refer to the Huawei developer docs and the Flutter-OHOS community docs.
 
-## 使用
+## Usage
 
-1. **添加主机**：主机列表 → 添加，填写地址、端口、用户名，粘贴 OpenSSH 私钥（可选 passphrase）。
-2. **连接**：点击主机，等待隧道与服务探活完成，进入工作区。
-
-   <p align="center">
-     <img src="docs/images/mobile-main.jpg" width="220" alt="手机端主机列表">
-     &nbsp;&nbsp;&nbsp;
-     <img src="docs/images/mac-main.png" width="520" alt="Mac 端主机列表">
-   </p>
-3. **工作区工具栏**：文件、收藏、opencode 升级、终端。
-4. **文件浏览器**：悬浮球可拖动；点击展开，最小化后状态保留；「更多 → 刷新」会重新读取服务器上的文件。
+1. **Add a host**: host list → Add; fill in the address, port and username, paste an OpenSSH private key (optional passphrase).
+2. **Connect**: tap the host, wait for the tunnel and service probe, and the workspace opens.
 
    <p align="center">
-     <img src="docs/images/mobile-dict.jpg" width="220" alt="手机上的文件浏览器">
+     <img src="docs/images/mobile-main.jpg" width="220" alt="Host list on mobile">
      &nbsp;&nbsp;&nbsp;
-     <img src="docs/images/mac-dict.png" width="520" alt="Mac 上的文件浏览器">
+     <img src="docs/images/mac-main.png" width="520" alt="Host list on macOS">
    </p>
-5. **本机主机**（macOS）：自动创建，点击即用；终端运行系统登录 shell。
-6. **设置**：主机列表右上角；「清除数据」会删除本机的主机、密钥、会话、收藏与阅读状态，但保留主题等设备偏好。
-7. **跨设备同步主机**：在已有主机的设备上点主机菜单「显示主机二维码」，在新设备上「添加主机 → 扫码添加」，先后扫描两张二维码即可把主机（含私钥）迁移过去；桌面端也可以通过复制/粘贴完成。
+3. **Workspace toolbar**: files, favorites, opencode upgrade, terminal.
+4. **File browser**: the floating ball is draggable; tap to expand, state survives minimizing; "More → Refresh" re-reads files from the server.
 
    <p align="center">
-     <img src="docs/images/mobile-qrcode.jpg" width="240" alt="显示主机二维码">
+     <img src="docs/images/mobile-dict.jpg" width="220" alt="Floating file browser on a phone">
      &nbsp;&nbsp;&nbsp;
-     <img src="docs/images/mobie-scan.jpg" width="240" alt="扫码添加主机">
+     <img src="docs/images/mac-dict.png" width="520" alt="Floating file browser on macOS">
+   </p>
+5. **This Machine** (macOS): created automatically, tap to use; the terminal runs the system login shell.
+6. **Settings**: top-right of the host list; "Clear data" removes hosts, keys, sessions, favorites and reading progress on this device, but keeps device preferences like the theme.
+7. **Transfer a host across devices**: on the device that has the host, tap the host menu "Show host QR code"; on the new device use "Add host → Scan to add" and scan the two codes one after another to migrate the host (including its key); on desktop you can also copy/paste.
+
+   <p align="center">
+     <img src="docs/images/mobile-qrcode.jpg" width="240" alt="Show host QR code">
+     &nbsp;&nbsp;&nbsp;
+     <img src="docs/images/mobie-scan.jpg" width="240" alt="Scan to add a host">
    </p>
 
-## 数据存放在哪里
+## Where is my data?
 
-| 数据 | 位置 |
+| Data | Location |
 |---|---|
-| 主机列表、会话状态、设置 | 本机（应用私有存储） |
-| 私钥与 passphrase | 系统安全存储（Keychain / Keystore / Asset Store） |
-| 收藏、阅读进度 | 项目的 `.tinydesk/users/<SSH 用户名>/`（服务器上）；同一用户跨设备共享，不同账号互相隔离 |
-| opencode 会话 cookie | 系统 WebView 的 cookie 存储 |
+| Host list, session state, settings | On the device (app-private storage) |
+| Private keys and passphrases | System secure storage (Keychain / Keystore / Asset Store) |
+| Favorites, reading progress | `.tinydesk/users/<SSH username>/` in the project (on the server); shared across devices for the same user, isolated between accounts |
+| opencode session cookie | System WebView cookie store |
 
-## 安全模型
+## Security model
 
-- SSH 直连主机，不经过任何中转服务器；没有遥测，也没有云端同步。
-- 主机指纹首次确认后记录，变更时阻断连接并要求确认。
-- 私钥与口令保存在系统安全存储：macOS/iOS 使用 Keychain，Android 使用 Keystore 加密的存储，HarmonyOS 使用 Asset Store。
-- 旧版本留在 SharedPreferences 中的明文私钥会在启动时自动迁移，成功后删除明文。
-- 私钥、口令与会话 cookie 不写入日志或临时文件。
+- Direct SSH to the host — no relay servers, no telemetry, no cloud sync.
+- Host fingerprints are recorded after first confirmation; a changed fingerprint blocks the connection and requires confirmation.
+- Private keys and passphrases live in system secure storage: Keychain on macOS/iOS, Keystore-backed encrypted storage on Android, Asset Store on HarmonyOS.
+- Plaintext keys left in SharedPreferences by older versions are migrated automatically on startup and the plaintext is deleted.
+- Private keys, passphrases and session cookies are never written to logs or temp files.
 
-## 开发
+## Development
 
 ```bash
-flutter test      # 单元 + Widget 测试
-flutter analyze   # 静态检查
+flutter test      # unit + widget tests
+flutter analyze   # static analysis
 ```
 
-端到端连接检查（不需要 App）：
+End-to-end connectivity check (no app needed):
 
 ```bash
 OC_TEST_HOST=your-host.example.com \
@@ -203,50 +207,49 @@ OC_TEST_KEY=$HOME/.ssh/id_ed25519 \
 dart run tool/integration_check.dart
 ```
 
-### 目录结构
+### Project layout
 
 ```
 lib/
-├─ core/            会话管理、连接状态机
-├─ data/            主机仓库、安全存储、本地会话、收藏与同步
-├─ ssh/             SSH 连接、端口转发、隧道会话
-├─ opencode/        服务探活、配对、opencode CLI 解析
+├─ core/            session management, connection state machine
+├─ data/            host repository, secure storage, local sessions, favorites & sync
+├─ ssh/             SSH connection, port forwarding, tunnel sessions
+├─ opencode/        service probe, pairing, opencode CLI resolution
 ├─ features/
-│  ├─ hosts/        主机列表与表单
-│  ├─ connect/      连接进度
-│  ├─ workspace/    WebView 工作区与会话标签
-│  ├─ terminal/     悬浮终端
-│  ├─ documents/    悬浮文件浏览器与各类文档视图
-│  └─ settings/     设置
-└─ platform/        平台通道（文件选择、窗口、输入拦截等）
-third_party/        webview_flutter 鸿蒙适配、xterm fork
-docs/               设计文档与构建说明
-tool/               开发辅助脚本
+│  ├─ hosts/        host list & forms
+│  ├─ connect/      connection progress
+│  ├─ workspace/    WebView workspace & session tabs
+│  ├─ terminal/     floating terminal
+│  ├─ documents/    floating file browser & document views
+│  └─ settings/     settings
+└─ platform/        platform channels (file picker, window, input interception, …)
+third_party/        webview_flutter HarmonyOS adapter, xterm fork
+docs/               design docs & build notes
+tool/               dev helper scripts
 ```
 
-## 已知限制
+## Known limitations
 
-- 不支持 Linux / Windows 桌面（有计划）。
-- 移动端没有「本机」主机（系统层面没有可用的 opencode CLI）。
-- 不支持密码登录与 PuTTY `.ppk` 私钥。
-- 同一主机上的多个文件浏览器窗口共用一棵目录树根。
-- 私钥完成安全迁移后，回退到旧版本会读不到私钥。
-- iOS / macOS 的 Keychain 数据在卸载重装后可能保留，需要在系统里手动清除。
+- No Linux / Windows desktop support yet (planned).
+- No "This Machine" host on mobile (no usable opencode CLI at the OS level).
+- Password login and PuTTY `.ppk` keys are not supported.
+- Multiple file browser windows on the same host share one directory-tree root.
+- After keys are migrated to secure storage, downgrading to an older version will lose access to them.
+- Keychain data on iOS/macOS may survive uninstall/reinstall; clear it manually in the system if needed.
 
-## 许可证
+## License
 
 [MIT](LICENSE)
 
-## 第三方组件
+## Third-party components
 
-- [Flutter](https://flutter.dev/)（BSD-3-Clause）
-- [dartssh2](https://pub.dev/packages/dartssh2)（MIT）
-- [xterm.dart](https://pub.dev/packages/xterm)（MIT，仓库内为修改版）
-- [flutter_pty](https://pub.dev/packages/flutter_pty)（MIT）
-- [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage)（BSD-3-Clause）
-- [webview_flutter](https://pub.dev/packages/webview_flutter) 与 HarmonyOS 适配（BSD-3-Clause，仓库内为修改版）
-- [PDF.js](https://mozilla.github.io/pdf.js/)（Apache-2.0）
-- [CodeMirror 6](https://codemirror.net/)（MIT）
-- [SheetJS](https://sheetjs.com/)（Apache-2.0）
-- [mammoth.js](https://github.com/mwilliamson/mammoth.js)（BSD-2-Clause）
-- [Meslo LG](https://github.com/andreberg/Meslo-Font)（Apache-2.0）
+- [Flutter](https://flutter.dev/) (BSD-3-Clause)
+- [dartssh2](https://pub.dev/packages/dartssh2) (MIT)
+- [xterm.dart](https://pub.dev/packages/xterm) (MIT, modified in this repo)
+- [flutter_pty](https://pub.dev/packages/flutter_pty) (MIT)
+- [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage) (BSD-3-Clause)
+- [webview_flutter](https://pub.dev/packages/webview_flutter) + HarmonyOS adapter (BSD-3-Clause, modified in this repo)
+- [PDF.js](https://mozilla.github.io/pdf.js/) (Apache-2.0)
+- [CodeMirror 6](https://codemirror.net/) (MIT)
+- [SheetJS](https://sheetjs.com/) (Apache-2.0)
+- [mammoth.js](https://github.com/mwilliamson/mammoth.js) (BSD-2-Clause)

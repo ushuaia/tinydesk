@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../../core/app_language.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/app_session_manager.dart';
@@ -135,16 +137,16 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
   }
 
   Widget _buildWindow(TerminalController terminal) {
-    final hostName = widget.manager.activeHost?.name ?? '终端';
+    final hostName = widget.manager.activeHost?.name ?? AppL10n.t.terminal;
     final status = terminal.status;
     final banner = switch (status) {
-      TerminalStatus.opening => const _TerminalBanner(message: '正在打开终端…'),
+      TerminalStatus.opening => _TerminalBanner(message: AppL10n.t.openingTerminal),
       TerminalStatus.closed => _TerminalBanner(
-          message: '终端已断开',
+          message: AppL10n.t.terminalDisconnected,
           onRetry: () => unawaited(terminal.open()),
         ),
       TerminalStatus.error => _TerminalBanner(
-          message: terminal.error ?? '终端错误',
+          message: terminal.error ?? AppL10n.t.terminalError,
           onRetry: () => unawaited(terminal.open()),
         ),
       _ => null,
@@ -155,7 +157,7 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
       child: Column(
         children: [
           FloatingWindowHeader(
-            title: '$hostName · 终端',
+            title: AppL10n.t.terminalTitle(hostName),
             accentColor: _statusColor(status),
             onMinimize: terminal.minimize,
             onClose: () => unawaited(terminal.close()),
@@ -163,7 +165,7 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
                     status == TerminalStatus.error
                 ? () => unawaited(terminal.open())
                 : null,
-            closeTooltip: '关闭终端',
+            closeTooltip: AppL10n.t.closeTerminal,
           ),
           Expanded(
             child: TerminalViewHost(
@@ -209,7 +211,7 @@ class _TerminalBall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '终端',
+      label: AppL10n.t.terminal,
       button: true,
       child: Material(
         elevation: 10,
@@ -282,7 +284,7 @@ class _TerminalBanner extends StatelessWidget {
                 minimumSize: const Size(0, 28),
                 padding: const EdgeInsets.symmetric(horizontal: 8),
               ),
-              child: const Text('重试', style: TextStyle(fontSize: 11)),
+              child: Text(AppL10n.t.retry, style: TextStyle(fontSize: 11)),
             ),
         ],
       ),

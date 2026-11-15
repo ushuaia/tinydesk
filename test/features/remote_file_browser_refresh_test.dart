@@ -61,9 +61,9 @@ void main() {
 
     expect(created, 1);
 
-    await tester.tap(find.byTooltip('更多'));
+    await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('刷新'));
+    await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
 
     expect(created, 2);

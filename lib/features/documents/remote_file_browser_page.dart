@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../../core/app_language.dart';
+
 import 'package:flutter/services.dart';
 
 import '../../data/explorer_state_store.dart';
@@ -192,7 +195,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       setState(() => _isFavorite = !isFavorite);
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(isFavorite ? '已取消收藏' : '已收藏')),
+      SnackBar(content: Text(isFavorite ? AppL10n.t.unfavorited : AppL10n.t.favorited)),
     );
   }
 
@@ -374,7 +377,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     if (handle == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('暂不支持打开 .${file.extension} 文件')),
+        SnackBar(content: Text(AppL10n.t.unsupportedFile(file.extension))),
       );
       return;
     }
@@ -409,16 +412,16 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('关闭文件页？'),
-        content: const Text('将返回会话页，已保存的文件不会丢失。'),
+        title: Text(AppL10n.t.closeFilePageTitle),
+        content: Text(AppL10n.t.closeFilePageBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('关闭'),
+            child: Text(AppL10n.t.close),
           ),
         ],
       ),
@@ -455,7 +458,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         await Clipboard.setData(ClipboardData(text: file.path));
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('路径已复制')),
+          SnackBar(content: Text(AppL10n.t.pathCopied)),
         );
       },
     );
@@ -593,13 +596,13 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(saved == null ? '已取消下载' : '已保存到 $saved'),
+          content: Text(saved == null ? AppL10n.t.downloadCancelled : AppL10n.t.savedTo(saved)),
         ),
       );
     } catch (error) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('下载失败：$error')),
+        SnackBar(content: Text(AppL10n.t.downloadFailed(error.toString()))),
       );
     } finally {
       if (tempDir != null) {
@@ -614,20 +617,20 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('删除 ${file.name}？'),
+        title: Text(AppL10n.t.deleteFileTitle(file.name)),
         content: Text(
           file.isDirectory
-              ? '文件夹会连同内部文件一起删除，且不可恢复。'
-              : '删除后不可恢复。',
+              ? AppL10n.t.folderDeleteWarning
+              : AppL10n.t.deleteIrreversible,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: Text(AppL10n.t.delete),
           ),
         ],
       ),
@@ -652,13 +655,13 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已删除 ${file.name}')),
+        SnackBar(content: Text(AppL10n.t.fileDeleted(file.name))),
       );
       setState(() => _treeRefreshToken++);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('删除失败：$error')),
+        SnackBar(content: Text(AppL10n.t.deleteFailed(error.toString()))),
       );
     }
   }
@@ -680,13 +683,13 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('新建文件'),
+        title: Text(AppL10n.t.newFile),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: '文件名',
-            hintText: '例如 notes.md',
+          decoration: InputDecoration(
+            labelText: AppL10n.t.fileName,
+            hintText: AppL10n.t.fileNameHint,
           ),
           onSubmitted: (value) =>
               Navigator.pop(dialogContext, value.trim()),
@@ -694,12 +697,12 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.pop(dialogContext, controller.text.trim()),
-            child: const Text('创建'),
+            child: Text(AppL10n.t.create),
           ),
         ],
       ),
@@ -707,7 +710,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     if (name == null || name.isEmpty || !mounted) return;
     if (name.contains('/')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('文件名不能包含 /')),
+        SnackBar(content: Text(AppL10n.t.fileNameNoSlash)),
       );
       return;
     }
@@ -719,20 +722,20 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       if (exists) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('同名文件已存在')),
+          SnackBar(content: Text(AppL10n.t.fileExists)),
         );
         return;
       }
       await widget.session.writeText(target, '');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已创建 $name')),
+        SnackBar(content: Text(AppL10n.t.fileCreated(name))),
       );
       setState(() => _treeRefreshToken++);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('创建失败：$error')),
+        SnackBar(content: Text(AppL10n.t.createFailed(error.toString()))),
       );
     }
   }
@@ -742,23 +745,23 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('新建文件夹'),
+        title: Text(AppL10n.t.newFolder),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: '文件夹名'),
+          decoration: InputDecoration(labelText: AppL10n.t.folderName),
           onSubmitted: (value) =>
               Navigator.pop(dialogContext, value.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.pop(dialogContext, controller.text.trim()),
-            child: const Text('创建'),
+            child: Text(AppL10n.t.create),
           ),
         ],
       ),
@@ -766,7 +769,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     if (name == null || name.isEmpty || !mounted) return;
     if (name.contains('/')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('名称不能包含 /')),
+        SnackBar(content: Text(AppL10n.t.nameNoSlash)),
       );
       return;
     }
@@ -775,13 +778,13 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       await widget.session.createDirectory('$base$name');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已创建 $name/')),
+        SnackBar(content: Text(AppL10n.t.folderCreated(name))),
       );
       setState(() => _treeRefreshToken++);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('创建失败：$error')),
+        SnackBar(content: Text(AppL10n.t.createFailed(error.toString()))),
       );
     }
   }
@@ -791,7 +794,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     final path = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('跳转到路径'),
+        title: Text(AppL10n.t.jumpToPathTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -802,11 +805,11 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('跳转'),
+            child: Text(AppL10n.t.jump),
           ),
         ],
       ),
@@ -847,10 +850,10 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             FloatingWindowHeader(
               leadingIcon: Icons.folder_open,
               title:
-                  widget.hostName.isEmpty ? '文件' : '${widget.hostName} · 文件',
+                  widget.hostName.isEmpty ? AppL10n.t.filesTitle : AppL10n.t.filesTitleW(widget.hostName),
               onMinimize: widget.onMinimize,
               onClose: () => unawaited(_closeWindow()),
-              closeTooltip: '关闭窗口',
+              closeTooltip: AppL10n.t.closeWindow,
             ),
             Container(
               height: RemoteFileBrowserPage._floatingToolbarHeight,
@@ -875,7 +878,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            tooltip: '返回',
+            tooltip: AppL10n.t.back,
             onPressed: () => unawaited(_handleBack()),
           ),
           title: doc == null
@@ -918,7 +921,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             color: _isFavorite ? Theme.of(context).colorScheme.primary : null,
           ),
           iconSize: 20,
-          tooltip: _isFavorite ? '取消收藏' : '收藏',
+          tooltip: _isFavorite ? AppL10n.t.unfavorite : AppL10n.t.favorite,
         ),
         ...doc.buildActions(context),
         if (includeCloseFile)
@@ -926,7 +929,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             onPressed: () => unawaited(_closeDoc()),
             icon: const Icon(Icons.close),
             iconSize: 18,
-            tooltip: '关闭文件',
+            tooltip: AppL10n.t.closeFile,
           ),
         if (wide) const _ActionDivider(),
       ],
@@ -935,31 +938,31 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           onPressed: () => _setRail(!_railOpen),
           icon: const Icon(Icons.account_tree_outlined),
           iconSize: 20,
-          tooltip: _railOpen ? '收起目录树' : '展开目录树',
+          tooltip: _railOpen ? AppL10n.t.collapseTree : AppL10n.t.expandTree,
         ),
         if (wide) const _ActionDivider(),
         IconButton(
           onPressed: _createFile,
           icon: const Icon(Icons.note_add_outlined),
           iconSize: 20,
-          tooltip: '新建文件',
+          tooltip: AppL10n.t.newFile,
         ),
         IconButton(
           onPressed: _createFolder,
           icon: const Icon(Icons.create_new_folder_outlined),
           iconSize: 20,
-          tooltip: '新建文件夹',
+          tooltip: AppL10n.t.newFolder,
         ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, size: 20),
-          tooltip: '更多',
+          tooltip: AppL10n.t.more,
           onSelected: (value) {
             if (value == 'refresh') unawaited(_refresh());
             if (value == 'jump') unawaited(_promptPath());
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'refresh', child: Text('刷新')),
-            PopupMenuItem(value: 'jump', child: Text('跳转到路径…')),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 'refresh', child: Text(AppL10n.t.refresh)),
+            PopupMenuItem(value: 'jump', child: Text(AppL10n.t.jumpToPath)),
           ],
         ),
       ],
@@ -986,7 +989,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                '「${doc.title}」在服务器上已被修改，且存在未保存编辑——保存后请手动刷新',
+                AppL10n.t.docConflict(doc.title),
               ),
             ),
           );
@@ -996,7 +999,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       await doc.reloadExternalChanges();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('「${doc.title}」已在服务器上更新，已重新加载')),
+        SnackBar(content: Text(AppL10n.t.docReloaded(doc.title))),
       );
     } catch (_) {}
   }
@@ -1136,7 +1139,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             child: Row(
               children: [
                 Text(
-                  '目录树',
+                  AppL10n.t.directoryTree,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                         letterSpacing: 1.2,
@@ -1148,7 +1151,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
                   icon: const Icon(Icons.keyboard_double_arrow_left),
                   iconSize: 16,
                   visualDensity: VisualDensity.compact,
-                  tooltip: '收起目录树',
+                  tooltip: AppL10n.t.collapseTree,
                 ),
               ],
             ),
@@ -1207,7 +1210,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              '只读',
+              AppL10n.t.readOnly,
               style: Theme.of(context)
                   .textTheme
                   .labelSmall
@@ -1222,7 +1225,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   Widget _miniRail(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Tooltip(
-      message: '展开目录树',
+      message: AppL10n.t.expandTree,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _setRail(true),
@@ -1261,7 +1264,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            '从目录树选择文件',
+            AppL10n.t.selectFromTree,
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 4),
@@ -1281,7 +1284,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           FilledButton.tonalIcon(
             onPressed: () => _setRail(true),
             icon: const Icon(Icons.account_tree_outlined, size: 18),
-            label: const Text('打开目录树'),
+            label: Text(AppL10n.t.openTree),
           ),
         ],
       ),

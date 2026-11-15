@@ -1,7 +1,9 @@
 import 'dart:async';
+import '../../core/app_language.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/app_session_manager.dart';
@@ -193,21 +195,21 @@ class _NotReadyWindow extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.keyboard_arrow_down),
-          tooltip: '最小化',
+          tooltip: AppL10n.t.minimize,
           onPressed: controller.minimize,
         ),
-        title: const Text('连接未就绪'),
+        title: Text(AppL10n.t.connectionNotReady),
         actions: [
           IconButton(
             onPressed: controller.close,
             icon: const Icon(Icons.close),
             iconSize: 18,
-            tooltip: '关闭窗口',
+            tooltip: AppL10n.t.closeWindow,
           ),
           const SizedBox(width: 4),
         ],
       ),
-      body: const Center(child: Text('连接未就绪')),
+      body: Center(child: Text(AppL10n.t.connectionNotReady)),
     );
   }
 }

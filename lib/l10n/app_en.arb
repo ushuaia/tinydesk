@@ -33,5 +33,702 @@
         "type": "String"
       }
     }
-  }
+  },
+  "noHostsYet": "No hosts yet",
+  "addFirstHost": "Add your first host",
+  "emptyStateHint": "Add an SSH host to get started; on macOS you can also use the built-in This Machine.",
+  "addHost": "Add host",
+  "manualAdd": "Manual entry",
+  "manualAddSubtitle": "Fill in the address and private key",
+  "scanAdd": "Scan to add",
+  "scanAddTitle": "Scan to add a host",
+  "scanAddSubtitle": "Import from a QR code on another device",
+  "emptyStateTitle": "Remote opencode workspace · tap a host to start",
+  "remoteHint": "Remote host: tap Add host, fill in the SSH address, port, username and key, save, then tap the card to connect.",
+  "localFormHint": "This Machine: uses the local opencode service directly, no connection settings",
+  "openHost": "Open host",
+  "newTab": "New tab",
+  "importHost": "Import host",
+  "hostTab": "Host",
+  "editHost": "Edit host",
+  "edit": "Edit",
+  "delete": "Delete",
+  "disconnect": "Disconnect",
+  "exportKey": "Export private key",
+  "exportPublicKey": "Export public key",
+  "showHostQr": "Show host QR code",
+  "localBadge": "Direct local · no SSH",
+  "hostDeleted": "This host has been deleted",
+  "favoritesLoadFailed": "Failed to load favorites: {error}",
+  "@favoritesLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noFavorites": "No favorite files yet",
+  "favoritesHint": "Open a file in the file page and tap ☆ to favorite it",
+  "clearFavorites": "Clear favorites",
+  "clearFavoritesTitle": "Clear favorites?",
+  "clearFavoritesBody": "Only the favorite records are removed; remote files are not deleted.",
+  "refresh": "Refresh",
+  "loadFailed": "Failed to load: {error}",
+  "@loadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidPort": "Invalid port",
+  "readFileFailed": "Failed to read file: {error}",
+  "@readFileFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "publicKeyCopied": "Public key copied",
+  "generateNewKey": "Generate new key",
+  "keyCommentHint": "The comment is stored in authorized_keys for later identification.",
+  "keyComment": "Key comment",
+  "generate": "Generate",
+  "keyGeneratedCopied": "Key generated, public key copied",
+  "keyGenerated": "Key generated",
+  "generateKeyFailed": "Key generation failed: {error}",
+  "@generateKeyFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "checkFormErrors": "Please fix the errors in the form",
+  "unrecognizedKey": "Unrecognized key format — use OpenSSH format (.ppk is not supported)",
+  "keyUnrecognized": "Private key format not recognized",
+  "saveFailed": "Save failed: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "nameOptional": "Name (optional)",
+  "nameHint": "e.g. dev box",
+  "hostAddress": "Host address",
+  "hostAddressHint": "IP or domain",
+  "enterHostAddress": "Enter the host address",
+  "sshPort": "SSH port",
+  "username": "Username",
+  "enterUsername": "Enter the username",
+  "openSshKey": "OpenSSH private key",
+  "keyKeepHint": "Leave empty to keep the stored private key",
+  "pasteKey": "Paste the OpenSSH private key",
+  "importFromFile": "Import from file",
+  "generateKey": "Generate key",
+  "publicKeyClipboard": "Public key (copied to clipboard)",
+  "publicKeyUsage": "Append this public key to ~/.ssh/authorized_keys on the host",
+  "copyPublicKey": "Copy public key",
+  "passphraseOptional": "Key passphrase (optional)",
+  "saving": "Saving…",
+  "save": "Save",
+  "hostKeyMissing": "Private key for this host not found",
+  "exportFailed": "Export failed",
+  "qrStep1": "On the target device tap Add host → Scan to add, then scan this first code.",
+  "qrStep2": "Then scan this second code; the target device imports automatically.",
+  "qrKeyWarning": "The code contains your private key and stops working as soon as this window closes.",
+  "copyContent": "Copy content",
+  "showStage2": "Scanned — show stage 2",
+  "done": "Done",
+  "qrPinHint": "On the other device open Import → Scan and enter the same PIN.",
+  "scanFailedDetail": "Scan failed: {error}",
+  "@scanFailedDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFailed": "Scan failed: {error}",
+  "@scanFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noCameraFallback": "Camera scanning is not available here — copy the content on the exporting device and use paste import.",
+  "clipboardEmpty": "Clipboard is empty",
+  "decrypting": "Decrypting and importing…",
+  "hostImported": "Host “{name}” imported",
+  "@hostImported": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "connectAndOpenTitle": "Connect and open?",
+  "connectAndOpenBody": "Connect to {name} first, then open this file.",
+  "@connectAndOpenBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "connectionNotReady": "Connection not ready",
+  "noOpenSessions": "No open sessions",
+  "unknownHost": "Unknown host",
+  "retry": "Retry",
+  "connectionFailedTitle": "Connection failed",
+  "detectingOpencode": "Detecting opencode…",
+  "establishingTunnel": "Establishing tunnel…",
+  "pairing": "Pairing…",
+  "openTerminalFailed": "Failed to open terminal: {error}",
+  "@openTerminalFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "openPdfFailed": "Failed to open PDF: {error}",
+  "@openPdfFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfTooLarge": "PDF is over 100MB and cannot be opened in the app yet",
+  "disconnectedReconnecting": "Connection lost, reconnecting…",
+  "networkReconnecting": "Network lost, reconnecting…",
+  "reconnectingWith": "{message} — reconnecting",
+  "@reconnectingWith": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "closeTabTitle": "Close {name}?",
+  "@closeTabTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "closeTabBody": "Its connection will be closed and its terminal terminated. Other hosts are unaffected.",
+  "close": "Close",
+  "quitTitle": "Quit TinyDesk?",
+  "quitBody": "All session connections will be closed.",
+  "quit": "Quit",
+  "connectionFailed": "Connection failed: {error}",
+  "@connectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "opencodeVersion": "opencode version",
+  "checkingVersions": "Fetching version info…",
+  "currentVersion": "Current version",
+  "latestVersion": "Latest version",
+  "upgrading": "Upgrading…",
+  "upgradeDone": "Upgrade finished. If the opencode service was running it has been restarted.",
+  "operationFailed": "Operation failed",
+  "latestUnknown": "Latest version unavailable (the host cannot reach the npm registry)",
+  "alreadyUpToDate": "Already up to date",
+  "versionReadFailed": "Failed to read the opencode version: {error}",
+  "@versionReadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "upgradeFailed": "Upgrade failed: {error}",
+  "@upgradeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "opencodeUpgrade": "opencode upgrade",
+  "continueLabel": "Continue",
+  "quickStartHostsHint": "This Machine: on macOS no SSH is needed — tap the This Machine card and the opencode service is discovered and started automatically.\nRemote host: tap Add host, fill in the SSH address, port, username and key, save, then tap the card to connect.",
+  "preparing": "Preparing",
+  "sshConnecting": "Connecting over SSH…",
+  "verifyingKey": "Verifying key…",
+  "startingOpencodeService": "Starting the opencode service…",
+  "connected": "Connected",
+  "reconnecting": "Reconnecting…",
+  "minimize": "Minimize",
+  "closeTerminal": "Close terminal",
+  "reconnect": "Reconnect",
+  "terminalTitle": "{name} · Terminal",
+  "@terminalTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "terminal": "Terminal",
+  "openingTerminal": "Opening terminal…",
+  "terminalDisconnected": "Terminal disconnected",
+  "terminalError": "Terminal error",
+  "connectionClosedBanner": "[Connection closed]",
+  "connectionResumedBanner": "[Connection restored — reopening the terminal…]",
+  "taskIdle": "Not started",
+  "taskRunning": "Running",
+  "taskStopped": "Stopped",
+  "filesTitle": "Files",
+  "scanButton": "Scan",
+  "terminalErrorDetail": "Terminal error: {error}",
+  "@terminalErrorDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "docReloaded": "\"{name}\" was updated on the server and reloaded",
+  "@docReloaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docConflict": "\"{name}\" was changed on the server and you have unsaved edits — save first, then refresh manually",
+  "@docConflict": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unsavedChangesFile": "{name} has unsaved changes.",
+  "@unsavedChangesFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unsavedChangesFileW": "{name} has unsaved changes.",
+  "@unsavedChangesFileW": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfTooLarge100": "PDF is over 100MB and cannot be opened in the app yet",
+  "selectFromTree": "Pick a file from the directory tree",
+  "overwriteConfirm": "Saving will overwrite the newer content on the server. Continue?",
+  "overwrite": "Overwrite",
+  "fileChangedRemotely": "The file was modified remotely",
+  "unsavedChanges": "Unsaved changes",
+  "editorNotReady": "Editor not ready",
+  "jumpToPathTitle": "Jump to path",
+  "jumpToPath": "Jump to path…",
+  "jump": "Jump",
+  "pathCopied": "Path copied",
+  "copyPath": "Copy path",
+  "copyCommand": "Copy command",
+  "commandCopied": "Command copied",
+  "fileExists": "A file with the same name already exists",
+  "nameNoSlash": "Name cannot contain \"/\"",
+  "folderName": "Folder name",
+  "fileName": "File name",
+  "fileNameNoSlash": "File name cannot contain \"/\"",
+  "newFile": "New file",
+  "newFolder": "New folder",
+  "create": "Create",
+  "createFailed": "Creation failed: {error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fileCreated": "Created {name}",
+  "@fileCreated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderCreated": "Created {name}/",
+  "@folderCreated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteFileTitle": "Delete {name}?",
+  "@deleteFileTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fileDeleted": "Deleted {name}",
+  "@fileDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteFailed": "Delete failed: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteIrreversible": "This cannot be undone.",
+  "openTree": "Open directory tree",
+  "collapseTree": "Collapse directory tree",
+  "expandTree": "Expand directory tree",
+  "directoryTree": "Directory tree",
+  "favorite": "Favorite",
+  "unfavorite": "Remove favorite",
+  "favorited": "Favorited",
+  "unfavorited": "Favorite removed",
+  "clearAll": "Clear all",
+  "loading": "Loading…",
+  "actions": "Actions",
+  "open": "Open",
+  "download": "Download",
+  "downloadFailed": "Download failed: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadCancelled": "Download cancelled",
+  "copyFailed": "Copy failed: {error}",
+  "@copyFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savedTo": "Saved to {path}",
+  "@savedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "unsupportedFile": "Opening .{extension} files is not supported yet",
+  "@unsupportedFile": {
+    "placeholders": {
+      "extension": {
+        "type": "String"
+      }
+    }
+  },
+  "nonUtf8": "Not UTF-8 encoded — opened read-only",
+  "binaryContent": "Binary content detected, cannot edit",
+  "fileTooLarge2MB": "File is over 2MB — opened read-only",
+  "fileTooLarge5MB": "File is over 5MB and cannot be opened in the app yet",
+  "notEditable": "This file cannot be edited",
+  "thisMachine": "This Machine",
+  "quickStart": "Quick start",
+  "step1Prepare": "① Before connecting",
+  "step2Open": "② Open a session",
+  "step3Switch": "③ Switch and close",
+  "step4Toolbar": "④ Toolbar",
+  "tabHint": "Top tabs switch between open hosts; the × in a tab closes only that host session. Closing the last tab returns here — tap + to open a new host anytime.",
+  "toolbarTerminal": "Terminal: the shell of the current host (local terminal not supported yet).",
+  "serviceStartFailed": "Failed to start the opencode service: {error}",
+  "@serviceStartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "serviceStartFailedStatus": "Failed to start the opencode service: {status}",
+  "@serviceStartFailedStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "localServiceStartFailed": "Failed to start the local opencode service: {error}",
+  "@localServiceStartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "localServiceUnreachable": "The local opencode service is not responding — start it and try again",
+  "hostOpencodeMissing": "opencode is not installed on the host — install it and try again",
+  "localOpencodeMissing": "opencode is not installed on this machine — install it and try again",
+  "remoteOpencodeUnreachable": "The remote opencode service is not responding — start it and try again",
+  "opencodeCommandFailed": "opencode command failed",
+  "cannotReachHost": "Cannot reach {host}:{port} — check the network",
+  "@cannotReachHost": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "sshConnectFailed": "SSH connection failed: {error}",
+  "@sshConnectFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "localPortBusy": "Local port {port} is busy — pick another",
+  "@localPortBusy": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "pairingFailed": "Pairing failed: {error}",
+  "@pairingFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pairingFailedHttp": "Pairing failed (HTTP {code})",
+  "@pairingFailedHttp": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "redeemFailed": "Failed to redeem the pairing link: {error}",
+  "@redeemFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "parsePairFailed": "Could not parse the pairing link: {output}",
+  "@parsePairFailed": {
+    "placeholders": {
+      "output": {
+        "type": "String"
+      }
+    }
+  },
+  "parsePairFailedRaw": "Could not parse the pairing link: {output}",
+  "@parsePairFailedRaw": {
+    "placeholders": {
+      "output": {
+        "type": "String"
+      }
+    }
+  },
+  "pairingNoCookie": "The pairing link returned no session cookie (HTTP {code})",
+  "@pairingNoCookie": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "parseCookieFailed": "Could not parse the session cookie",
+  "createPairFailed": "Failed to create the pairing link: {error}",
+  "@createPairFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "commandFailedCode": "Command failed (exit code {code}): {command}",
+  "@commandFailedCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "command": {
+        "type": "String"
+      }
+    }
+  },
+  "commandFailedCodeOnly": "Command failed (exit code {code})",
+  "@commandFailedCodeOnly": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "parseVersionFailed": "Could not parse the opencode version output",
+  "opencodeNotFound": "opencode not found — the login-shell PATH and common install paths were checked",
+  "portFieldInvalid": "Invalid port field",
+  "hostKeyVerificationFailed": "Host key verification failed",
+  "cannotReadDirectory": "Cannot read directory",
+  "permissionDenied": "Access denied: allow TinyDesk in System Settings → Privacy & Security → Files and Folders",
+  "toolbarFiles": "Files: browse the host directory, open md / pdf / csv / xlsx / docx.",
+  "toolbarDocuments": "Documents: recently opened documents, continue where you left off.",
+  "filesTitleW": "{name} · Files",
+  "@filesTitleW": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "installHint": "Run opencode --version after installing — it should print 2.x. Older versions can be upgraded with opencode upgrade --major. On Windows, use WSL.",
+  "saveFailedSimple": "Save failed",
+  "openFileFailed": "Failed to open file: {error}",
+  "@openFileFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "stepOf": "Step {step} of 2",
+  "@stepOf": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "disconnectTitle": "Disconnect {name}?",
+  "@disconnectTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "disconnectShort": "Disconnect",
+  "qrStage1Waiting": "QR code 1 · waiting",
+  "qrStage2Waiting": "QR code 2 · waiting",
+  "qrFormatUnrecognized": "QR format not recognized",
+  "qrContent": "QR content",
+  "qrIncomplete": "QR content incomplete",
+  "qrUnreadable": "QR content unreadable",
+  "qrMissingId": "QR code is missing the transfer id",
+  "qrDecryptFailed": "QR code could not be decrypted",
+  "qrExpired": "The QR code has expired — export it again on the source device",
+  "qrNoHost": "No host in the QR code",
+  "back": "Back",
+  "fangchitai": "TinyDesk",
+  "zoomIn": "Zoom in",
+  "zoomInFont": "Larger text",
+  "discard": "Discard",
+  "copyPrivateKey": "Copy private key",
+  "exportKeyPassphrase": "This key has a passphrase; the original is still required after export.",
+  "more": "More",
+  "publicKeyAuthKeys": "The public key can be added to ~/.ssh/authorized_keys on the host.",
+  "closeWindow": "Close window",
+  "closeFile": "Close file",
+  "closeFilePageTitle": "Close the file page?",
+  "needOtherStage": "Scan the other code to complete the transfer",
+  "tunnelFailed": "Failed to establish the SSH tunnel: {error}",
+  "@tunnelFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "closeFilePageBody": "You will return to the session page. Saved files are safe.",
+  "acceptCode": "Accept this code",
+  "fileNameHint": "e.g. notes.md",
+  "qrMismatch": "The two codes do not match — export again",
+  "keyRejected": "Key rejected — check that the public key is on the host",
+  "targetNeedsV2": "The target host must have opencode V2. TinyDesk is its remote UI — sessions, files and terminal all come from opencode on that host.",
+  "contentCopied": "Content copied",
+  "toggleEditFailed": "Failed to switch editing: {error}",
+  "@toggleEditFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "switchedToTab": "Switched to {name}",
+  "@switchedToTab": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "missingHostFields": "Missing host fields",
+  "deleteHostTitle": "Delete {name}?",
+  "@deleteHostTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "upgrade": "Upgrade",
+  "generatePublicKeyFailed": "Public key generation failed: {error}",
+  "@generatePublicKeyFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "keyIsPassword": "The private key is as sensitive as your password — do not share it.",
+  "privateKeyCopied": "Private key copied",
+  "zoomOut": "Zoom out",
+  "zoomOutFont": "Smaller text",
+  "fileTooLarge50MB": "File is over 50MB and cannot be opened in the app yet",
+  "folderDeleteWarning": "The folder and everything inside it will be deleted. This cannot be undone.",
+  "parseKeyFailed": "Could not parse the private key",
+  "saved": "Saved",
+  "disconnected": "Disconnected",
+  "reading": "Reading",
+  "paste": "Paste",
+  "connectingHost": "Connecting to host…",
+  "readOnly": "Read-only",
+  "hostQrTitle": "Host QR code",
+  "deleteHostBody": "The host configuration and its saved private key will be deleted.",
+  "pasteImportHint": "On desktop, copy on the exporting device and paste here",
+  "pasteImportNoCamera": "Desktop has no camera — copy each code on the exporting device and paste them one by one.",
+  "viewerLoadFailedPrefix": "Load failed: ",
+  "viewerLoading": "Loading…",
+  "viewerUnsupportedPrefix": "Unsupported format: ",
+  "viewerLoadingPdf": "Loading PDF…",
+  "viewerPdfLoadFailedPrefix": "PDF load failed: "
 }

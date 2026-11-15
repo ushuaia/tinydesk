@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import '../core/app_language.dart';
 import 'dart:io';
 
 import 'package:dartssh2/dartssh2.dart';
@@ -77,7 +79,7 @@ class OpencodeClient {
       final body = await response.transform(utf8.decoder).join();
       if (response.statusCode != 200) {
         throw PairingFailed(
-          '配对失败（HTTP ${response.statusCode}）',
+          AppL10n.t.pairingFailedHttp(response.statusCode.toString()),
           cause: body,
         );
       }
@@ -89,7 +91,7 @@ class OpencodeClient {
     } on OpencodeError {
       rethrow;
     } catch (error) {
-      throw PairingFailed('配对失败：$error', cause: error);
+      throw PairingFailed(AppL10n.t.pairingFailed(error.toString()), cause: error);
     } finally {
       client.close(force: true);
     }
@@ -276,7 +278,7 @@ class OpencodeClient {
   }) async {
     final binary = await _findBinary(client);
     if (binary == null) {
-      throw const OpencodeNotInstalled('主机未安装 opencode，请先安装后重试');
+      throw OpencodeNotInstalled(AppL10n.t.hostOpencodeMissing);
     }
     try {
       final output = utf8.decode(
@@ -284,13 +286,13 @@ class OpencodeClient {
       );
       final url = parsePairUrl(output);
       if (url == null) {
-        throw PairingFailed('无法解析配对链接：$output');
+        throw PairingFailed(AppL10n.t.parsePairFailed(output));
       }
       return url;
     } on OpencodeError {
       rethrow;
     } catch (error) {
-      throw PairingFailed('生成配对链接失败：$error', cause: error);
+      throw PairingFailed(AppL10n.t.createPairFailed(error.toString()), cause: error);
     }
   }
 
@@ -323,13 +325,13 @@ class OpencodeClient {
       final cookies = response.headers['set-cookie'];
       if (cookies == null || cookies.isEmpty) {
         throw PairingFailed(
-          '配对链接没有返回会话 cookie（HTTP ${response.statusCode}）',
+          AppL10n.t.pairingNoCookie(response.statusCode.toString()),
         );
       }
       final first = cookies.first.split(';').first;
       final index = first.indexOf('=');
       if (index <= 0) {
-        throw const PairingFailed('无法解析会话 cookie');
+        throw PairingFailed(AppL10n.t.parseCookieFailed);
       }
       return PairingSession(
         baseUrl: baseUrl,
@@ -339,7 +341,7 @@ class OpencodeClient {
     } on OpencodeError {
       rethrow;
     } catch (error) {
-      throw PairingFailed('兑换配对链接失败：$error', cause: error);
+      throw PairingFailed(AppL10n.t.redeemFailed(error.toString()), cause: error);
     } finally {
       client.close(force: true);
     }
@@ -424,18 +426,18 @@ class OpencodeClient {
   Future<void> startService(SSHClient client) async {
     final binary = await _findBinary(client);
     if (binary == null) {
-      throw const OpencodeNotInstalled('主机未安装 opencode，请先安装后重试');
+      throw OpencodeNotInstalled(AppL10n.t.hostOpencodeMissing);
     }
     try {
       await client.run('$binary service start');
       final status = utf8.decode(await client.run('$binary service status'));
       if (!status.contains('http://')) {
-        throw ServiceStartFailed('opencode 服务启动失败：$status');
+        throw ServiceStartFailed(AppL10n.t.serviceStartFailedStatus(status));
       }
     } on OpencodeError {
       rethrow;
     } catch (error) {
-      throw ServiceStartFailed('opencode 服务启动失败：$error', cause: error);
+      throw ServiceStartFailed(AppL10n.t.serviceStartFailed(error.toString()), cause: error);
     }
   }
 }

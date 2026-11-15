@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../core/app_language.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -27,7 +28,7 @@ class TunnelCommandException implements Exception {
   @override
   String toString() {
     final detail = stderr.trim();
-    if (detail.isEmpty) return '命令执行失败（退出码 $exitCode）：$command';
+    if (detail.isEmpty) return AppL10n.t.commandFailedCode(exitCode.toString(), command);
     return detail;
   }
 }
@@ -298,7 +299,7 @@ Future<TunnelSession> openSshTunnel(
       remotePort = await opencode.detectServerPort(client);
     }
     if (remotePort == null) {
-      throw const ServerUnreachable('远程 opencode 未响应，请启动服务后重试');
+      throw ServerUnreachable(AppL10n.t.remoteOpencodeUnreachable);
     }
 
     final forward = await PortForwarder().start(

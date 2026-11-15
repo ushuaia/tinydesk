@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../core/app_language.dart';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/host.dart';
@@ -109,7 +111,7 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
       }
 
       if (status == ServerStatus.offline) {
-        throw const ServerUnreachable('远程 opencode 未响应，请启动服务后重试');
+        throw ServerUnreachable(AppL10n.t.remoteOpencodeUnreachable);
       }
 
       _set(ConnectionPhase.pairing);
@@ -126,7 +128,7 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
     } on OpencodeError catch (error) {
       _fail(error.userMessage);
     } catch (error) {
-      _fail('连接失败：$error');
+      _fail(AppL10n.t.connectionFailed(error.toString()));
     } finally {
       _connecting = false;
     }
@@ -151,7 +153,7 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
     final nextAttempt = _attempt + 1;
     state = ConnectionSnapshot(
       phase: ConnectionPhase.reconnecting,
-      message: message == null ? '连接断开，正在重连…' : '$message，正在重连…',
+      message: message == null ? AppL10n.t.disconnectedReconnecting : AppL10n.t.reconnectingWith(message),
     );
     Future<void>.delayed(delay, () async {
       if (_manualDisconnect) return;

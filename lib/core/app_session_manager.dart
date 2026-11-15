@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../core/app_language.dart';
 
 import 'package:flutter/widgets.dart';
 
@@ -267,7 +268,7 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
     if (_disposed) return;
     final session = activeSession;
     if (session == null || !session.isReady) {
-      throw StateError('连接未就绪');
+      throw StateError(AppL10n.t.connectionNotReady);
     }
     await session.terminal.show();
   }

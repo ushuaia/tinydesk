@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../core/app_language.dart';
+
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/connection_state.dart';
@@ -97,25 +100,25 @@ class WorkspacePage extends StatelessWidget {
                           const SizedBox(width: 4),
                           _FloatingButton(
                             icon: Icons.folder_open,
-                            tooltip: '文件',
+                            tooltip: AppL10n.t.filesTitle,
                             onPressed: onFiles,
                           ),
                           const SizedBox(width: 4),
                           _FloatingButton(
                             icon: Icons.star_border,
-                            tooltip: '收藏',
+                            tooltip: AppL10n.t.favorite,
                             onPressed: onDocuments,
                           ),
                           const SizedBox(width: 4),
                           _FloatingButton(
                             icon: Icons.system_update_alt,
-                            tooltip: 'opencode 升级',
+                            tooltip: AppL10n.t.opencodeUpgrade,
                             onPressed: onUpgrade,
                           ),
                           const SizedBox(width: 4),
                           _FloatingButton(
                             icon: Icons.terminal,
-                            tooltip: '终端',
+                            tooltip: AppL10n.t.terminal,
                             onPressed: onTerminal,
                           ),
                         ],
@@ -196,7 +199,7 @@ class WorkspacePage extends StatelessWidget {
 
   Widget _body(BuildContext context) {
     if (snapshot.phase == ConnectionPhase.failed) {
-      return _ErrorView(message: snapshot.message ?? '连接失败', onRetry: onRetry);
+      return _ErrorView(message: snapshot.message ?? AppL10n.t.connectionFailedTitle, onRetry: onRetry);
     }
     if (controller != null) {
       return WebViewWidget(controller: controller!);
@@ -309,7 +312,7 @@ class _SessionChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final foreground = active ? scheme.onSurface : scheme.onSurfaceVariant;
     return Semantics(
-      label: '切换到 ${tab.name}',
+      label: AppL10n.t.switchedToTab(tab.name),
       button: true,
       child: InkWell(
         onTap: onTap,
@@ -351,7 +354,7 @@ class _SessionChip extends StatelessWidget {
               if (onClose != null) ...[
                 const SizedBox(width: 2),
                 Semantics(
-                  label: '关闭 ${tab.name}',
+                  label: AppL10n.t.closeTabTitle(tab.name),
                   button: true,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
@@ -400,7 +403,7 @@ class _NewTabChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     if (!active) {
       return Semantics(
-        label: '打开主机',
+        label: AppL10n.t.openHost,
         button: true,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -435,7 +438,7 @@ class _NewTabChip extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            '新标签页',
+            AppL10n.t.newTab,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -444,7 +447,7 @@ class _NewTabChip extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Semantics(
-            label: '打开主机',
+            label: AppL10n.t.openHost,
             button: true,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
@@ -492,7 +495,7 @@ class _ErrorView extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: onRetry, child: const Text('重试')),
+            FilledButton(onPressed: onRetry, child: Text(AppL10n.t.retry)),
           ],
         ),
       ),
@@ -516,7 +519,7 @@ class _ReconnectOverlay extends StatelessWidget {
               const CircularProgressIndicator(),
               const SizedBox(height: 16),
               Text(
-                '网络中断，正在重连…',
+                AppL10n.t.networkReconnecting,
                 style: Theme.of(context).textTheme.titleMedium
                     ?.copyWith(color: Colors.white),
               ),

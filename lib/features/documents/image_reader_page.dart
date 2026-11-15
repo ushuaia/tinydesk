@@ -1,6 +1,8 @@
 import 'dart:typed_data';
+import '../../core/app_language.dart';
 
 import 'package:flutter/material.dart';
+
 
 import '../../data/remote_file.dart';
 import '../../ssh/tunnel_session.dart';
@@ -38,7 +40,7 @@ class _ImageReaderPageState extends State<ImageReaderPage> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text('读取失败：${snapshot.error}'));
+          return Center(child: Text(AppL10n.t.loadFailed(snapshot.error.toString())));
         }
         return InteractiveViewer(
           minScale: 0.5,

@@ -2,6 +2,26 @@ import Flutter
 import UIKit
 import WebKit
 
+
+/// Language used by native UI, synced from the Flutter app.
+enum TinyDeskLanguage {
+  static var code: String = "en"
+
+  static func load() {
+    code = UserDefaults.standard.string(forKey: "tinydesk.ui_language") ?? "en"
+  }
+
+  static func store(_ value: String) {
+    code = value == "zh" ? "zh" : "en"
+    UserDefaults.standard.set(code, forKey: "tinydesk.ui_language")
+  }
+
+  /// Picks between the English and Chinese variant of a native UI string.
+  static func text(_ en: String, _ zh: String) -> String {
+    code == "zh" ? zh : en
+  }
+}
+
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
@@ -22,6 +42,23 @@ import WebKit
       return
     }
     let messenger = registrar.messenger()
+    TinyDeskLanguage.load()
+
+    FlutterMethodChannel(name: "tinydesk/language", binaryMessenger: messenger)
+      .setMethodCallHandler { call, result in
+        switch call.method {
+        case "set":
+          if let args = call.arguments as? [String: Any],
+             let lang = args["lang"] as? String {
+            TinyDeskLanguage.store(lang)
+            result(true)
+          } else {
+            result(FlutterError(code: "BAD_ARGS", message: "bad args", details: nil))
+          }
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
 
     FlutterMethodChannel(name: "opencode/webdata", binaryMessenger: messenger)
       .setMethodCallHandler { call, result in
@@ -36,7 +73,7 @@ import WebKit
                 let name = args["name"] as? String,
                 let value = args["value"] as? String,
                 let domain = args["domain"] as? String else {
-            result(FlutterError(code: "BAD_ARGS", message: "参数错误", details: nil))
+            result(FlutterError(code: "BAD_ARGS", message: TinyDeskLanguage.text("Invalid arguments", "参数错误"), details: nil))
             return
           }
           if let cookie = HTTPCookie(properties: [
@@ -58,7 +95,7 @@ import WebKit
               }
             }
           } else {
-            result(FlutterError(code: "BAD_COOKIE", message: "无法构造 cookie", details: nil))
+            result(FlutterError(code: "BAD_COOKIE", message: TinyDeskLanguage.text("Could not build the cookie", "无法构造 cookie"), details: nil))
           }
         default:
           result(FlutterMethodNotImplemented)
@@ -113,11 +150,11 @@ import WebKit
 
   private func pickPrivateKey(result: @escaping FlutterResult) {
     guard pendingPickResult == nil else {
-      result(FlutterError(code: "PICK_BUSY", message: "另一个文件选择正在进行", details: nil))
+      result(FlutterError(code: "PICK_BUSY", message: TinyDeskLanguage.text("Another file picker is already running", "另一个文件选择正在进行"), details: nil))
       return
     }
     guard let root = topViewController() else {
-      result(FlutterError(code: "NO_ACTIVITY", message: "无法打开文件选择器", details: nil))
+      result(FlutterError(code: "NO_ACTIVITY", message: TinyDeskLanguage.text("Cannot open the file picker", "无法打开文件选择器"), details: nil))
       return
     }
     pendingPickResult = result
@@ -135,7 +172,7 @@ import WebKit
   ) {
     guard pendingSaveResult == nil else {
       result(
-        FlutterError(code: "SAVE_BUSY", message: "另一个保存正在进行", details: nil)
+        FlutterError(code: "SAVE_BUSY", message: TinyDeskLanguage.text("Another save is already running", "另一个保存正在进行"), details: nil)
       )
       return
     }
@@ -143,13 +180,13 @@ import WebKit
           let name = args["name"] as? String,
           let typed = args["bytes"] as? FlutterStandardTypedData else {
       result(
-        FlutterError(code: "BAD_ARGS", message: "参数错误", details: nil)
+        FlutterError(code: "BAD_ARGS", message: TinyDeskLanguage.text("Invalid arguments", "参数错误"), details: nil)
       )
       return
     }
     guard let root = topViewController() else {
       result(
-        FlutterError(code: "NO_ACTIVITY", message: "无法打开保存面板", details: nil)
+        FlutterError(code: "NO_ACTIVITY", message: TinyDeskLanguage.text("Cannot open the save panel", "无法打开保存面板"), details: nil)
       )
       return
     }

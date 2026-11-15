@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
+
+
 import 'package:flutter/services.dart';
 
 import '../../core/session_scope.dart';
@@ -92,14 +94,14 @@ class _HostListScreenState extends State<HostListScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('手动添加'),
-              subtitle: const Text('填写地址与私钥'),
+              title: Text(AppL10n.t.manualAdd),
+              subtitle: Text(AppL10n.t.manualAddSubtitle),
               onTap: () => Navigator.pop(sheetContext, 'manual'),
             ),
             ListTile(
               leading: const Icon(Icons.qr_code_scanner),
-              title: const Text('扫码添加'),
-              subtitle: const Text('从另一台设备的二维码导入'),
+              title: Text(AppL10n.t.scanAdd),
+              subtitle: Text(AppL10n.t.scanAddSubtitle),
               onTap: () => Navigator.pop(sheetContext, 'scan'),
             ),
           ],
@@ -149,7 +151,7 @@ class _HostListScreenState extends State<HostListScreen> {
         return null;
       } on PlatformException catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('扫码失败：${error.message ?? error.code}')),
+          SnackBar(content: Text(AppL10n.t.scanFailedDetail((error.message ?? error.code).toString()))),
         );
         return null;
       }
@@ -184,16 +186,16 @@ class _HostListScreenState extends State<HostListScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('删除 ${host.name}？'),
-        content: const Text('主机配置和已保存的私钥都会被删除。'),
+        title: Text(AppL10n.t.deleteHostTitle(host.name)),
+        content: Text(AppL10n.t.deleteHostBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: Text(AppL10n.t.delete),
           ),
         ],
       ),
@@ -231,7 +233,7 @@ class _HostListScreenState extends State<HostListScreen> {
       if (!mounted) return;
       if (key == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('找不到该主机的私钥')),
+          SnackBar(content: Text(AppL10n.t.hostKeyMissing)),
         );
         return;
       }
@@ -277,16 +279,16 @@ class _HostListScreenState extends State<HostListScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('断开 ${host.name}？'),
-        content: const Text('将断开该主机的连接并终止它的终端。其他主机不受影响。'),
+        title: Text(AppL10n.t.disconnectTitle(host.name)),
+        content: Text(AppL10n.t.closeTabBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('断开'),
+            child: Text(AppL10n.t.disconnectShort),
           ),
         ],
       ),
@@ -295,7 +297,7 @@ class _HostListScreenState extends State<HostListScreen> {
     await session.closeSession(host.id);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已断开连接')),
+        SnackBar(content: Text(AppL10n.t.disconnected)),
       );
     }
   }
@@ -305,7 +307,7 @@ class _HostListScreenState extends State<HostListScreen> {
     if (!mounted) return;
     if (key == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('找不到该主机的私钥')),
+        SnackBar(content: Text(AppL10n.t.hostKeyMissing)),
       );
       return;
     }
@@ -318,17 +320,17 @@ class _HostListScreenState extends State<HostListScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('导出私钥'),
+        title: Text(AppL10n.t.exportKey),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('私钥等同于主机密码，请勿泄露。'),
+              Text(AppL10n.t.keyIsPassword),
               if (hasPassphrase) ...[
                 const SizedBox(height: 8),
-                const Text('该私钥有 passphrase，导出后仍需原 passphrase。'),
+                Text(AppL10n.t.exportKeyPassphrase),
               ],
               const SizedBox(height: 12),
               Container(
@@ -357,7 +359,7 @@ class _HostListScreenState extends State<HostListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -366,7 +368,7 @@ class _HostListScreenState extends State<HostListScreen> {
               } catch (error) {
                 if (mounted) {
                   messenger.showSnackBar(
-                    SnackBar(content: Text('复制失败：$error')),
+                    SnackBar(content: Text(AppL10n.t.copyFailed(error.toString()))),
                   );
                 }
                 return;
@@ -374,10 +376,10 @@ class _HostListScreenState extends State<HostListScreen> {
               if (!mounted) return;
               navigator.pop();
               messenger.showSnackBar(
-                const SnackBar(content: Text('私钥已复制')),
+                SnackBar(content: Text(AppL10n.t.privateKeyCopied)),
               );
             },
-            child: const Text('复制私钥'),
+            child: Text(AppL10n.t.copyPrivateKey),
           ),
         ],
       ),
@@ -389,7 +391,7 @@ class _HostListScreenState extends State<HostListScreen> {
     if (!mounted) return;
     if (key == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('找不到该主机的私钥')),
+        SnackBar(content: Text(AppL10n.t.hostKeyMissing)),
       );
       return;
     }
@@ -398,7 +400,7 @@ class _HostListScreenState extends State<HostListScreen> {
     try {
       final pairs = SSHKeyPair.fromPem(key.$1, key.$2);
       if (pairs.isEmpty) {
-        throw const FormatException('无法解析私钥');
+        throw FormatException(AppL10n.t.parseKeyFailed);
       }
       final encoded = pairs.first.toPublicKey().encode();
       final type = SSHHostKey.getType(encoded);
@@ -408,7 +410,7 @@ class _HostListScreenState extends State<HostListScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('生成公钥失败：$error')),
+          SnackBar(content: Text(AppL10n.t.generatePublicKeyFailed(error.toString()))),
         );
       }
       return;
@@ -420,14 +422,14 @@ class _HostListScreenState extends State<HostListScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('导出公钥'),
+        title: Text(AppL10n.t.exportPublicKey),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('公钥可以添加到主机的 ~/.ssh/authorized_keys。'),
+              Text(AppL10n.t.publicKeyAuthKeys),
               const SizedBox(height: 12),
               Container(
                 width: double.maxFinite,
@@ -455,7 +457,7 @@ class _HostListScreenState extends State<HostListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -464,7 +466,7 @@ class _HostListScreenState extends State<HostListScreen> {
               } catch (error) {
                 if (mounted) {
                   messenger.showSnackBar(
-                    SnackBar(content: Text('复制失败：$error')),
+                    SnackBar(content: Text(AppL10n.t.copyFailed(error.toString()))),
                   );
                 }
                 return;
@@ -472,10 +474,10 @@ class _HostListScreenState extends State<HostListScreen> {
               if (!mounted) return;
               navigator.pop();
               messenger.showSnackBar(
-                const SnackBar(content: Text('公钥已复制')),
+                SnackBar(content: Text(AppL10n.t.publicKeyCopied)),
               );
             },
-            child: const Text('复制公钥'),
+            child: Text(AppL10n.t.copyPublicKey),
           ),
         ],
       ),

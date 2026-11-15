@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/gen/app_localizations.dart';
+import '../platform/native_language.dart';
 
 enum AppLanguage { system, chinese, english }
 
@@ -36,17 +37,28 @@ class AppLanguageController extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, value.name);
+    await NativeLanguage.sync(resolvedCode);
   }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_key);
-    if (stored == null) return;
+    if (stored == null) {
+      await NativeLanguage.sync(resolvedCode);
+      return;
+    }
     final match = AppLanguage.values.where((v) => v.name == stored).firstOrNull;
     if (match != null) {
       _value = match;
       notifyListeners();
     }
+    await NativeLanguage.sync(resolvedCode);
+  }
+
+  /// Resolved language code ("zh"/"en") after applying "follow the system".
+  String get resolvedCode {
+    final locale = this.locale ?? _systemLocale;
+    return locale.languageCode == 'zh' ? 'zh' : 'en';
   }
 }
 

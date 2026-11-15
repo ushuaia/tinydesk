@@ -9,7 +9,7 @@ void main() {
       port: 22,
     );
     expect(error, isA<NetworkUnreachable>());
-    expect(error.userMessage, contains('无法连接主机'));
+    expect(error.userMessage, contains('Cannot reach'));
   });
 
   test('maps auth failure', () {

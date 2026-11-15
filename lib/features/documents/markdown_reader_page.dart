@@ -3,6 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'viewer_localization.dart';
+
+import '../../core/app_language.dart';
+
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -275,7 +279,7 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
       _blocks = _splitAndRewrite(text);
       final editableBytes = utf8.encode(text).length;
       _editable = editableBytes <= DocumentEditorSupport.maxEditableBytes;
-      _readOnlyReason = _editable ? null : '文件超过 2MB，只读打开';
+      _readOnlyReason = _editable ? null : AppL10n.t.fileTooLarge2MB;
       final state = await stateFuture;
       if (state != null) {
         _progressState = state.state;
@@ -294,7 +298,7 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
             request.response.write(_buffer);
           } else if (path == '/markdown.html') {
             request.response.headers.contentType = ContentType.html;
-            request.response.add(await _asset('assets/viewer/markdown.html'));
+            request.response.add(renderViewerHtml(await _asset('assets/viewer/markdown.html')));
           } else if (path == '/img') {
             await _serveImage(request);
           } else if (path == '/marked.min.js') {
@@ -325,7 +329,7 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
       });
     } catch (error) {
       setState(() {
-        _error = '读取失败：$error';
+        _error = AppL10n.t.loadFailed(error.toString());
         _loading = false;
       });
     }
@@ -506,7 +510,7 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
     if (_loading || _error != null || _server == null) return;
     if (!_editing && !_editable) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_readOnlyReason ?? '该文件不支持编辑')),
+        SnackBar(content: Text(_readOnlyReason ?? AppL10n.t.notEditable)),
       );
       return;
     }
@@ -564,16 +568,16 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
         final overwrite = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('文件已在远端被修改'),
-            content: const Text('保存会覆盖远端的最新内容，是否继续？'),
+            title: Text(AppL10n.t.fileChangedRemotely),
+            content: Text(AppL10n.t.overwriteConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+                child: Text(AppL10n.t.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('覆盖'),
+                child: Text(AppL10n.t.overwrite),
               ),
             ],
           ),
@@ -590,13 +594,13 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
       widget.onStateChanged?.call();
       if (!widget.embedded) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已保存')),
+          SnackBar(content: Text(AppL10n.t.saved)),
         );
       }
     } catch (error) {
       if (mounted && !widget.embedded) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败：$error')),
+          SnackBar(content: Text(AppL10n.t.saveFailed(error.toString()))),
         );
       }
     } finally {
@@ -609,20 +613,20 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
     final action = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('未保存的修改'),
-        content: Text('${widget.file.name} 有未保存的修改。'),
+        title: Text(AppL10n.t.unsavedChanges),
+        content: Text(AppL10n.t.unsavedChangesFile(widget.file.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'cancel'),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 'discard'),
-            child: const Text('放弃'),
+            child: Text(AppL10n.t.discard),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, 'save'),
-            child: const Text('保存'),
+            child: Text(AppL10n.t.save),
           ),
         ],
       ),

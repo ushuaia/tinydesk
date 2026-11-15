@@ -138,7 +138,7 @@ void main() {
     await controller.connect(buildHost(), 'KEY');
 
     expect(controller.state.phase, ConnectionPhase.failed);
-    expect(controller.state.message, contains('未响应'));
+    expect(controller.state.message, contains('not responding'));
   });
 
   test('offline with auto-start retries probe once', () async {

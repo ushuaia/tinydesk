@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../core/app_language.dart';
+
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -43,7 +46,7 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
       if (key == null) {
         setState(() {
           _phase = _Phase.error;
-          _error = '找不到该主机的私钥';
+          _error = AppL10n.t.hostKeyMissing;
         });
         return;
       }
@@ -81,7 +84,7 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
     return Row(
       children: [
         Text(
-          '第 $step 步，共 2 步',
+          AppL10n.t.stepOf(step.toString()),
           style: Theme.of(context)
               .textTheme
               .bodySmall
@@ -110,7 +113,7 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
           ),
         ),
       _Phase.error => Text(
-          _error ?? '导出失败',
+          _error ?? AppL10n.t.exportFailed,
           style: TextStyle(color: scheme.error),
         ),
       _Phase.keyStage => Column(
@@ -122,7 +125,7 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
             Center(child: _code(_stages?.keyStage ?? '')),
             const SizedBox(height: 12),
             Text(
-              '在目标设备上点「添加主机 → 扫码添加」，先扫描这张二维码。',
+              AppL10n.t.qrStep1,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -136,12 +139,12 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
             Center(child: _code(_stages?.payloadStage ?? '')),
             const SizedBox(height: 12),
             Text(
-              '再扫描这张二维码，目标设备会自动完成导入。',
+              AppL10n.t.qrStep2,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 4),
             Text(
-              '二维码包含私钥，关闭本窗口后立即失效。',
+              AppL10n.t.qrKeyWarning,
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
@@ -152,23 +155,23 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
     };
 
     return AlertDialog(
-      title: const Text('主机二维码'),
+      title: Text(AppL10n.t.hostQrTitle),
       content: content,
       actions: switch (_phase) {
         _Phase.loading || _Phase.error => [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('关闭'),
+              child: Text(AppL10n.t.close),
             ),
           ],
         _Phase.keyStage => [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(AppL10n.t.cancel),
             ),
             FilledButton(
               onPressed: () => setState(() => _phase = _Phase.payloadStage),
-              child: const Text('已扫描，显示第 2 步'),
+              child: Text(AppL10n.t.showStage2),
             ),
           ],
         _Phase.payloadStage => [
@@ -178,14 +181,14 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
                   ClipboardData(text: _stages?.payloadStage ?? ''),
                 );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('内容已复制')),
+                  SnackBar(content: Text(AppL10n.t.contentCopied)),
                 );
               },
-              child: const Text('复制内容'),
+              child: Text(AppL10n.t.copyContent),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('完成'),
+              child: Text(AppL10n.t.done),
             ),
           ],
       },

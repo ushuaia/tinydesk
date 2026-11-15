@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+
+import '../../core/app_language.dart';
+
+
+
 /// Shared 40px dark header for the floating terminal and file browser
 /// windows: a status dot or icon, the title, and minimize/close buttons on
 /// the right. Keeping it in one widget makes both overlays look and behave
@@ -9,7 +14,7 @@ class FloatingWindowHeader extends StatelessWidget {
     super.key,
     required this.title,
     required this.onClose,
-    this.closeTooltip = '关闭',
+    this.closeTooltip,
     this.onMinimize,
     this.onReconnect,
     this.accentColor,
@@ -20,7 +25,7 @@ class FloatingWindowHeader extends StatelessWidget {
 
   final String title;
   final VoidCallback onClose;
-  final String closeTooltip;
+  final String? closeTooltip;
   final VoidCallback? onMinimize;
   final VoidCallback? onReconnect;
 
@@ -70,18 +75,18 @@ class FloatingWindowHeader extends StatelessWidget {
           if (onReconnect != null)
             _HeaderButton(
               icon: Icons.refresh,
-              tooltip: '重新连接',
+              tooltip: AppL10n.t.reconnect,
               onPressed: onReconnect!,
             ),
           if (onMinimize != null)
             _HeaderButton(
               icon: Icons.remove,
-              tooltip: '最小化',
+              tooltip: AppL10n.t.minimize,
               onPressed: onMinimize!,
             ),
           _HeaderButton(
             icon: Icons.close,
-            tooltip: closeTooltip,
+            tooltip: closeTooltip ?? AppL10n.t.close,
             onPressed: onClose,
           ),
           const SizedBox(width: 2),

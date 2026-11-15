@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../core/app_language.dart';
+
+
 import '../../opencode/opencode_cli.dart';
 import '../../ssh/tunnel_session.dart';
 
@@ -79,7 +82,7 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
           _phase = _Phase.error;
           _cli = null;
           _current = null;
-          _error = '未检测到 opencode。已尝试登录 shell 的 PATH 与常见安装目录。';
+          _error = AppL10n.t.opencodeNotFound;
         });
         return;
       }
@@ -90,7 +93,7 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
       );
       final current = parseOpencodeVersion(currentRaw);
       if (current == null) {
-        throw const FormatException('无法解析 opencode 版本输出');
+        throw FormatException(AppL10n.t.parseVersionFailed);
       }
 
       String? latest;
@@ -118,7 +121,7 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
       if (!mounted) return;
       setState(() {
         _phase = _Phase.error;
-        _error = '无法读取 opencode 版本：${_describe(error)}';
+        _error = AppL10n.t.versionReadFailed(_describe(error));
       });
     }
   }
@@ -160,7 +163,7 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
       if (!mounted) return;
       setState(() {
         _phase = _Phase.error;
-        _error = '升级失败：${_describe(error)}';
+        _error = AppL10n.t.upgradeFailed(_describe(error));
       });
     }
   }
@@ -175,7 +178,7 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
               .trim())
           .firstWhere((line) => line.isNotEmpty, orElse: () => '');
       if (detail.isNotEmpty) return detail;
-      return '命令执行失败（退出码 ${error.exitCode}）';
+      return AppL10n.t.commandFailedCodeOnly(error.exitCode.toString());
     }
     return error.toString();
   }
@@ -209,9 +212,9 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: const Text('opencode 版本'),
+      title: Text(AppL10n.t.opencodeVersion),
       content: switch (_phase) {
-        _Phase.loading => const Row(
+        _Phase.loading => Row(
             children: [
               SizedBox(
                 width: 20,
@@ -219,17 +222,17 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               SizedBox(width: 14),
-              Text('正在获取版本信息…'),
+              Text(AppL10n.t.checkingVersions),
             ],
           ),
         _Phase.upgrading => Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _versionRow('当前版本', _current),
-              _versionRow('最新版本', _latest),
+              _versionRow(AppL10n.t.currentVersion, _current),
+              _versionRow(AppL10n.t.latestVersion, _latest),
               const SizedBox(height: 12),
-              const Row(
+              Row(
                 children: [
                   SizedBox(
                     width: 18,
@@ -237,7 +240,7 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                   SizedBox(width: 10),
-                  Text('正在升级…'),
+                  Text(AppL10n.t.upgrading),
                 ],
               ),
             ],
@@ -246,10 +249,10 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _versionRow('当前版本', _doneVersion ?? _current),
+              _versionRow(AppL10n.t.currentVersion, _doneVersion ?? _current),
               const SizedBox(height: 10),
               Text(
-                '升级完成。如果 opencode 服务正在运行，已尝试自动重启服务。',
+                AppL10n.t.upgradeDone,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -260,12 +263,12 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_current != null) _versionRow('当前版本', _current),
-              if (_latest != null) _versionRow('最新版本', _latest),
+              if (_current != null) _versionRow(AppL10n.t.currentVersion, _current),
+              if (_latest != null) _versionRow(AppL10n.t.latestVersion, _latest),
               if (_current != null || _latest != null)
                 const SizedBox(height: 10),
               Text(
-                _error ?? '操作失败',
+                _error ?? AppL10n.t.operationFailed,
                 style: TextStyle(color: scheme.error, fontSize: 12),
               ),
             ],
@@ -274,12 +277,12 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _versionRow('当前版本', _current),
-              _versionRow('最新版本', _latest),
+              _versionRow(AppL10n.t.currentVersion, _current),
+              _versionRow(AppL10n.t.latestVersion, _latest),
               if (_latest == null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  '无法获取最新版本（主机无法访问 npm registry）',
+                  AppL10n.t.latestUnknown,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -287,7 +290,7 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
               ] else if (_upToDate) ...[
                 const SizedBox(height: 8),
                 Text(
-                  '已是最新版本',
+                  AppL10n.t.alreadyUpToDate,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -301,33 +304,33 @@ class _OpencodeUpgradeDialogState extends State<OpencodeUpgradeDialog> {
         _Phase.done => [
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('完成'),
+              child: Text(AppL10n.t.done),
             ),
           ],
         _Phase.error => [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('关闭'),
+              child: Text(AppL10n.t.close),
             ),
             FilledButton(
               onPressed: _check,
-              child: const Text('重试'),
+              child: Text(AppL10n.t.retry),
             ),
           ],
         _Phase.loading => [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(AppL10n.t.cancel),
             ),
           ],
         _Phase.ready => [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(AppL10n.t.cancel),
             ),
             FilledButton(
               onPressed: _upToDate ? null : _upgrade,
-              child: const Text('升级'),
+              child: Text(AppL10n.t.upgrade),
             ),
           ],
       },

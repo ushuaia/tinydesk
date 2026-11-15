@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import '../core/app_language.dart';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -74,12 +76,12 @@ class HostTransferData {
         address is! String ||
         username is! String ||
         privateKey is! String) {
-      throw const HostTransferFormatError('缺少主机字段');
+      throw HostTransferFormatError(AppL10n.t.missingHostFields);
     }
     final port = json['port'];
     final remotePort = json['remotePort'];
     if (port is! int || remotePort is! int) {
-      throw const HostTransferFormatError('端口字段无效');
+      throw HostTransferFormatError(AppL10n.t.portFieldInvalid);
     }
     return HostTransferData(
       name: name,
@@ -129,7 +131,7 @@ class HostTransferExpiredError implements Exception {
   const HostTransferExpiredError();
 
   @override
-  String toString() => '二维码已过期，请在源设备重新导出';
+  String toString() => AppL10n.t.qrExpired;
 }
 
 /// Progress reported by [HostTransferReceiver.receive].
@@ -207,30 +209,30 @@ class HostTransferReceiver {
     try {
       envelope = jsonDecode(qrText);
     } catch (_) {
-      throw const HostTransferFormatError('二维码内容无法识别');
+      throw HostTransferFormatError(AppL10n.t.qrUnreadable);
     }
     if (envelope is! Map<String, dynamic>) {
-      throw const HostTransferFormatError('二维码内容无法识别');
+      throw HostTransferFormatError(AppL10n.t.qrUnreadable);
     }
 
     final type = envelope['type'];
     final keyId = envelope['keyId'];
     if (keyId is! String) {
-      throw const HostTransferFormatError('二维码缺少传输标识');
+      throw HostTransferFormatError(AppL10n.t.qrMissingId);
     }
     if (_keyId != null && _keyId != keyId) {
       throw HostTransferMismatchError(
-          '这个二维码与已接收的不匹配，请扫描同一台主机的另一张二维码');
+          AppL10n.t.qrMismatch);
     }
 
     if (type == _keyType) {
       final key = envelope['key'];
       if (key is! String) {
-        throw const HostTransferFormatError('二维码内容不完整');
+        throw HostTransferFormatError(AppL10n.t.qrIncomplete);
       }
       final bytes = base64Decode(key);
       if (bytes.length != 32) {
-        throw const HostTransferFormatError('二维码内容不完整');
+        throw HostTransferFormatError(AppL10n.t.qrIncomplete);
       }
       _keyId = keyId;
       _keyBytes = bytes;
@@ -242,7 +244,7 @@ class HostTransferReceiver {
     if (type == _envelopeType) {
       final box = envelope['box'];
       if (box is! String) {
-        throw const HostTransferFormatError('二维码内容不完整');
+        throw HostTransferFormatError(AppL10n.t.qrIncomplete);
       }
       _keyId = keyId;
       _payloadEnvelope = envelope;
@@ -251,7 +253,7 @@ class HostTransferReceiver {
           : HostTransferStep.ready;
     }
 
-    throw const HostTransferFormatError('二维码格式不识别');
+    throw HostTransferFormatError(AppL10n.t.qrFormatUnrecognized);
   }
 
   /// Whether the key stage has been received.
@@ -267,11 +269,11 @@ class HostTransferReceiver {
   /// Decrypts and returns the transferred host once both stages arrived.
   Future<HostTransferData> complete() async {
     if (_keyBytes == null || _payloadEnvelope == null) {
-      throw const HostTransferFormatError('还需要扫描另一张二维码');
+      throw HostTransferFormatError(AppL10n.t.needOtherStage);
     }
     final boxBytes = base64Decode(_payloadEnvelope!['box'] as String);
     if (boxBytes.length < _nonceLength + _macLength) {
-      throw const HostTransferFormatError('二维码内容不完整');
+      throw HostTransferFormatError(AppL10n.t.qrIncomplete);
     }
     final box = SecretBox(
       boxBytes.sublist(_nonceLength, boxBytes.length - _macLength),
@@ -287,19 +289,19 @@ class HostTransferReceiver {
         aad: utf8.encode('$_aadPrefix$_keyId'),
       );
     } on SecretBoxAuthenticationError {
-      throw const HostTransferFormatError('两张二维码不匹配，请重新导出');
+      throw HostTransferFormatError(AppL10n.t.qrMismatch);
     } catch (_) {
-      throw const HostTransferFormatError('二维码无法解密');
+      throw HostTransferFormatError(AppL10n.t.qrDecryptFailed);
     }
 
     final Map<String, dynamic> payload;
     try {
       payload = jsonDecode(utf8.decode(clear)) as Map<String, dynamic>;
     } catch (_) {
-      throw const HostTransferFormatError('二维码内容无法识别');
+      throw HostTransferFormatError(AppL10n.t.qrUnreadable);
     }
     if (payload['type'] != _payloadType) {
-      throw const HostTransferFormatError('二维码格式不识别');
+      throw HostTransferFormatError(AppL10n.t.qrFormatUnrecognized);
     }
 
     final expiresRaw = payload['expiresAt'];
@@ -311,7 +313,7 @@ class HostTransferReceiver {
 
     final hosts = payload['hosts'];
     if (hosts is! List || hosts.isEmpty) {
-      throw const HostTransferFormatError('二维码中没有主机');
+      throw HostTransferFormatError(AppL10n.t.qrNoHost);
     }
     return HostTransferData.fromJson(
       Map<String, dynamic>.from(hosts.first as Map),

@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-<div id="status">正在加载 PDF…</div>
+<div id="status">{{viewerLoadingPdf}}</div>
 <script type="module">
   import * as pdfjsLib from './pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
@@ -142,7 +142,7 @@
       window.__ocReaderReady = true;
     }
   } catch (error) {
-    status.textContent = 'PDF 加载失败：' + error;
+    status.textContent = '{{viewerPdfLoadFailedPrefix}}' + error;
   }
 </script>
 </body>

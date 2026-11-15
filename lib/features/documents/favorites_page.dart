@@ -1,6 +1,9 @@
 import 'dart:async';
+import '../../core/app_language.dart';
 
 import 'package:flutter/material.dart';
+
+
 
 import '../../data/favorite_store.dart';
 
@@ -69,16 +72,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清空收藏？'),
-        content: const Text('只清除收藏记录，不会删除远端文件。'),
+        title: Text(AppL10n.t.clearFavoritesTitle),
+        content: Text(AppL10n.t.clearFavoritesBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('清空'),
+            child: Text(AppL10n.t.clearAll),
           ),
         ],
       ),
@@ -93,17 +96,17 @@ class _FavoritesPageState extends State<FavoritesPage> {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('收藏'),
+        title: Text(AppL10n.t.favorite),
         actions: [
           IconButton(
             onPressed: _reload,
             icon: const Icon(Icons.refresh),
-            tooltip: '刷新',
+            tooltip: AppL10n.t.refresh,
           ),
           IconButton(
             onPressed: _clear,
             icon: const Icon(Icons.delete_sweep_outlined),
-            tooltip: '清空收藏',
+            tooltip: AppL10n.t.clearFavorites,
           ),
         ],
       ),
@@ -117,7 +120,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text('读取收藏失败：${snapshot.error}'),
+                child: Text(AppL10n.t.favoritesLoadFailed(snapshot.error.toString())),
               ),
             );
           }
@@ -133,10 +136,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 12),
-                  const Text('还没有收藏文件'),
+                  Text(AppL10n.t.noFavorites),
                   const SizedBox(height: 6),
                   Text(
-                    '在文件页打开文件后点 ☆ 即可收藏',
+                    AppL10n.t.favoritesHint,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -184,10 +187,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   onSelected: (value) {
                     if (value == 'remove') _remove(doc);
                   },
-                  itemBuilder: (context) => const [
+                  itemBuilder: (context) => [
                     PopupMenuItem(
                       value: 'remove',
-                      child: Text('取消收藏'),
+                      child: Text(AppL10n.t.unfavorite),
                     ),
                   ],
                 ),

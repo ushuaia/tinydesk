@@ -19,7 +19,7 @@ void main() {
     );
 
     expect(find.text('密钥被拒绝'), findsOneWidget);
-    expect(find.text('重试'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
   });
 
   testWidgets('shows reconnect overlay', (tester) async {
@@ -34,7 +34,7 @@ void main() {
       ),
     );
 
-    expect(find.text('网络中断，正在重连…'), findsOneWidget);
+    expect(find.text('Network lost, reconnecting…'), findsOneWidget);
   });
 
   testWidgets('shows floating controls in ready phase', (tester) async {

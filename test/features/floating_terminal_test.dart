@@ -35,7 +35,7 @@ void main() {
 
     expect(find.byIcon(Icons.close), findsOneWidget);
     expect(find.byIcon(Icons.remove), findsOneWidget);
-    expect(find.textContaining('终端'), findsWidgets);
+    expect(find.textContaining('Terminal'), findsWidgets);
   });
 
   testWidgets('minimize returns to the ball and close hides it', (tester) async {

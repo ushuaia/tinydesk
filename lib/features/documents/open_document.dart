@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/app_language.dart';
+
 
 import '../../core/app_session_manager.dart';
 import '../../data/remote_file.dart';
@@ -25,7 +27,7 @@ Future<bool> openDocument(
   if (!_isSupported(file)) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('暂不支持打开 .${file.extension} 文件')),
+        SnackBar(content: Text(AppL10n.t.unsupportedFile(file.extension))),
       );
     }
     return false;

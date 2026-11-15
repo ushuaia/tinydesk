@@ -1,8 +1,11 @@
 import 'dart:async';
+import '../../core/app_language.dart';
 
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+
 
 import '../../data/remote_file.dart';
 import '../../ssh/tunnel_session.dart';
@@ -423,16 +426,16 @@ class _TreeRow extends StatelessWidget {
       context: context,
       position: position,
       items: [
-        const PopupMenuItem(value: 'open', child: Text('打开')),
+        PopupMenuItem(value: 'open', child: Text(AppL10n.t.open)),
         if (onToggleFavorite != null)
           PopupMenuItem(
             value: 'favorite',
-            child: Text(favorite ? '取消收藏' : '收藏'),
+            child: Text(favorite ? AppL10n.t.unfavorite : AppL10n.t.favorite),
           ),
-        const PopupMenuItem(value: 'download', child: Text('下载')),
-        const PopupMenuItem(value: 'copy', child: Text('复制路径')),
+        PopupMenuItem(value: 'download', child: Text(AppL10n.t.download)),
+        PopupMenuItem(value: 'copy', child: Text(AppL10n.t.copyPath)),
         if (onDelete != null)
-          const PopupMenuItem(value: 'delete', child: Text('删除')),
+          PopupMenuItem(value: 'delete', child: Text(AppL10n.t.delete)),
       ],
     );
     if (!context.mounted) return;
@@ -514,7 +517,7 @@ class _TreeRow extends StatelessWidget {
               ),
               if (hasMenu)
                 Tooltip(
-                  message: '操作',
+                  message: AppL10n.t.actions,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => unawaited(_showMenu(context)),
@@ -550,7 +553,7 @@ class _LoadingRow extends StatelessWidget {
         bottom: 4,
       ),
       child: Text(
-        '加载中…',
+        AppL10n.t.loading,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -564,11 +567,11 @@ String _describeDirectoryError(Object error) {
   if (error is FileSystemException) {
     final code = error.osError?.errorCode;
     if (code == 1 || code == 13) {
-      return '无权访问：请在「系统设置 → 隐私与安全性 → 文件与文件夹」中允许方寸台';
+      return AppL10n.t.permissionDenied;
     }
     if (error.message.isNotEmpty) return error.message;
   }
-  return '无法读取目录';
+  return AppL10n.t.cannotReadDirectory;
 }
 
 class _ErrorRow extends StatelessWidget {
@@ -613,7 +616,7 @@ class _ErrorRow extends StatelessWidget {
               minimumSize: const Size(0, 28),
               padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
-            child: const Text('重试', style: TextStyle(fontSize: 11)),
+            child: Text(AppL10n.t.retry, style: TextStyle(fontSize: 11)),
           ),
         ],
       ),

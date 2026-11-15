@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+
+import '../../core/app_language.dart';
+
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../data/remote_file.dart';
@@ -81,7 +84,7 @@ class TextDocumentController extends ChangeNotifier {
       _notify();
     } catch (error) {
       if (_disposed) return;
-      this.error = '读取失败：$error';
+      this.error = AppL10n.t.loadFailed(error.toString());
       loading = false;
       _notify();
     }
@@ -171,16 +174,16 @@ class TextDocumentController extends ChangeNotifier {
           final overwrite = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('文件已在远端被修改'),
-              content: const Text('保存会覆盖远端的最新内容，是否继续？'),
+              title: Text(AppL10n.t.fileChangedRemotely),
+              content: Text(AppL10n.t.overwriteConfirm),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('取消'),
+                  child: Text(AppL10n.t.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('覆盖'),
+                  child: Text(AppL10n.t.overwrite),
                 ),
               ],
             ),
@@ -197,7 +200,7 @@ class TextDocumentController extends ChangeNotifier {
       return true;
     } catch (error) {
       if (!_disposed) {
-        errorMessage = '保存失败：$error';
+        errorMessage = AppL10n.t.saveFailed(error.toString());
         _notify();
       }
       return false;
@@ -218,20 +221,20 @@ class TextDocumentController extends ChangeNotifier {
     final action = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('未保存的修改'),
-        content: Text('${file.name} 有未保存的修改。'),
+        title: Text(AppL10n.t.unsavedChanges),
+        content: Text(AppL10n.t.unsavedChangesFile(file.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'cancel'),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 'discard'),
-            child: const Text('放弃'),
+            child: Text(AppL10n.t.discard),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, 'save'),
-            child: const Text('保存'),
+            child: Text(AppL10n.t.save),
           ),
         ],
       ),
@@ -276,7 +279,7 @@ class TextDocumentView extends StatelessWidget {
         }
         final webView = controller.webView;
         if (webView == null) {
-          return const Center(child: Text('编辑器未就绪'));
+          return Center(child: Text(AppL10n.t.editorNotReady));
         }
         return WebViewWidget(controller: webView);
       },
@@ -332,15 +335,15 @@ class TextDocumentHandle extends DocumentHandle {
                     SnackBar(
                       content: Text(
                         saved
-                            ? '已保存'
-                            : (controller.errorMessage ?? '保存失败'),
+                            ? AppL10n.t.saved
+                            : (controller.errorMessage ?? AppL10n.t.saveFailedSimple),
                       ),
                     ),
                   );
                 },
           icon: const Icon(Icons.save_outlined),
           iconSize: 18,
-          tooltip: '保存',
+          tooltip: AppL10n.t.save,
         ),
       IconButton(
         onPressed: controller.loading || controller.error != null
@@ -350,7 +353,7 @@ class TextDocumentHandle extends DocumentHandle {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        controller.readOnlyReason ?? '该文件不支持编辑',
+                        controller.readOnlyReason ?? AppL10n.t.notEditable,
                       ),
                     ),
                   );
@@ -364,7 +367,7 @@ class TextDocumentHandle extends DocumentHandle {
               : Icons.edit_outlined,
         ),
         iconSize: 18,
-        tooltip: controller.editing ? '阅读' : '编辑',
+        tooltip: controller.editing ? AppL10n.t.reading : AppL10n.t.edit,
       ),
     ];
   }

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../core/app_language.dart';
+
 import 'package:dartssh2/dartssh2.dart';
 
 import 'ssh_errors.dart';
@@ -29,7 +31,7 @@ class PortForwarder {
       );
       await socket.close();
     } on SocketException catch (error) {
-      throw TunnelFailed('本地端口 $port 被占用，请更换端口', cause: error);
+      throw TunnelFailed(AppL10n.t.localPortBusy(port.toString()), cause: error);
     }
   }
 
@@ -81,7 +83,7 @@ class PortForwarder {
     } on SshError {
       rethrow;
     } catch (error) {
-      throw TunnelFailed('建立 SSH 隧道失败：$error', cause: error);
+      throw TunnelFailed(AppL10n.t.tunnelFailed(error.toString()), cause: error);
     }
   }
 }

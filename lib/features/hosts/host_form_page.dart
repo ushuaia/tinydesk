@@ -1,6 +1,8 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import '../../core/app_language.dart';
+
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
@@ -78,7 +80,7 @@ class _HostFormPageState extends State<HostFormPage> {
 
   String? _portValidator(String? value) {
     final port = int.tryParse(value ?? '');
-    if (port == null || port <= 0 || port > 65535) return '端口无效';
+    if (port == null || port <= 0 || port > 65535) return AppL10n.t.invalidPort;
     return null;
   }
 
@@ -93,7 +95,7 @@ class _HostFormPageState extends State<HostFormPage> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('读取文件失败：$error')));
+            .showSnackBar(SnackBar(content: Text(AppL10n.t.readFileFailed(error.toString()))));
       }
     }
   }
@@ -104,7 +106,7 @@ class _HostFormPageState extends State<HostFormPage> {
     await Clipboard.setData(ClipboardData(text: key));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('公钥已复制')),
+        SnackBar(content: Text(AppL10n.t.publicKeyCopied)),
       );
     }
   }
@@ -116,16 +118,16 @@ class _HostFormPageState extends State<HostFormPage> {
     final comment = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('生成新密钥'),
+        title: Text(AppL10n.t.generateNewKey),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('公钥注释会显示在 authorized_keys 里，方便以后识别。'),
+            Text(AppL10n.t.keyCommentHint),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(labelText: '公钥注释'),
+              decoration: InputDecoration(labelText: AppL10n.t.keyComment),
               autofocus: true,
             ),
           ],
@@ -133,11 +135,11 @@ class _HostFormPageState extends State<HostFormPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('生成'),
+            child: Text(AppL10n.t.generate),
           ),
         ],
       ),
@@ -160,14 +162,14 @@ class _HostFormPageState extends State<HostFormPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(copied ? '密钥已生成，公钥已复制' : '密钥已生成'),
+            content: Text(copied ? AppL10n.t.keyGeneratedCopied : AppL10n.t.keyGenerated),
           ),
         );
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('生成密钥失败：$error')),
+          SnackBar(content: Text(AppL10n.t.generateKeyFailed(error.toString()))),
         );
       }
     }
@@ -177,7 +179,7 @@ class _HostFormPageState extends State<HostFormPage> {
     setState(() => _keyError = null);
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('请检查表单中的错误')));
+          .showSnackBar(SnackBar(content: Text(AppL10n.t.checkFormErrors)));
       return;
     }
 
@@ -190,10 +192,10 @@ class _HostFormPageState extends State<HostFormPage> {
       if (!keepExistingKey &&
           !PrivateKeyStore.isValidKey(_privateKey.text, passphrase)) {
         setState(() {
-          _keyError = '无法识别的私钥格式，请使用 OpenSSH 格式（不支持 .ppk）';
+          _keyError = AppL10n.t.unrecognizedKey;
         });
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('私钥格式无法识别')));
+            .showSnackBar(SnackBar(content: Text(AppL10n.t.keyUnrecognized)));
         return;
       }
     }
@@ -203,7 +205,7 @@ class _HostFormPageState extends State<HostFormPage> {
     final host = Host(
       id: id,
       name: _name.text.trim().isEmpty
-          ? (_isLocal ? '本机' : _host.text.trim())
+          ? (_isLocal ? AppL10n.t.thisMachine : _host.text.trim())
           : _name.text.trim(),
       type: _isLocal ? 'local' : 'ssh',
       host: _isLocal ? '127.0.0.1' : _host.text.trim(),
@@ -234,7 +236,7 @@ class _HostFormPageState extends State<HostFormPage> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('保存失败：$error')));
+            .showSnackBar(SnackBar(content: Text(AppL10n.t.saveFailed(error.toString()))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -244,7 +246,7 @@ class _HostFormPageState extends State<HostFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? '编辑主机' : '添加主机')),
+      appBar: AppBar(title: Text(_isEditing ? AppL10n.t.editHost : AppL10n.t.addHost)),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -254,49 +256,49 @@ class _HostFormPageState extends State<HostFormPage> {
             children: [
               TextFormField(
                 controller: _name,
-                decoration: const InputDecoration(
-                  labelText: '名称（可选）',
-                  hintText: '例如：开发机',
+                decoration: InputDecoration(
+                  labelText: AppL10n.t.nameOptional,
+                  hintText: AppL10n.t.nameHint,
                 ),
               ),
               const SizedBox(height: 12),
               if (_isLocal)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(
-                    '本机主机：直连本机 opencode 服务，无需配置连接参数',
+                    AppL10n.t.localFormHint,
                     style: TextStyle(fontSize: 12),
                   ),
                 ),
               if (!_isLocal) ...[
               TextFormField(
                 controller: _host,
-                decoration: const InputDecoration(
-                  labelText: '主机地址',
-                  hintText: 'IP 或域名',
+                decoration: InputDecoration(
+                  labelText: AppL10n.t.hostAddress,
+                  hintText: AppL10n.t.hostAddressHint,
                 ),
-                validator: (v) => _required(v, '请输入主机地址'),
+                validator: (v) => _required(v, AppL10n.t.enterHostAddress),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _port,
-                decoration: const InputDecoration(labelText: 'SSH 端口'),
+                decoration: InputDecoration(labelText: AppL10n.t.sshPort),
                 keyboardType: TextInputType.number,
                 validator: _portValidator,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _username,
-                decoration: const InputDecoration(labelText: '用户名'),
-                validator: (v) => _required(v, '请输入用户名'),
+                decoration: InputDecoration(labelText: AppL10n.t.username),
+                validator: (v) => _required(v, AppL10n.t.enterUsername),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _privateKey,
                 decoration: InputDecoration(
-                  labelText: 'OpenSSH 私钥',
+                  labelText: AppL10n.t.openSshKey,
                   hintText: _isEditing
-                      ? '留空表示不修改已保存的私钥'
+                      ? AppL10n.t.keyKeepHint
                       : '-----BEGIN OPENSSH PRIVATE KEY-----',
                   errorText: _keyError,
                   alignLabelWithHint: true,
@@ -306,7 +308,7 @@ class _HostFormPageState extends State<HostFormPage> {
                   if (_isEditing && (v == null || v.trim().isEmpty)) {
                     return null;
                   }
-                  return _required(v, '请粘贴 OpenSSH 私钥');
+                  return _required(v, AppL10n.t.pasteKey);
                 },
               ),
               Row(
@@ -315,12 +317,12 @@ class _HostFormPageState extends State<HostFormPage> {
                   TextButton.icon(
                     onPressed: _pickPrivateKey,
                     icon: const Icon(Icons.folder_open, size: 18),
-                    label: const Text('从文件导入'),
+                    label: Text(AppL10n.t.importFromFile),
                   ),
                   TextButton.icon(
                     onPressed: _generateKey,
                     icon: const Icon(Icons.key, size: 18),
-                    label: const Text('生成密钥'),
+                    label: Text(AppL10n.t.generateKey),
                   ),
                 ],
               ),
@@ -333,7 +335,7 @@ class _HostFormPageState extends State<HostFormPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '公钥（已复制到剪贴板）',
+                          AppL10n.t.publicKeyClipboard,
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
                         const SizedBox(height: 8),
@@ -347,16 +349,16 @@ class _HostFormPageState extends State<HostFormPage> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                '把公钥追加到主机 ~/.ssh/authorized_keys',
+                                AppL10n.t.publicKeyUsage,
                                 style: TextStyle(fontSize: 11),
                               ),
                             ),
                             TextButton.icon(
                               onPressed: _copyPublicKey,
                               icon: const Icon(Icons.copy, size: 16),
-                              label: const Text('复制公钥'),
+                              label: Text(AppL10n.t.copyPublicKey),
                             ),
                           ],
                         ),
@@ -369,14 +371,14 @@ class _HostFormPageState extends State<HostFormPage> {
               const SizedBox(height: 4),
               TextFormField(
                 controller: _passphrase,
-                decoration: const InputDecoration(labelText: '私钥口令（可选）'),
+                decoration: InputDecoration(labelText: AppL10n.t.passphraseOptional),
                 obscureText: true,
               ),
               ],
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: _saving ? null : _save,
-                child: Text(_saving ? '保存中…' : '保存'),
+                child: Text(_saving ? AppL10n.t.saving : AppL10n.t.save),
               ),
             ],
           ),

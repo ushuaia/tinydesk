@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/app_language.dart';
+
 
 class ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ReaderAppBar({
@@ -49,7 +51,7 @@ class ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
                 width: 40,
                 height: 40,
               ),
-              tooltip: '返回',
+              tooltip: AppL10n.t.back,
             ),
       titleTextStyle: TextStyle(
         fontSize: 14,
@@ -86,7 +88,7 @@ class ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints.tightFor(width: 32, height: 32),
             visualDensity: VisualDensity.compact,
-            tooltip: '保存',
+            tooltip: AppL10n.t.save,
           ),
         if (onToggleEdit != null)
           IconButton(
@@ -98,7 +100,7 @@ class ReaderAppBar extends StatelessWidget implements PreferredSizeWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints.tightFor(width: 32, height: 32),
             visualDensity: VisualDensity.compact,
-            tooltip: editing ? '阅读' : '编辑',
+            tooltip: editing ? AppL10n.t.reading : AppL10n.t.edit,
           ),
         if (showZoom) ...[
           _ZoomButton(

@@ -91,16 +91,16 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('退出方寸台？'),
-        content: const Text('所有会话连接将被断开。'),
+        title: Text(AppL10n.t.quitTitle),
+        content: Text(AppL10n.t.quitBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('退出'),
+            child: Text(AppL10n.t.quit),
           ),
         ],
       ),

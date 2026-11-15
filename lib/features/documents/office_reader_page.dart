@@ -1,7 +1,10 @@
 import 'dart:async';
+import '../../core/app_language.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'viewer_localization.dart';
+
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -53,7 +56,7 @@ class _OfficeReaderPageState extends State<OfficeReaderPage> {
     final size = widget.file.size;
     if (size != null && size > _maxBytes) {
       setState(() {
-        _error = '文件超过 50MB，暂不支持在 App 内打开';
+        _error = AppL10n.t.fileTooLarge50MB;
         _loading = false;
       });
       return;
@@ -74,7 +77,7 @@ class _OfficeReaderPageState extends State<OfficeReaderPage> {
             await request.response.addStream(file.openRead());
           } else if (path == '/office.html') {
             request.response.headers.contentType = ContentType.html;
-            request.response.add(await _asset('assets/viewer/office.html'));
+            request.response.add(renderViewerHtml(await _asset('assets/viewer/office.html')));
           } else if (path == '/vendor/xlsx.full.min.js') {
             request.response.headers.contentType =
                 ContentType('application', 'javascript');
@@ -119,7 +122,7 @@ class _OfficeReaderPageState extends State<OfficeReaderPage> {
       });
     } catch (error) {
       setState(() {
-        _error = '打开文件失败：$error';
+        _error = AppL10n.t.openFileFailed(error.toString());
         _loading = false;
       });
     }
@@ -170,7 +173,7 @@ class _OfficeReaderPageState extends State<OfficeReaderPage> {
           iconSize: 20,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-          tooltip: '返回',
+          tooltip: AppL10n.t.back,
         ),
         titleTextStyle: TextStyle(
           fontSize: 14,

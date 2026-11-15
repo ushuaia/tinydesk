@@ -31,13 +31,13 @@ void main() {
   testWidgets('rejects empty host', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: HostFormPage()));
 
-    await tester.ensureVisible(find.text('保存'));
+    await tester.ensureVisible(find.text('Save'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tester.tap(find.text('Save'));
     await tester.pump();
 
-    expect(find.text('请输入主机地址'), findsOneWidget);
-    expect(find.text('请检查表单中的错误'), findsOneWidget);
+    expect(find.text('Enter the host address'), findsOneWidget);
+    expect(find.text('Please fix the errors in the form'), findsOneWidget);
   });
 
   test('rejects ppk private key', () {
@@ -56,7 +56,7 @@ void main() {
       MaterialApp(home: HostFormPage(initialHost: buildHost())),
     );
 
-    expect(find.text('编辑主机'), findsOneWidget);
+    expect(find.text('Edit host'), findsOneWidget);
     expect(find.text('dev box'), findsOneWidget);
     expect(find.text('10.0.0.2'), findsOneWidget);
     expect(find.text('2022'), findsOneWidget);
@@ -70,16 +70,16 @@ void main() {
       ),
     );
 
-    await tester.ensureVisible(find.text('生成密钥'));
+    await tester.ensureVisible(find.text('Generate key'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('生成密钥'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('生成新密钥'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, '生成'));
+    await tester.tap(find.text('Generate key'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('公钥（已复制到剪贴板）'), findsOneWidget);
+    expect(find.text('Generate new key'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Generate'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Public key (copied to clipboard)'), findsOneWidget);
     expect(find.textContaining('ssh-ed25519'), findsOneWidget);
   });
 }

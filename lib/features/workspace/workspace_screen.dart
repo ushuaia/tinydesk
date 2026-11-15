@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/app_language.dart';
@@ -81,16 +82,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('关闭 ${session.host.name}？'),
-        content: const Text('将断开该主机的连接并终止它的终端。其他主机不受影响。'),
+        title: Text(AppL10n.t.closeTabTitle(session.host.name)),
+        content: Text(AppL10n.t.closeTabBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppL10n.t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('关闭'),
+            child: Text(AppL10n.t.close),
           ),
         ],
       ),
@@ -119,7 +120,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final tunnel = session?.connection.session;
     if (session == null || tunnel == null || !session.isReady) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('连接未就绪')),
+        SnackBar(content: Text(AppL10n.t.connectionNotReady)),
       );
       return;
     }
@@ -132,7 +133,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Future<void> _openTerminal(HostSession session) async {
     if (!session.isReady) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('连接未就绪')),
+        SnackBar(content: Text(AppL10n.t.connectionNotReady)),
       );
       return;
     }
@@ -164,7 +165,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           ),
           onClear: index.clearAll,
           subtitleFor: (doc) =>
-              '${hostNames[doc.hostId] ?? '未知主机'} · ${doc.path}',
+              '${hostNames[doc.hostId] ?? AppL10n.t.unknownHost} · ${doc.path}',
         ),
       ),
     );
@@ -228,7 +229,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       onFiles: () {
         if (active == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('没有打开的会话')),
+            SnackBar(content: Text(AppL10n.t.noOpenSessions)),
           );
           return;
         }
@@ -242,7 +243,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       onTerminal: () {
         if (active == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('没有打开的会话')),
+            SnackBar(content: Text(AppL10n.t.noOpenSessions)),
           );
           return;
         }
@@ -593,7 +594,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     if (widget.manager.fileBrowser == null ||
         _session.connection.session == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('连接未就绪')),
+        SnackBar(content: Text(AppL10n.t.connectionNotReady)),
       );
       return;
     }
@@ -605,7 +606,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     final snapshot = _session.connection.state;
     if (snapshot.phase == ConnectionPhase.failed) {
       return _ErrorBody(
-        message: snapshot.message ?? '连接失败',
+        message: snapshot.message ?? AppL10n.t.connectionFailedTitle,
         onRetry: () => unawaited(widget.manager.retry(_host.id)),
       );
     }
@@ -646,7 +647,7 @@ class _ErrorBody extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: onRetry, child: const Text('重试')),
+            FilledButton(onPressed: onRetry, child: Text(AppL10n.t.retry)),
           ],
         ),
       ),

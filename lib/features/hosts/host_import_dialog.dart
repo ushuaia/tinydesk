@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../core/app_language.dart';
+
 import 'package:flutter/services.dart';
 
 import '../../data/host_transfer.dart';
@@ -51,7 +54,7 @@ class _HostImportDialogState extends State<HostImportDialog> {
       await _receive(text);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = '扫码失败：$error');
+      setState(() => _error = AppL10n.t.scanFailed(error.toString()));
     }
   }
 
@@ -59,7 +62,7 @@ class _HostImportDialogState extends State<HostImportDialog> {
     final text = await Clipboard.getData(Clipboard.kTextPlain);
     final value = text?.text?.trim();
     if (value == null || value.isEmpty) {
-      setState(() => _error = '剪贴板为空');
+      setState(() => _error = AppL10n.t.clipboardEmpty);
       return;
     }
     _payload.text = value;
@@ -96,7 +99,7 @@ class _HostImportDialogState extends State<HostImportDialog> {
       if (!mounted) return;
       Navigator.pop(context, host);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已导入主机「${host.name}」')),
+        SnackBar(content: Text(AppL10n.t.hostImported(host.name))),
       );
     } catch (error) {
       if (!mounted) return;
@@ -142,14 +145,14 @@ class _HostImportDialogState extends State<HostImportDialog> {
     final busy = _busy;
 
     return AlertDialog(
-      title: const Text('扫码添加主机'),
+      title: Text(AppL10n.t.scanAddTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _progressRow('二维码 1 · 待扫描', _receiver.hasKey,
+          _progressRow(AppL10n.t.qrStage1Waiting, _receiver.hasKey,
               _step == HostTransferStep.waitingForPayload),
-          _progressRow('二维码 2 · 待扫描', _receiver.hasPayload,
+          _progressRow(AppL10n.t.qrStage2Waiting, _receiver.hasPayload,
               _step == HostTransferStep.waitingForKey),
           const SizedBox(height: 12),
           TextField(
@@ -157,9 +160,9 @@ class _HostImportDialogState extends State<HostImportDialog> {
             enabled: !busy,
             maxLines: 3,
             minLines: 2,
-            decoration: const InputDecoration(
-              labelText: '二维码内容',
-              hintText: '桌面端可从导出端复制后粘贴到这里',
+            decoration: InputDecoration(
+              labelText: AppL10n.t.qrContent,
+              hintText: AppL10n.t.pasteImportHint,
             ),
           ),
           const SizedBox(height: 8),
@@ -169,27 +172,27 @@ class _HostImportDialogState extends State<HostImportDialog> {
                 OutlinedButton.icon(
                   onPressed: busy ? null : _scan,
                   icon: const Icon(Icons.qr_code_scanner, size: 18),
-                  label: const Text('扫码'),
+                  label: Text(AppL10n.t.scanButton),
                 )
               else
                 OutlinedButton.icon(
                   onPressed: busy ? null : _paste,
                   icon: const Icon(Icons.content_paste, size: 18),
-                  label: const Text('粘贴'),
+                  label: Text(AppL10n.t.paste),
                 ),
               const SizedBox(width: 8),
               FilledButton.tonal(
                 onPressed: busy || _payload.text.isEmpty
                     ? null
                     : () => _receive(_payload.text),
-                child: const Text('接收此码'),
+                child: Text(AppL10n.t.acceptCode),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (!_canScan)
             Text(
-              '桌面端没有相机，可在导出端逐张复制、逐张粘贴。',
+              AppL10n.t.pasteImportNoCamera,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           if (_error != null) ...[
@@ -209,7 +212,7 @@ class _HostImportDialogState extends State<HostImportDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 SizedBox(width: 10),
-                Text('正在解密并导入…'),
+                Text(AppL10n.t.decrypting),
               ],
             ),
           ],
@@ -218,7 +221,7 @@ class _HostImportDialogState extends State<HostImportDialog> {
       actions: [
         TextButton(
           onPressed: busy ? null : () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: Text(AppL10n.t.cancel),
         ),
       ],
     );

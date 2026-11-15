@@ -361,7 +361,7 @@
   }
 
   load().catch((error) => {
-    document.getElementById('content').textContent = '加载失败：' + error;
+    document.getElementById('content').textContent = '{{viewerLoadFailedPrefix}}' + error;
   });
 })();
 </script>

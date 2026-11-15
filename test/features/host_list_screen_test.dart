@@ -55,7 +55,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('还没有主机'), findsOneWidget);
+    expect(find.text('No hosts yet'), findsOneWidget);
   });
 
   testWidgets('opens host form from add button', (tester) async {
@@ -75,13 +75,13 @@ void main() {
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
 
-    expect(find.text('手动添加'), findsOneWidget);
-    expect(find.text('扫码添加'), findsOneWidget);
+    expect(find.text('Manual entry'), findsOneWidget);
+    expect(find.text('Scan to add'), findsOneWidget);
 
-    await tester.tap(find.text('手动添加'));
+    await tester.tap(find.text('Manual entry'));
     await tester.pumpAndSettle();
 
-    expect(find.text('主机地址'), findsOneWidget);
+    expect(find.text('Host address'), findsOneWidget);
   });
 
   testWidgets('exports private key to clipboard', (tester) async {
@@ -117,16 +117,16 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('导出私钥'));
+    await tester.tap(find.text('Export private key'));
     await tester.pumpAndSettle();
 
-    expect(find.text('私钥等同于主机密码，请勿泄露。'), findsOneWidget);
+    expect(find.text('The private key is as sensitive as your password — do not share it.'), findsOneWidget);
     expect(find.textContaining('PRIVATE KEY'), findsOneWidget);
 
-    await tester.tap(find.text('复制私钥'));
+    await tester.tap(find.text('Copy private key'));
     await tester.pumpAndSettle();
 
     expect(copied, 'PRIVATE KEY');
-    expect(find.text('私钥已复制'), findsOneWidget);
+    expect(find.text('Private key copied'), findsOneWidget);
   });
 }

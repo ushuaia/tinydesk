@@ -1,8 +1,12 @@
 import 'dart:async';
+import '../../core/app_language.dart';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'viewer_localization.dart';
+
+
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -79,7 +83,7 @@ class PdfReaderPageState extends State<PdfReaderPage>
     final size = widget.file.size;
     if (size != null && size > _maxBytes) {
       setState(() {
-        _error = 'PDF 超过 100MB，暂不支持在 App 内打开';
+        _error = AppL10n.t.pdfTooLarge100;
         _loading = false;
       });
       return;
@@ -111,7 +115,7 @@ class PdfReaderPageState extends State<PdfReaderPage>
             await request.response.addStream(file.openRead());
           } else if (path == '/viewer.html') {
             request.response.headers.contentType = ContentType.html;
-            request.response.add(await _asset('assets/pdfjs/viewer.html'));
+            request.response.add(renderViewerHtml(await _asset('assets/pdfjs/viewer.html')));
           } else if (path == '/pdf.min.mjs') {
             request.response.headers.contentType =
                 ContentType('application', 'javascript');
@@ -170,7 +174,7 @@ class PdfReaderPageState extends State<PdfReaderPage>
       _startPolling();
     } catch (error) {
       setState(() {
-        _error = '打开 PDF 失败：$error';
+        _error = AppL10n.t.openPdfFailed(error.toString());
         _loading = false;
       });
     }

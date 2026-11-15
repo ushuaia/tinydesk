@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../core/app_language.dart';
+
 import 'host.dart';
 import 'host_store.dart';
 import 'port_allocator.dart';
@@ -26,7 +28,7 @@ class LocalMachine {
     final localPort = const PortAllocator().nextAvailable(hosts);
     final host = Host(
       id: localHostId,
-      name: '本机',
+      name: AppL10n.t.thisMachine,
       type: 'local',
       host: '127.0.0.1',
       port: 22,

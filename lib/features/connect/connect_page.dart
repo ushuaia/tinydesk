@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_language.dart';
+
+
 import '../../core/connection_state.dart';
 
 class ConnectView extends StatelessWidget {
@@ -8,17 +11,17 @@ class ConnectView extends StatelessWidget {
   final ConnectionSnapshot snapshot;
   final VoidCallback? onCancel;
 
-  static const _labels = {
-    ConnectionPhase.idle: '准备中',
-    ConnectionPhase.sshConnecting: '连接 SSH…',
-    ConnectionPhase.authenticating: '验证密钥…',
-    ConnectionPhase.tunneling: '建立隧道…',
-    ConnectionPhase.probing: '检测 opencode…',
-    ConnectionPhase.startingServer: '启动 opencode 服务…',
-    ConnectionPhase.pairing: '配对中…',
-    ConnectionPhase.ready: '已连接',
-    ConnectionPhase.reconnecting: '正在重连…',
-    ConnectionPhase.failed: '连接失败',
+  static final _labels = {
+    ConnectionPhase.idle: AppL10n.t.preparing,
+    ConnectionPhase.sshConnecting: AppL10n.t.sshConnecting,
+    ConnectionPhase.authenticating: AppL10n.t.verifyingKey,
+    ConnectionPhase.tunneling: AppL10n.t.establishingTunnel,
+    ConnectionPhase.probing: AppL10n.t.detectingOpencode,
+    ConnectionPhase.startingServer: AppL10n.t.startingOpencodeService,
+    ConnectionPhase.pairing: AppL10n.t.pairing,
+    ConnectionPhase.ready: AppL10n.t.connected,
+    ConnectionPhase.reconnecting: AppL10n.t.reconnecting,
+    ConnectionPhase.failed: AppL10n.t.connectionFailedTitle,
   };
 
   @override
@@ -52,7 +55,7 @@ class ConnectView extends StatelessWidget {
             ],
             if (snapshot.phase == ConnectionPhase.failed && onCancel != null) ...[
               const SizedBox(height: 16),
-              OutlinedButton(onPressed: onCancel, child: const Text('返回')),
+              OutlinedButton(onPressed: onCancel, child: Text(AppL10n.t.back)),
             ],
           ],
         ),

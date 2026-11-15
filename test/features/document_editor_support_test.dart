@@ -100,7 +100,7 @@ void main() {
     );
     final doc = await DocumentEditorSupport.load(session, _file());
     expect(doc.editable, isFalse);
-    expect(doc.readOnlyReason, contains('二进制'));
+    expect(doc.readOnlyReason, contains('Binary'));
   });
 
   test('files over 2MB are read-only, over 5MB are rejected', () async {

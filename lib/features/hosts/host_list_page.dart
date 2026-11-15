@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../core/app_language.dart';
+
 import 'package:flutter/services.dart';
 
 import '../../data/host.dart';
@@ -61,19 +64,19 @@ class HostListPage extends StatelessWidget {
     );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('方寸台'),
+        title: Text(AppL10n.t.fangchitai),
         actions: [
           if (onImport != null)
             IconButton(
               onPressed: onImport,
               icon: const Icon(Icons.qr_code_scanner),
-              tooltip: '导入主机',
+              tooltip: AppL10n.t.importHost,
             ),
           if (onSettings != null)
             IconButton(
               onPressed: onSettings,
               icon: const Icon(Icons.settings_outlined),
-              tooltip: '设置',
+              tooltip: AppL10n.t.settings,
             ),
           const SizedBox(width: 4),
         ],
@@ -92,7 +95,7 @@ class HostListPage extends StatelessWidget {
             Icon(Icons.dns_outlined, size: 18, color: scheme.onSurfaceVariant),
             const SizedBox(width: 8),
             Text(
-              '主机',
+              AppL10n.t.hostTab,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -111,7 +114,7 @@ class HostListPage extends StatelessWidget {
               TextButton.icon(
                 onPressed: onAdd,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('添加主机'),
+                label: Text(AppL10n.t.addHost),
               ),
           ],
         ),
@@ -178,7 +181,7 @@ class _PageHeader extends StatelessWidget {
             Icon(Icons.dock_outlined, size: 26, color: scheme.primary),
             const SizedBox(width: 10),
             Text(
-              '方寸台',
+              AppL10n.t.fangchitai,
               style: Theme.of(context)
                   .textTheme
                   .headlineSmall
@@ -188,7 +191,7 @@ class _PageHeader extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '远程 opencode 工作台 · 点击主机开始会话',
+          AppL10n.t.emptyStateTitle,
           style: Theme.of(context)
               .textTheme
               .bodyMedium
@@ -285,7 +288,7 @@ class _HostCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              '本机',
+                              AppL10n.t.thisMachine,
                               style: Theme.of(context).textTheme.labelSmall,
                             ),
                           ),
@@ -307,7 +310,7 @@ class _HostCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      local ? '本机直连 · 无需 SSH' : '${host.username}@${host.host}',
+                      local ? AppL10n.t.localBadge : '${host.username}@${host.host}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context)
@@ -329,29 +332,29 @@ class _HostCard extends StatelessWidget {
                   if (value == 'disconnect') onDisconnect?.call();
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'edit', child: Text('编辑')),
+                  PopupMenuItem(value: 'edit', child: Text(AppL10n.t.edit)),
                   if (!local) ...[
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'exportQr',
-                      child: Text('显示主机二维码'),
+                      child: Text(AppL10n.t.showHostQr),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'exportKey',
-                      child: Text('导出私钥'),
+                      child: Text(AppL10n.t.exportKey),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'exportPublicKey',
-                      child: Text('导出公钥'),
+                      child: Text(AppL10n.t.exportPublicKey),
                     ),
                   ],
                   if (open)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'disconnect',
-                      child: Text('断开连接'),
+                      child: Text(AppL10n.t.disconnect),
                     ),
                   if (!local) ...[
                     const PopupMenuDivider(),
-                    const PopupMenuItem(value: 'delete', child: Text('删除')),
+                    PopupMenuItem(value: 'delete', child: Text(AppL10n.t.delete)),
                   ],
                 ],
               ),
@@ -383,12 +386,12 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '还没有主机',
+              AppL10n.t.noHostsYet,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 6),
             Text(
-              '添加一台 SSH 主机开始使用；macOS 上也可直接使用内置「本机」。',
+              AppL10n.t.emptyStateHint,
               textAlign: TextAlign.center,
               style: Theme.of(context)
                   .textTheme
@@ -399,7 +402,7 @@ class _EmptyState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('添加第一台主机'),
+              label: Text(AppL10n.t.addFirstHost),
             ),
           ],
         ),
@@ -430,7 +433,7 @@ class _QuickStartSection extends StatelessWidget {
                 Icon(Icons.menu_book_outlined, size: 18, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  '快速上手',
+                  AppL10n.t.quickStart,
                   style: Theme.of(context)
                       .textTheme
                       .titleMedium
@@ -440,12 +443,12 @@ class _QuickStartSection extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              '① 连接前准备',
+              AppL10n.t.step1Prepare,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(
-              '目标主机必须安装 opencode V2。方寸台是它的远程界面，会话、文件、终端能力都来自目标主机上的 opencode。',
+              AppL10n.t.targetNeedsV2,
               style: small,
             ),
             const SizedBox(height: 10),
@@ -454,40 +457,39 @@ class _QuickStartSection extends StatelessWidget {
             const _CommandLine('npm install -g @opencode/cli'),
             const SizedBox(height: 10),
             Text(
-              '安装后执行 opencode --version，显示 2.x 即成功；旧版本可用 opencode upgrade --major 升级。Windows 建议在 WSL 中使用。',
+              AppL10n.t.installHint,
               style: small,
             ),
             const _QuickStartDivider(),
             Text(
-              '② 打开会话',
+              AppL10n.t.step2Open,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(
-              '本机：macOS 上无需 SSH，直接点「本机」卡片即可，会自动发现并启动 opencode 服务。\n'
-              '远程主机：点「添加主机」，填写 SSH 地址、端口、用户名和私钥，保存后点击卡片连接。',
+              AppL10n.t.quickStartHostsHint,
               style: small,
             ),
             const _QuickStartDivider(),
             Text(
-              '③ 切换与关闭',
+              AppL10n.t.step3Switch,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(
-              '顶部标签切换已打开的主机；标签内的 × 关闭该主机会话，只影响这一台。关闭最后一个标签后回到本页，点 + 随时打开新主机。',
+              AppL10n.t.tabHint,
               style: small,
             ),
             const _QuickStartDivider(),
             Text(
-              '④ 工具栏',
+              AppL10n.t.step4Toolbar,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(
-              '文件：浏览当前主机目录，打开 md / pdf / csv / xlsx / docx。\n'
-              '文档：最近打开的文档，继续上次阅读位置。\n'
-              '终端：当前主机的 shell（本机终端暂未支持）。',
+              '${AppL10n.t.toolbarFiles}\n'
+              '${AppL10n.t.toolbarDocuments}\n'
+              '${AppL10n.t.toolbarTerminal}',
               style: small,
             ),
           ],
@@ -540,13 +542,13 @@ class _CommandLine extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.copy, size: 16),
-            tooltip: '复制命令',
+            tooltip: AppL10n.t.copyCommand,
             visualDensity: VisualDensity.compact,
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: command));
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('命令已复制')),
+                SnackBar(content: Text(AppL10n.t.commandCopied)),
               );
             },
           ),

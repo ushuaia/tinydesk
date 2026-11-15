@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">方寸台</string>
+    <string name="notification_channel">远程连接</string>
+    <string name="notification_keep_alive">保持远程连接</string>
+    <string name="picker_busy">另一个文件选择正在进行</string>
+    <string name="save_busy">另一个保存正在进行</string>
+    <string name="missing_content">缺少文件内容</string>
+</resources>
