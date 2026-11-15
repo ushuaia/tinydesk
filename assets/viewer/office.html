@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --border: #d1d9e0;
+    --head: #f6f8fa;
+    --tab: #f6f8fa;
+    --tab-active: #0969da;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --fg: #e6edf3;
+      --border: #3d444d;
+      --head: #151b23;
+      --tab: #151b23;
+      --tab-active: #4493f8;
+    }
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+  }
+  body {
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 12px;
+  }
+  #status {
+    padding: 24px;
+    color: var(--fg);
+    opacity: 0.7;
+  }
+  #tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .tab {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--tab);
+    color: var(--fg);
+    font: inherit;
+    cursor: pointer;
+  }
+  .tab.active {
+    border-color: var(--tab-active);
+    color: var(--tab-active);
+  }
+  #content {
+    overflow: auto;
+  }
+  table {
+    border-collapse: collapse;
+    min-width: 100%;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  th {
+    background: var(--head);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+  }
+  #content img {
+    max-width: 100%;
+    height: auto;
+  }
+  #content h1, #content h2, #content h3 {
+    line-height: 1.3;
+  }
+  #content pre {
+    overflow-x: auto;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--head);
+  }
+</style>
+</head>
+<body>
+<div id="status">正在加载…</div>
+<div id="tabs"></div>
+<div id="content"></div>
+<script src="/vendor/xlsx.full.min.js"></script>
+<script src="/vendor/mammoth.browser.min.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var type = params.get('type') || 'csv';
+  var status = document.getElementById('status');
+  var content = document.getElementById('content');
+  var tabs = document.getElementById('tabs');
+
+  function decodeText(buffer) {
+    var utf8 = new TextDecoder('utf-8').decode(buffer);
+    if (!utf8.includes('\uFFFD')) return utf8;
+    try {
+      return new TextDecoder('gbk').decode(buffer);
+    } catch (_) {
+      return utf8;
+    }
+  }
+
+  function parseCsv(text) {
+    var rows = [];
+    var row = [];
+    var cell = '';
+    var quoted = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (quoted) {
+        if (ch === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i++; }
+          else quoted = false;
+        } else {
+          cell += ch;
+        }
+      } else if (ch === '"') {
+        quoted = true;
+      } else if (ch === ',') {
+        row.push(cell);
+        cell = '';
+      } else if (ch === '\n') {
+        row.push(cell);
+        rows.push(row);
+        row = [];
+        cell = '';
+      } else if (ch !== '\r') {
+        cell += ch;
+      }
+    }
+    if (cell.length > 0 || row.length > 0) {
+      row.push(cell);
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function renderTable(rows) {
+    var table = document.createElement('table');
+    rows.forEach(function (cells, r) {
+      var tr = document.createElement('tr');
+      cells.forEach(function (value) {
+        var td = document.createElement(r === 0 ? 'th' : 'td');
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+    return table;
+  }
+
+  function renderCsv(buffer) {
+    content.appendChild(renderTable(parseCsv(decodeText(buffer))));
+  }
+
+  function renderXlsx(buffer) {
+    var wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+    var names = wb.SheetNames;
+    function show(index) {
+      content.innerHTML = XLSX.utils.sheet_to_html(wb.Sheets[names[index]]);
+      Array.prototype.forEach.call(tabs.children, function (button, i) {
+        button.className = i === index ? 'tab active' : 'tab';
+      });
+    }
+    names.forEach(function (name, index) {
+      var button = document.createElement('button');
+      button.textContent = name;
+      button.className = 'tab';
+      button.onclick = function () { show(index); };
+      tabs.appendChild(button);
+    });
+    if (names.length > 0) show(0);
+  }
+
+  function renderDocx(buffer) {
+    return mammoth.convertToHtml({ arrayBuffer: buffer }).then(function (result) {
+      content.innerHTML = result.value;
+    });
+  }
+
+  (async function () {
+    try {
+      var response = await fetch('/file');
+      var buffer = await response.arrayBuffer();
+      status.remove();
+      if (type === 'csv') {
+        renderCsv(buffer);
+      } else if (type === 'xlsx') {
+        renderXlsx(buffer);
+      } else if (type === 'docx') {
+        await renderDocx(buffer);
+      } else {
+        content.textContent = '不支持的格式：' + type;
+      }
+    } catch (error) {
+      status.textContent = '加载失败：' + error;
+    }
+  })();
+})();
+</script>
+</body>
+</html>

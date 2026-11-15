@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: #ffffff; }
+  body.dark { background: #282c34; }
+  #editor { height: 100%; }
+  .cm-editor { height: 100%; }
+  .cm-editor.cm-focused { outline: none; }
+  .cm-scroller {
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+</style>
+</head>
+<body>
+<div id="editor"></div>
+<script src="codemirror.bundle.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var fileName = params.get('file') || '';
+  var readOnly = params.get('readOnly') === '1';
+  var dark = params.get('dark') === '1';
+  if (dark) document.body.classList.add('dark');
+  var timer = null;
+
+  function post(message) {
+    try {
+      EditorBridge.postMessage(JSON.stringify(message));
+    } catch (e) {}
+  }
+
+  function boot() {
+    if (!window.createEditor) {
+      setTimeout(boot, 30);
+      return;
+    }
+    window.createEditor({
+      initialDoc: '',
+      fileName: fileName,
+      readOnly: readOnly,
+      dark: dark,
+      onChange: function (text) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function () {
+          post({ type: 'change', text: text });
+        }, 250);
+      },
+      onSave: function () {
+        post({ type: 'save' });
+      },
+      onReady: function () {
+        post({ type: 'ready' });
+      }
+    });
+  }
+
+  // Public API used by Dart via runJavaScript. The bundle exposes the
+  // double-underscore variants; these wrappers are the stable surface.
+  window.setDoc = function (text) {
+    if (window.__setDoc) window.__setDoc(text);
+  };
+  window.getDoc = function () {
+    return window.__getDoc ? window.__getDoc() : '';
+  };
+  window.setReadOnly = function (value) {
+    if (window.__setReadOnly) window.__setReadOnly(!!value);
+  };
+  window.setLanguage = function (name) {
+    if (window.__setLanguage) window.__setLanguage(name);
+  };
+
+  boot();
+})();
+</script>
+</body>
+</html>

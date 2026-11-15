@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDF</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #111; }
+  body { padding: 8px; }
+  .page {
+    position: relative;
+    margin: 0 auto 8px;
+    background: #fff;
+    overflow: hidden;
+  }
+  .page canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #status {
+    color: #aaa;
+    font: 13px -apple-system, BlinkMacSystemFont, sans-serif;
+    text-align: center;
+    padding: 24px 12px;
+  }
+</style>
+</head>
+<body>
+<div id="status">正在加载 PDF…</div>
+<script type="module">
+  import * as pdfjsLib from './pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+
+  const params = new URLSearchParams(location.search);
+  const url = params.get('file') || '/document.pdf';
+  const start = parseFloat(params.get('progress') || '0');
+  const status = document.getElementById('status');
+  const bridge = window.DocBridge;
+  window.__ocReaderReady = false;
+  let suppressSave = true;
+  const baseScale =
+    Math.min(2, Math.max(1, window.devicePixelRatio || 1)) * 1.2;
+  let zoom = parseFloat(params.get('scale') || '1');
+  let scale = baseScale * zoom;
+
+  function post(message) {
+    if (bridge && bridge.postMessage) {
+      bridge.postMessage(JSON.stringify(message));
+    }
+  }
+
+  let timer = null;
+  window.addEventListener('scroll', () => {
+    if (suppressSave) return;
+    if (timer) return;
+    timer = setTimeout(() => {
+      timer = null;
+      post({ type: 'progress', scrollY: window.scrollY });
+    }, 400);
+  });
+
+  try {
+    const pdf = await pdfjsLib.getDocument({ url }).promise;
+    status.remove();
+    const container = document.createElement('div');
+    container.id = 'pages';
+    document.body.appendChild(container);
+
+    const pages = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale });
+      const el = document.createElement('div');
+      el.className = 'page';
+      el.dataset.page = String(i);
+      el.style.aspectRatio = `${viewport.width} / ${viewport.height}`;
+      container.appendChild(el);
+      pages.push({ index: i, page, viewport, el, rendered: false });
+    }
+
+    async function renderPage(item) {
+      if (!item || item.rendered) return;
+      item.rendered = true;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(item.viewport.width);
+      canvas.height = Math.floor(item.viewport.height);
+      item.el.appendChild(canvas);
+      try {
+        await item.page.render({
+          canvasContext: canvas.getContext('2d'),
+          viewport: item.viewport
+        }).promise;
+      } catch (_) {
+        item.rendered = false;
+      }
+    }
+
+    function setScale(newZoom) {
+      const oldHeight = document.body.scrollHeight;
+      const ratio = oldHeight > 0 ? window.scrollY / oldHeight : 0;
+      zoom = newZoom;
+      scale = baseScale * zoom;
+      for (const item of pages) {
+        item.viewport = item.page.getViewport({ scale });
+        item.el.style.aspectRatio =
+          `${item.viewport.width} / ${item.viewport.height}`;
+        item.el.innerHTML = '';
+        item.rendered = false;
+      }
+      requestAnimationFrame(() => {
+        window.scrollTo(0, ratio * document.body.scrollHeight);
+        for (const item of pages) {
+          const rect = item.el.getBoundingClientRect();
+          if (rect.bottom >= -800 && rect.top <= window.innerHeight + 800) {
+            renderPage(item);
+          }
+        }
+      });
+    }
+    window.setScale = setScale;
+
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const index = parseInt(entry.target.dataset.page, 10) - 1;
+        renderPage(pages[index]);
+      }
+    }, { rootMargin: '800px 0px' });
+
+    for (const item of pages) observer.observe(item.el);
+
+    if (start > 0) {
+      requestAnimationFrame(() => window.scrollTo(0, start));
+      setTimeout(() => {
+        window.scrollTo(0, start);
+        suppressSave = false;
+        window.__ocReaderReady = true;
+      }, 800);
+    } else {
+      suppressSave = false;
+      window.__ocReaderReady = true;
+    }
+  } catch (error) {
+    status.textContent = 'PDF 加载失败：' + error;
+  }
+</script>
+</body>
+</html>

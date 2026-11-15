@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- The app only talks to its own loopback servers: the SSH tunnel
+         exposes opencode on 127.0.0.1, and the markdown/PDF viewers serve
+         assets from a local HttpServer. Everything else stays HTTPS-only. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+</network-security-config>

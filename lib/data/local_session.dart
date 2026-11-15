@@ -1,0 +1,315 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter_pty/flutter_pty.dart';
+
+import 'host.dart';
+import 'local_directory.dart';
+import 'remote_file.dart';
+import 'shell_session.dart';
+import '../opencode/opencode_client.dart';
+import '../opencode/opencode_errors.dart';
+import '../ssh/tunnel_session.dart';
+/// A [TunnelSession] backed by local file IO and the locally running
+/// opencode binary — no SSH involved.
+///
+/// To keep the per-host cookie isolation intact the workspace always talks to
+/// `127.0.0.1:<host.localPort>`, exactly like an SSH host. [LocalSession] binds
+/// a tiny loopback forwarder on that port and relays every connection to the
+/// real opencode HTTP service port discovered on this machine.
+class LocalSession implements TunnelSession {
+  LocalSession._(this._host);
+
+  final Host _host;
+  final OpencodeClient _opencode = OpencodeClient();
+  ServerSocket? _forward;
+  final Completer<void> _closed = Completer<void>();
+
+  /// Detects the real opencode service port on this machine, starts the
+  /// service when missing, and binds the loopback forwarder on
+  /// [Host.localPort].
+  static Future<LocalSession> open(Host host) async {
+    final session = LocalSession._(host);
+    try {
+      final servicePort = await session._ensureService();
+      await session._startForward(servicePort);
+      return session;
+    } catch (error) {
+      await session.close();
+      rethrow;
+    }
+  }
+
+  Future<int> _ensureService() async {
+    var port = await _detectServerPort();
+    if (port == null && _host.autoStartServer) {
+      await startService();
+      port = await _detectServerPort();
+    }
+    if (port == null) {
+      throw const ServerUnreachable('本机 opencode 未响应，请启动服务后重试');
+    }
+    return port;
+  }
+
+  /// Resolves the opencode binary on this machine. Uses the user's login
+  /// shell (which applies the real PATH from .zshrc/.bashrc) plus an
+  /// absolute-path candidate list, because `Process.run` inside a sandboxed
+  /// app does not inherit the user's shell PATH.
+  Future<String?> _findBinary() async {
+    final home = Platform.environment['HOME'] ?? '';
+    // 1. Ask the login shell — most reliable when PATH is customised.
+    for (final shell in const ['/bin/zsh', '/bin/bash']) {
+      if (!File(shell).existsSync()) continue;
+      try {
+        final result = await Process.run(shell, ['-lc', 'command -v opencode']);
+        if (result.exitCode == 0) {
+          final out = result.stdout.toString().trim();
+          if (out.isNotEmpty) return out.split('\n').last.trim();
+        }
+      } catch (_) {}
+    }
+    // 2. Fall back to absolute-path candidates.
+    final candidates = [
+      'opencode',
+      '$home/.opencode/bin/opencode',
+      '$home/.local/bin/opencode',
+      '$home/.npm-global/bin/opencode',
+      '$home/.bun/bin/opencode',
+      '/opt/homebrew/bin/opencode',
+      '/usr/local/bin/opencode',
+    ];
+    for (final candidate in candidates) {
+      try {
+        final result = await Process.run(
+          '/bin/sh',
+          ['-c', 'command -v "$candidate" 2>/dev/null'],
+        );
+        if (result.exitCode == 0) {
+          final out = result.stdout.toString().trim();
+          if (out.isNotEmpty) {
+            return out.split('\n').last.trim();
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Probes the well-known opencode ports on the loopback. `localPort` is
+  /// skipped: that port belongs to this session's own forwarder.
+  Future<int?> _detectServerPort() async {
+    for (final port in const [49374, 4096, 3000, 8080, 19001]) {
+      if (port == _host.localPort) continue;
+      if (await _portAlive(port)) return port;
+    }
+    return null;
+  }
+
+  Future<bool> _portAlive(int port) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 2);
+    try {
+      final request = await client.getUrl(
+        Uri.parse('http://127.0.0.1:$port/api/info'),
+      );
+      final response = await request.close();
+      await response.drain<void>();
+      return response.statusCode == 200 || response.statusCode == 401;
+    } catch (_) {
+      return false;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<void> _startForward(int servicePort) async {
+    final server = await ServerSocket.bind(
+      InternetAddress.loopbackIPv4,
+      _host.localPort,
+    );
+    server.listen(
+      (client) {
+        Socket.connect(InternetAddress.loopbackIPv4, servicePort)
+            .then((remote) {
+          client.cast<List<int>>().pipe(remote);
+          remote.cast<List<int>>().pipe(client);
+        }).catchError((_) {
+          client.destroy();
+        });
+      },
+      onError: (Object _) {
+        if (!_closed.isCompleted) _closed.complete();
+      },
+      onDone: () {
+        if (!_closed.isCompleted) _closed.complete();
+      },
+      cancelOnError: false,
+    );
+    _forward = server;
+  }
+
+  @override
+  Future<ServerStatus> probe(String baseUrl) => _opencode.probe(baseUrl);
+
+  @override
+  Future<PairingSession> pairSession(String localBaseUrl) async {
+    final pairResult = await _runOpencode(['pair', '--url', localBaseUrl]);
+    final url = parsePairUrl(pairResult);
+    if (url == null) {
+      throw PairingFailed('无法解析配对链接：$pairResult');
+    }
+
+    // Redeem on this machine over plain HTTP (no tunnel hop involved).
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+    try {
+      final request = await client.getUrl(Uri.parse(url));
+      request.followRedirects = false;
+      request.headers.set(
+        HttpHeaders.acceptHeader,
+        'text/html,application/xhtml+xml',
+      );
+      final response = await request.close();
+      await response.drain<void>();
+
+      final cookies = response.headers['set-cookie'];
+      if (cookies == null || cookies.isEmpty) {
+        throw PairingFailed(
+          '配对链接没有返回会话 cookie（HTTP ${response.statusCode}）',
+        );
+      }
+      final first = cookies.first.split(';').first;
+      final index = first.indexOf('=');
+      if (index <= 0) {
+        throw const PairingFailed('无法解析会话 cookie');
+      }
+      return PairingSession(
+        baseUrl: localBaseUrl,
+        cookieName: first.substring(0, index).trim(),
+        cookieValue: first.substring(index + 1).trim(),
+      );
+    } on OpencodeError {
+      rethrow;
+    } catch (error) {
+      throw PairingFailed('兑换配对链接失败：$error', cause: error);
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  @override
+  Future<void> startService() async {
+    final result = await _runOpencode(['service', 'start']);
+    final trimmed = result.trim();
+    if (!trimmed.contains('http://') && !trimmed.contains('https://')) {
+      throw ServiceStartFailed('本机 opencode 服务启动失败：$trimmed');
+    }
+  }
+
+  Future<String> _runOpencode(List<String> args) async {
+    final binary = await _findBinary();
+    if (binary == null) {
+      throw const OpencodeNotInstalled('本机未安装 opencode，请先安装后重试');
+    }
+    final result = await Process.run(binary, args);
+    if (result.exitCode != 0) {
+      final err = result.stderr.toString().trim();
+      throw PairingFailed(err.isEmpty ? 'opencode 命令失败' : err);
+    }
+    return result.stdout.toString();
+  }
+
+  @override
+  Future<List<RemoteFile>> listDirectory(String path) =>
+      listLocalDirectory(path);
+
+  @override
+  Future<String> readText(String path) => File(path).readAsString();
+
+  @override
+  Future<Uint8List> readBytes(String path) => File(path).readAsBytes();
+
+  @override
+  Future<void> writeText(String path, String content) =>
+      File(path).writeAsString(content);
+
+  @override
+  Future<String> runCommand(String command) async {
+    final result = await Process.run('/bin/sh', ['-c', command]);
+    if (result.exitCode != 0) {
+      throw TunnelCommandException(
+        command,
+        exitCode: result.exitCode,
+        stderr: result.stderr.toString(),
+      );
+    }
+    return result.stdout.toString();
+  }
+
+  @override
+  Future<void> delete(String path) async {
+    final type = FileSystemEntity.typeSync(path);
+    if (type == FileSystemEntityType.directory) {
+      await Directory(path).delete(recursive: true);
+    } else {
+      await File(path).delete();
+    }
+  }
+
+  @override
+  Future<void> createDirectory(String path) async {
+    await Directory(path).create(recursive: true);
+  }
+
+  @override
+  Future<void> downloadFile(String remotePath, File destination) async {
+    final parent = destination.parent;
+    if (!await parent.exists()) await parent.create(recursive: true);
+    await File(remotePath).copy(destination.path);
+  }
+
+  @override
+  Future<DateTime?> statModified(String path) async {
+    try {
+      final stat = FileStat.statSync(path);
+      if (stat.type == FileSystemEntityType.notFound) return null;
+      return stat.modified;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<String> homeDirectory() async {
+    return Platform.environment['HOME'] ?? '/';
+  }
+
+  @override
+  Future<ShellSession> openShell({int width = 80, int height = 24}) async {
+    final shellPath = Platform.environment['SHELL'] ?? '/bin/zsh';
+    final home = Platform.environment['HOME'];
+    final pty = Pty.start(
+      shellPath,
+      arguments: const ['-l'],
+      workingDirectory: home,
+      rows: height,
+      columns: width,
+    );
+    return LocalShellSession(pty);
+  }
+
+  @override
+  Future<void> keepAlive() async {}
+
+  @override
+  Future<void> close() async {
+    final server = _forward;
+    _forward = null;
+    await server?.close();
+    if (!_closed.isCompleted) _closed.complete();
+  }
+
+  @override
+  Future<void> get closed => _closed.future;
+}

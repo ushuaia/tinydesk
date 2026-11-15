@@ -1,0 +1,47 @@
+// HarmonyOS build profile template.
+//
+// Copy this file to `ohos/build-profile.json5` and fill in `signingConfigs`
+// with your own certificate/key/profile paths (DevEco Studio can generate
+// them automatically via Project Structure → Signing Configs).
+//
+// `ohos/build-profile.json5` is git-ignored on purpose: it contains local
+// certificate paths and encrypted passwords.
+{
+  "app": {
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.5(17)",
+        "targetSdkVersion": "5.0.5(17)",
+        "runtimeOS": "HarmonyOS",
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "profile"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
