@@ -22,10 +22,11 @@ class HostImportDialog extends StatefulWidget {
   final HostRepository repository;
   final PrivateKeyStore keyStore;
 
-  /// Returns the QR text from the platform scanner, or null when cancelled.
-  /// Null (desktop platforms without a camera) hides the scan button and
-  /// enables paste import.
-  final Future<String?> Function()? scanner;
+  /// Returns the QR texts collected by the platform scanner, or null when
+  /// cancelled. Null (desktop platforms without a camera) hides the scan
+  /// button and enables paste import. The two-stage transfer usually comes
+  /// back with both codes from one camera session.
+  final Future<List<String>?> Function()? scanner;
 
   @override
   State<HostImportDialog> createState() => _HostImportDialogState();
@@ -49,9 +50,12 @@ class _HostImportDialogState extends State<HostImportDialog> {
   Future<void> _scan() async {
     setState(() => _error = null);
     try {
-      final text = await widget.scanner?.call();
-      if (text == null || text.isEmpty) return;
-      await _receive(text);
+      final codes = await widget.scanner?.call();
+      if (codes == null || codes.isEmpty) return;
+      for (final code in codes) {
+        await _receive(code);
+        if (!mounted) return;
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = AppL10n.t.scanFailed(error.toString()));

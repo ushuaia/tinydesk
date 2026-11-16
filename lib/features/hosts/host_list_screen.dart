@@ -138,18 +138,30 @@ class _HostListScreenState extends State<HostListScreen> {
 
   /// Import via camera on Android/iOS, the Scan Kit plugin on HarmonyOS,
   /// and paste on desktop platforms.
-  Future<String?> _scanQr() async {
+  Future<List<String>?> _scanQr() async {
     if (Platform.isAndroid || Platform.isIOS) {
-      return Navigator.of(context)
-          .push<String>(MaterialPageRoute(builder: (_) => const HostScanPage()));
+      // One camera session collects both codes: recreating the camera for
+      // the second scan crashes mobile_scanner on iOS.
+      return Navigator.of(context).push<List<String>>(
+        MaterialPageRoute(
+          builder: (_) => const HostScanPage(expected: 2),
+        ),
+      );
     }
     if (Platform.isMacOS || Platform.operatingSystem == 'ohos') {
       try {
-        return await const MethodChannel('opencode/hostscan')
-            .invokeMethod<String>('scan');
+        final codes = <String>[];
+        for (var i = 0; i < 2; i++) {
+          final text = await const MethodChannel('opencode/hostscan')
+              .invokeMethod<String>('scan');
+          if (text == null || text.isEmpty) break;
+          codes.add(text);
+        }
+        return codes.isEmpty ? null : codes;
       } on MissingPluginException {
         return null;
       } on PlatformException catch (error) {
+        if (!mounted) return null;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppL10n.t.scanFailedDetail((error.message ?? error.code).toString()))),
         );
