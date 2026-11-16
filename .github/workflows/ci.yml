@@ -4,9 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Nightly protocol probe against the latest opencode release
+    # (18:00 UTC = 02:00 Asia/Shanghai).
+    - cron: '0 18 * * *'
 
 jobs:
   analyze-and-test:
+    if: github.event_name != 'schedule'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,3 +32,73 @@ jobs:
 
       - name: Test
         run: flutter test
+
+  opencode-compat:
+    # Detects upstream protocol changes (pairing, API paths, web UI locale
+    # store) before users hit them. Always tests the latest opencode release.
+    if: github.event_name == 'schedule'
+    runs-on: macos-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.0'
+          cache: true
+
+      - name: Install the latest opencode
+        run: npm install --global @opencode/cli
+
+      - name: Start opencode server
+        run: |
+          opencode --version
+          nohup opencode serve --port 49374 > /tmp/opencode-serve.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://127.0.0.1:49374/; then break; fi
+            sleep 1
+          done
+          curl -s -o /dev/null -w "server: %{http_code}\n" http://127.0.0.1:49374/
+
+      - name: Verify opencode integration contracts
+        id: compat
+        run: dart run tool/compat_check.dart http://127.0.0.1:49374
+
+      - name: Open an issue when a contract broke
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'opencode protocol changed — compat probe failed';
+            const body = [
+              'The nightly opencode contract probe failed.',
+              '',
+              'Workflow run: ' + `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'Inspect the failing contract in the job log, then update the',
+              'app side (pairing, API paths or the web UI locale store).',
+            ].join('\n');
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'opencode-compat',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['opencode-compat'],
+              });
+            }

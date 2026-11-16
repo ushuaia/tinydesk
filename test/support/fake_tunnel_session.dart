@@ -22,12 +22,8 @@ class FakeTunnelSession implements TunnelSession {
   Future<ServerStatus> probe(String baseUrl) async => ServerStatus.online;
 
   @override
-  Future<PairingSession> pairSession(String localBaseUrl) async =>
-      PairingSession(
-        baseUrl: localBaseUrl,
-        cookieName: 'sid',
-        cookieValue: 'cookie123',
-      );
+  Future<String> createPairLink(String localBaseUrl) async =>
+      'http://127.0.0.1:49374/auth/connect/test';
 
   @override
   Future<void> startService() async {}

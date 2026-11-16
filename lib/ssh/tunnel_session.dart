@@ -36,7 +36,9 @@ class TunnelCommandException implements Exception {
 abstract class TunnelSession {
   Future<ServerStatus> probe(String baseUrl);
 
-  Future<PairingSession> pairSession(String localBaseUrl);
+  /// Returns a one-time pairing link. The login itself happens in the
+  /// embedded WebView, so the app never parses the auth response.
+  Future<String> createPairLink(String localBaseUrl);
 
   Future<void> startService();
 
@@ -99,8 +101,8 @@ class SshTunnelSession implements TunnelSession {
   Future<ServerStatus> probe(String baseUrl) => _opencode.probe(baseUrl);
 
   @override
-  Future<PairingSession> pairSession(String localBaseUrl) =>
-      _opencode.createSession(_client, localBaseUrl: localBaseUrl);
+  Future<String> createPairLink(String localBaseUrl) =>
+      _opencode.pairViaSsh(_client, localBaseUrl: localBaseUrl);
 
   @override
   Future<void> startService() => _opencode.startService(_client);

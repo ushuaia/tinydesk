@@ -115,12 +115,16 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
       }
 
       _set(ConnectionPhase.pairing);
-      final pairing = await session.pairSession(baseUrl);
+      // Authentication is delegated to the embedded WebView: it opens this
+      // one-time link and opencode's own web UI performs the login. The app
+      // never parses the auth response, so protocol changes (Set-Cookie vs
+      // JSON token vs anything later) need no app-side adaptation.
+      final pairLink = await session.createPairLink(baseUrl);
       state = state.copyWith(
         phase: ConnectionPhase.ready,
-        pairUrl: pairing.baseUrl,
-        cookieName: pairing.cookieName,
-        cookieValue: pairing.cookieValue,
+        pairUrl: pairLink,
+        cookieName: null,
+        cookieValue: null,
       );
       _startKeepAlive();
     } on SshError catch (error) {
@@ -132,6 +136,12 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
     } finally {
       _connecting = false;
     }
+  }
+
+  /// Stores the session cookie the WebView obtained during the pairing
+  /// login, so native HTTP features (project roots, favorite sync) can use it.
+  void attachSessionCookie(String name, String value) {
+    state = state.copyWith(cookieName: name, cookieValue: value);
   }
 
   void _fail(String message) {

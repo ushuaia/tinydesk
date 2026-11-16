@@ -39,7 +39,7 @@ class _FakeSession implements TunnelSession {
   Future<ServerStatus> probe(String baseUrl) async => ServerStatus.online;
 
   @override
-  Future<PairingSession> pairSession(String localBaseUrl) {
+  Future<String> createPairLink(String localBaseUrl) {
     throw UnimplementedError();
   }
 

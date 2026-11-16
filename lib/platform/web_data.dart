@@ -30,4 +30,27 @@ class WebData {
       });
     } catch (_) {}
   }
+
+  /// Reads the cookies the embedded WebView currently holds for [url].
+  /// Used after the in-WebView pairing login to hand the session cookie to
+  /// the native HTTP client (file browser roots, favorite sync).
+  Future<Map<String, String>> sessionCookies(String url) async {
+    try {
+      final list = await _channel.invokeListMethod<dynamic>(
+        'getSessionCookies',
+        {'url': url},
+      );
+      final cookies = <String, String>{};
+      for (final entry in list ?? const []) {
+        if (entry is Map) {
+          final name = entry['name'];
+          final value = entry['value'];
+          if (name is String && value is String) cookies[name] = value;
+        }
+      }
+      return cookies;
+    } catch (_) {
+      return const {};
+    }
+  }
 }

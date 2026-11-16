@@ -300,6 +300,8 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   WebViewController? _webView;
   String? _loadedPairUrl;
   String? _currentUrl;
+  String? _pendingTarget;
+  bool _pairingLogin = false;
   String? _savedUrl;
   bool _savedUrlLoaded = false;
   Timer? _saveUrlDebounce;
@@ -531,6 +533,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
           onUrlChange: (change) {
             _currentUrl = change.url;
             _scheduleSaveUrl(change.url);
+            unawaited(_handlePairLogin(change.url));
           },
           onPageFinished: (_) {
             if (defaultTargetPlatform == TargetPlatform.macOS) {
@@ -547,51 +550,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     if (!mounted) return;
     setState(() {});
 
-    final name = snapshot.cookieName;
-    final value = snapshot.cookieValue;
-    var cookieReady = false;
-    if (name != null && value != null) {
-      try {
-        // On iOS and macOS, WKWebView reads cookies from its private
-        // WKHTTPCookieStore, which the Flutter cookie manager does not
-        // populate — inject through the native side there.
-        final usesWebData = defaultTargetPlatform == TargetPlatform.iOS ||
-            defaultTargetPlatform == TargetPlatform.macOS;
-        if (usesWebData) {
-          await const WebData().setSessionCookie(name, value, '127.0.0.1');
-        } else {
-          await WebViewCookieManager()
-              .setCookie(
-                WebViewCookie(
-                  name: name,
-                  value: value,
-                  domain: '127.0.0.1',
-                  path: '/',
-                ),
-              )
-              .timeout(const Duration(seconds: 3));
-        }
-        cookieReady = true;
-      } catch (error) {
-        debugPrint('OC cookie failed: $error');
-      }
-    }
-
-    final headers = <String, String>{};
-    if (!cookieReady && name != null && value != null) {
-      headers['Cookie'] = '$name=$value';
-    }
     if (!mounted) return;
-
-    // Give WKWebView a completed navigation before the real request: its
-    // cookie store is only synchronised into the process once a navigation
-    // has run, and a first request fired straight after the cookie write
-    // otherwise races and lands on the blank auth page.
-    if (defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS) {
-      await _webView!.loadHtmlString('<html><body></body></html>');
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-    }
 
     // Every host uses its own localPort, and opencode names its session
     // cookie after that port, so cookies from different hosts coexist
@@ -599,7 +558,44 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     // this host was showing, or the UI root on first visit.
     final target = await _restoreTarget();
 
-    await _webView!.loadRequest(Uri.parse(target), headers: headers);
+    // Authentication runs inside the WebView: open the one-time pairing
+    // link and let opencode's own web UI perform the login. Nothing here
+    // parses the auth response, so upstream protocol changes (Set-Cookie →
+    // JSON token → whatever comes next) require no app change.
+    final pairLink = snapshot.pairUrl;
+    final pairUri = pairLink == null ? null : Uri.tryParse(pairLink);
+    if (pairUri != null && pairUri.path.startsWith('/auth/connect')) {
+      _pendingTarget = target;
+      _pairingLogin = true;
+      await _webView!.loadRequest(pairUri);
+      return;
+    }
+
+    await _webView!.loadRequest(Uri.parse(target));
+  }
+
+  /// Called when the WebView finishes the pairing login (it navigates away
+  /// from /auth/connect). Reads the session cookie back from the WebView so
+  /// native HTTP features can use it, then opens the restored page.
+  Future<void> _handlePairLogin(String? url) async {
+    if (!_pairingLogin) return;
+    final uri = Uri.tryParse(url ?? '');
+    if (uri == null || uri.path.startsWith('/auth/connect')) return;
+    _pairingLogin = false;
+    final target = _pendingTarget;
+    _pendingTarget = null;
+    final origin = 'http://127.0.0.1:${_host.localPort}/';
+    final cookies = await const WebData().sessionCookies(origin);
+    final entry = cookies.entries
+        .where((e) => e.key.startsWith('opencode_session_'))
+        .firstOrNull;
+    if (entry != null) {
+      _session.connection.attachSessionCookie(entry.key, entry.value);
+    }
+    if (!mounted || target == null) return;
+    if (url != target) {
+      await _webView?.loadRequest(Uri.parse(target));
+    }
   }
 
   @override

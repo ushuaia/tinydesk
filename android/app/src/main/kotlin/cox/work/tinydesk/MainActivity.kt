@@ -56,13 +56,31 @@ class MainActivity : FlutterActivity() {
         }
 
         MethodChannel(messenger, "opencode/webdata").setMethodCallHandler { call, result ->
-            if (call.method == "clearCookies") {
-                android.webkit.CookieManager.getInstance().removeAllCookies(null)
-                android.webkit.WebStorage.getInstance().deleteAllData()
-                android.webkit.CookieManager.getInstance().flush()
-                result.success(true)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "clearCookies" -> {
+                    android.webkit.CookieManager.getInstance().removeAllCookies(null)
+                    android.webkit.WebStorage.getInstance().deleteAllData()
+                    android.webkit.CookieManager.getInstance().flush()
+                    result.success(true)
+                }
+                "getSessionCookies" -> {
+                    val url = call.argument<String>("url") ?: "http://127.0.0.1/"
+                    val header = android.webkit.CookieManager.getInstance().getCookie(url)
+                    val list = mutableListOf<Map<String, String>>()
+                    header?.split(";")?.forEach { part ->
+                        val index = part.indexOf('=')
+                        if (index > 0) {
+                            list.add(
+                                mapOf(
+                                    "name" to part.substring(0, index).trim(),
+                                    "value" to part.substring(index + 1).trim(),
+                                )
+                            )
+                        }
+                    }
+                    result.success(list)
+                }
+                else -> result.notImplemented()
             }
         }
 

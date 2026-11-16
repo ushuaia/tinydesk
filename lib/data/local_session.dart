@@ -156,48 +156,13 @@ class LocalSession implements TunnelSession {
   Future<ServerStatus> probe(String baseUrl) => _opencode.probe(baseUrl);
 
   @override
-  Future<PairingSession> pairSession(String localBaseUrl) async {
+  Future<String> createPairLink(String localBaseUrl) async {
     final pairResult = await _runOpencode(['pair', '--url', localBaseUrl]);
     final url = parsePairUrl(pairResult);
     if (url == null) {
       throw PairingFailed(AppL10n.t.parsePairFailedRaw(pairResult));
     }
-
-    // Redeem on this machine over plain HTTP (no tunnel hop involved).
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
-    try {
-      final request = await client.getUrl(Uri.parse(url));
-      request.followRedirects = false;
-      request.headers.set(
-        HttpHeaders.acceptHeader,
-        'text/html,application/xhtml+xml',
-      );
-      final response = await request.close();
-      await response.drain<void>();
-
-      final cookies = response.headers['set-cookie'];
-      if (cookies == null || cookies.isEmpty) {
-        throw PairingFailed(
-          AppL10n.t.pairingNoCookie(response.statusCode.toString()),
-        );
-      }
-      final first = cookies.first.split(';').first;
-      final index = first.indexOf('=');
-      if (index <= 0) {
-        throw PairingFailed(AppL10n.t.parseCookieFailed);
-      }
-      return PairingSession(
-        baseUrl: localBaseUrl,
-        cookieName: first.substring(0, index).trim(),
-        cookieValue: first.substring(index + 1).trim(),
-      );
-    } on OpencodeError {
-      rethrow;
-    } catch (error) {
-      throw PairingFailed(AppL10n.t.redeemFailed(error.toString()), cause: error);
-    } finally {
-      client.close(force: true);
-    }
+    return url;
   }
 
   @override

@@ -34,6 +34,62 @@ class PairingSession {
   final String cookieValue;
 }
 
+/// Resolves the session cookie after redeeming a pairing link.
+///
+/// opencode up to 2.2 replies with a `Set-Cookie` header. 2.3+ instead
+/// replies with `{"token":"…"}` and expects the client to store it as
+/// `opencode_session_<access port>` (the cookie name the web UI uses).
+PairingSession resolvePairingSession({
+  required String baseUrl,
+  required Uri accessUri,
+  required List<String> setCookieHeaders,
+  required String responseBody,
+  required int statusCode,
+}) {
+  if (setCookieHeaders.isNotEmpty) {
+    final first = setCookieHeaders.first.split(';').first;
+    final index = first.indexOf('=');
+    if (index > 0) {
+      return PairingSession(
+        baseUrl: baseUrl,
+        cookieName: first.substring(0, index).trim(),
+        cookieValue: first.substring(index + 1).trim(),
+      );
+    }
+  }
+
+  final token = _pairingToken(responseBody);
+  if (token != null) {
+    final port = accessUri.hasPort
+        ? accessUri.port
+        : (accessUri.scheme == 'https' ? 443 : 80);
+    return PairingSession(
+      baseUrl: baseUrl,
+      cookieName: 'opencode_session_$port',
+      cookieValue: token,
+    );
+  }
+
+  throw PairingFailed(
+    AppL10n.t.pairingNoCookie(statusCode.toString()),
+  );
+}
+
+String? _pairingToken(String body) {
+  final trimmed = body.trim();
+  if (!trimmed.startsWith('{')) return null;
+  try {
+    final decoded = jsonDecode(trimmed);
+    if (decoded is Map && decoded['token'] is String) {
+      final token = decoded['token'] as String;
+      return token.isEmpty ? null : token;
+    }
+  } on FormatException {
+    return null;
+  }
+  return null;
+}
+
 class RemoteProject {
   const RemoteProject({required this.name, required this.directory});
 
@@ -320,23 +376,13 @@ class OpencodeClient {
         'text/html,application/xhtml+xml',
       );
       final response = await request.close();
-      await response.drain<void>();
-
-      final cookies = response.headers['set-cookie'];
-      if (cookies == null || cookies.isEmpty) {
-        throw PairingFailed(
-          AppL10n.t.pairingNoCookie(response.statusCode.toString()),
-        );
-      }
-      final first = cookies.first.split(';').first;
-      final index = first.indexOf('=');
-      if (index <= 0) {
-        throw PairingFailed(AppL10n.t.parseCookieFailed);
-      }
-      return PairingSession(
+      final body = await utf8.decoder.bind(response).join();
+      return resolvePairingSession(
         baseUrl: baseUrl,
-        cookieName: first.substring(0, index).trim(),
-        cookieValue: first.substring(index + 1).trim(),
+        accessUri: Uri.parse(baseUrl),
+        setCookieHeaders: response.headers['set-cookie'] ?? const [],
+        responseBody: body,
+        statusCode: response.statusCode,
       );
     } on OpencodeError {
       rethrow;

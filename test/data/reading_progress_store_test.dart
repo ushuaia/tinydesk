@@ -58,7 +58,7 @@ class _MemorySession implements TunnelSession {
   Future<ServerStatus> probe(String baseUrl) async => ServerStatus.online;
 
   @override
-  Future<PairingSession> pairSession(String localBaseUrl) async =>
+  Future<String> createPairLink(String localBaseUrl) async =>
       throw UnimplementedError();
 
   @override

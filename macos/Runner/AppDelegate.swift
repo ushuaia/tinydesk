@@ -71,6 +71,13 @@ enum TinyDeskChannels {
             ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
             modifiedSince: Date.distantPast
           ) { result(true) }
+        case "getSessionCookies":
+          WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+            let list: [[String: String]] = cookies.map {
+              ["name": $0.name, "value": $0.value, "domain": $0.domain]
+            }
+            result(list)
+          }
         case "setSessionCookie":
           guard let args = call.arguments as? [String: Any],
                 let name = args["name"] as? String,

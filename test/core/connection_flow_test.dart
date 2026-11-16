@@ -34,12 +34,8 @@ class FakeSession implements TunnelSession {
   }
 
   @override
-  Future<PairingSession> pairSession(String localBaseUrl) async =>
-      PairingSession(
-        baseUrl: localBaseUrl,
-        cookieName: 'sid',
-        cookieValue: 'cookie123',
-      );
+  Future<String> createPairLink(String localBaseUrl) async =>
+      'http://127.0.0.1:49374/auth/connect/test';
 
   @override
   Future<void> startService() async {}
@@ -121,12 +117,14 @@ void main() {
       ConnectionPhase.pairing,
       ConnectionPhase.ready,
     ]);
+    // The snapshot carries the one-time pairing link; the login itself
+    // happens in the WebView and the cookie is attached afterwards.
     expect(
       controller.state.pairUrl,
-      'http://127.0.0.1:49375',
+      'http://127.0.0.1:49374/auth/connect/test',
     );
-    expect(controller.state.cookieName, 'sid');
-    expect(controller.state.cookieValue, 'cookie123');
+    expect(controller.state.cookieName, isNull);
+    expect(controller.state.cookieValue, isNull);
   });
 
   test('offline without auto-start fails with readable message', () async {
