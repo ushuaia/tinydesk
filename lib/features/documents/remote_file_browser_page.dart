@@ -495,13 +495,14 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     };
     try {
       final manager = SessionScope.of(context);
-      final snapshot = manager.activeSession?.connection.state;
-      final pairUrl = snapshot?.pairUrl;
-      if (pairUrl != null) {
+      final active = manager.activeSession;
+      final snapshot = active?.connection.state;
+      if (snapshot != null) {
+        final origin = 'http://127.0.0.1:${active!.host.localPort}';
         final projects = await OpencodeClient().listProjects(
-          pairUrl,
-          cookieName: snapshot?.cookieName,
-          cookieValue: snapshot?.cookieValue,
+          origin,
+          cookieName: snapshot.cookieName,
+          cookieValue: snapshot.cookieValue,
         );
         for (final project in projects) {
           if (project.directory.isNotEmpty && project.directory != '/') {

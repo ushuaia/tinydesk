@@ -508,7 +508,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String terminalTitle(String name) {
-    return '\$hostName · 终端';
+    return '$name · 终端';
   }
 
   @override
@@ -901,12 +901,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String openFileFailed(String error) {
-    return '打开文件失败：\$error';
+    return '打开文件失败：$error';
   }
 
   @override
   String stepOf(String step) {
-    return '第 \$step 步，共 2 步';
+    return '第 $step 步，共 2 步';
   }
 
   @override
@@ -988,7 +988,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String tunnelFailed(String error) {
-    return '建立 SSH 隧道失败：\$error';
+    return '建立 SSH 隧道失败：$error';
   }
 
   @override
@@ -1015,7 +1015,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String toggleEditFailed(String error) {
-    return '切换编辑失败：\$error';
+    return '切换编辑失败：$error';
   }
 
   @override
@@ -1036,7 +1036,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String generatePublicKeyFailed(String error) {
-    return '生成公钥失败：\$error';
+    return '生成公钥失败：$error';
   }
 
   @override

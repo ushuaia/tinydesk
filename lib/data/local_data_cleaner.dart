@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_session_manager.dart';
 import 'favorite_store.dart';
 import 'host_repository.dart';
+import '../platform/web_data.dart';
 import 'open_sessions_store.dart';
 import 'private_key_store.dart';
 
@@ -46,6 +47,9 @@ class LocalDataCleaner {
 
     await OpenSessionsStore().clear();
     await FavoriteIndex().clearAll();
+    // The embedded WebViews keep opencode session cookies; clearing local
+    // data must not leave a logged-in web session behind.
+    await const WebData().clearCookies();
 
     final prefs = await SharedPreferences.getInstance();
     for (final key in prefs.getKeys().toList()) {

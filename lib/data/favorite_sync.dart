@@ -57,12 +57,11 @@ class FavoriteSync {
 
   Future<List<String>> _projectRoots(HostSession session) async {
     final state = session.connection.state;
-    final pairUrl = state.pairUrl;
-    if (pairUrl == null) return const [];
+    if (state.phase != ConnectionPhase.ready) return const [];
     try {
       final projects = await _client
           .listProjects(
-            pairUrl,
+            'http://127.0.0.1:${session.host.localPort}',
             cookieName: state.cookieName,
             cookieValue: state.cookieValue,
           )

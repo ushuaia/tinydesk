@@ -302,6 +302,8 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   String? _currentUrl;
   String? _pendingTarget;
   bool _pairingLogin = false;
+  Timer? _pairLoginTimeout;
+  int _pairLoginRetries = 0;
   String? _savedUrl;
   bool _savedUrlLoaded = false;
   Timer? _saveUrlDebounce;
@@ -480,10 +482,17 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     _lastPhase = snapshot.phase;
     // Reload when pairing changed (first connect) or after a reconnect so
     // the web view is re-authorised and the saved scene is restored.
-    if (snapshot.phase == ConnectionPhase.ready &&
-        (becameReady || pairUrl != _loadedPairUrl)) {
-      _loadedPairUrl = pairUrl;
-      unawaited(_loadWorkspace(snapshot));
+    if (snapshot.phase == ConnectionPhase.ready) {
+      final needsLogin =
+          pairUrl != null && (becameReady || pairUrl != _loadedPairUrl);
+      // After the login the link is cleared; a rebuilt view (tab switch)
+      // then restores the saved page using the cookie already in the
+      // WebView store.
+      final needsRestore = pairUrl == null && becameReady;
+      if (needsLogin || needsRestore) {
+        if (pairUrl != null) _loadedPairUrl = pairUrl;
+        unawaited(_loadWorkspace(snapshot));
+      }
     }
     if (mounted) setState(() {});
   }
@@ -501,7 +510,8 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
       if (uri != null &&
           uri.host == '127.0.0.1' &&
           uri.port == _host.localPort &&
-          uri.path.startsWith('/')) {
+          uri.path.startsWith('/') &&
+          !uri.path.startsWith('/auth/connect')) {
         return saved;
       }
     }
@@ -510,6 +520,10 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
 
   void _scheduleSaveUrl(String? url) {
     if (url == null) return;
+    // The pairing link is one-time: persisting it would make the next
+    // restore navigate to an already-consumed link.
+    final uri = Uri.tryParse(url);
+    if (uri != null && uri.path.startsWith('/auth/connect')) return;
     _saveUrlDebounce?.cancel();
     _saveUrlDebounce = Timer(const Duration(milliseconds: 600), () {
       final uri = Uri.tryParse(url);
@@ -567,6 +581,16 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     if (pairUri != null && pairUri.path.startsWith('/auth/connect')) {
       _pendingTarget = target;
       _pairingLogin = true;
+      _pairLoginTimeout?.cancel();
+      // If the login never leaves the pairing page (expired link, service
+      // restarted mid-flow …), reconnect to obtain a fresh one-time link.
+      _pairLoginTimeout = Timer(const Duration(seconds: 12), () {
+        if (!mounted || !_pairingLogin) return;
+        _pairingLogin = false;
+        if (_pairLoginRetries >= 2) return; // leave the error page visible
+        _pairLoginRetries++;
+        unawaited(widget.manager.retry(_host.id));
+      });
       await _webView!.loadRequest(pairUri);
       return;
     }
@@ -582,16 +606,41 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     final uri = Uri.tryParse(url ?? '');
     if (uri == null || uri.path.startsWith('/auth/connect')) return;
     _pairingLogin = false;
+    _pairLoginRetries = 0;
+    _pairLoginTimeout?.cancel();
+    _pairLoginTimeout = null;
     final target = _pendingTarget;
     _pendingTarget = null;
     final origin = 'http://127.0.0.1:${_host.localPort}/';
-    final cookies = await const WebData().sessionCookies(origin);
-    final entry = cookies.entries
-        .where((e) => e.key.startsWith('opencode_session_'))
-        .firstOrNull;
-    if (entry != null) {
-      _session.connection.attachSessionCookie(entry.key, entry.value);
+    // The WebView writes its cookie store asynchronously right after the
+    // redirect, so retry briefly. Match this host's port-scoped cookie
+    // first: the shared WebView store also holds cookies of other hosts.
+    String? cookieName;
+    String? cookieValue;
+    for (var attempt = 0; attempt < 4; attempt++) {
+      final cookies = await const WebData().sessionCookies(origin);
+      final exact = cookies['opencode_session_${_host.localPort}'];
+      if (exact != null && exact.isNotEmpty) {
+        cookieName = 'opencode_session_${_host.localPort}';
+        cookieValue = exact;
+        break;
+      }
+      final fallback = cookies.entries
+          .where((e) => e.key.startsWith('opencode_session_'))
+          .firstOrNull;
+      if (fallback != null && fallback.value.isNotEmpty) {
+        cookieName = fallback.key;
+        cookieValue = fallback.value;
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 150));
     }
+    // The link is consumed now — clear it before anything else can reuse
+    // it, even when the cookie read came back empty.
+    _session.connection.completePairing(
+      cookieName: cookieName,
+      cookieValue: cookieValue,
+    );
     if (!mounted || target == null) return;
     if (url != target) {
       await _webView?.loadRequest(Uri.parse(target));
@@ -600,6 +649,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
 
   @override
   void dispose() {
+    _pairLoginTimeout?.cancel();
     _saveUrlDebounce?.cancel();
     _session.connection.removeListener(_onStateChanged);
     super.dispose();
