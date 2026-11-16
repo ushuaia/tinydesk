@@ -262,6 +262,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     key: _keyFor(session.host.id),
                     manager: manager,
                     session: session,
+                    language: widget.language,
                   ),
               ],
             ),
@@ -281,10 +282,12 @@ class _HostWorkspaceView extends StatefulWidget {
     super.key,
     required this.manager,
     required this.session,
+    required this.language,
   });
 
   final AppSessionManager manager;
   final HostSession session;
+  final AppLanguageController language;
 
   @override
   State<_HostWorkspaceView> createState() => _HostWorkspaceViewState();
@@ -293,6 +296,7 @@ class _HostWorkspaceView extends StatefulWidget {
 class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   final AppSettings _settings = AppSettings();
   final WorkspaceStateStore _stateStore = WorkspaceStateStore();
+  bool _languageListenerAdded = false;
   WebViewController? _webView;
   String? _loadedPairUrl;
   String? _currentUrl;
@@ -428,6 +432,42 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _onStateChanged();
     });
+    _ensureLanguageListener();
+  }
+
+  void _ensureLanguageListener() {
+    if (_languageListenerAdded) return;
+    _languageListenerAdded = true;
+    widget.language.addListener(_onLanguageChanged);
+  }
+
+  void _onLanguageChanged() {
+    _syncOpencodeLanguage();
+  }
+
+  /// Keeps the embedded opencode web UI in the app language. opencode
+  /// reads its own locale from localStorage
+  /// (`opencode.global.dat:language`, a `{"locale":"xx"}` JSON). Write it
+  /// before use and on switches; the reload inside the script happens
+  /// only when the stored locale differs.
+  static String _opencodeLanguageScript(String code) => """
+    (function(){
+      var target = '$code';
+      try {
+        var raw = localStorage.getItem('opencode.global.dat:language');
+        var current = raw ? (JSON.parse(raw).locale || null) : null;
+        if (current !== target) {
+          localStorage.setItem('opencode.global.dat:language', JSON.stringify({locale: target}));
+          location.reload();
+        }
+      } catch (e) {}
+    })();
+  """;
+
+  void _syncOpencodeLanguage() {
+    if (_webView == null) return;
+    _webView
+        ?.runJavaScript(_opencodeLanguageScript(widget.language.resolvedCode));
   }
 
   void _onStateChanged() {
@@ -496,6 +536,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
             if (defaultTargetPlatform == TargetPlatform.macOS) {
               _webView?.runJavaScript(_wideLayoutScript);
             }
+            _syncOpencodeLanguage();
             _webView?.runJavaScript(_imeGuardScript);
             if (_autoBlurKeyboard) {
               _webView?.runJavaScript(_keyboardBridgeScript);
