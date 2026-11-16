@@ -150,14 +150,13 @@ class _HostListScreenState extends State<HostListScreen> {
     }
     if (Platform.isMacOS || Platform.operatingSystem == 'ohos') {
       try {
-        final codes = <String>[];
-        for (var i = 0; i < 2; i++) {
-          final text = await const MethodChannel('opencode/hostscan')
-              .invokeMethod<String>('scan');
-          if (text == null || text.isEmpty) break;
-          codes.add(text);
-        }
-        return codes.isEmpty ? null : codes;
+        // The system scanner hosts its own page: opening it twice in a row
+        // trips over the page transition on HarmonyOS, so scan one code per
+        // tap and let the dialog guide the second one (it shows 1/2 progress).
+        final text = await const MethodChannel('opencode/hostscan')
+            .invokeMethod<String>('scan');
+        if (text == null || text.isEmpty) return null;
+        return [text];
       } on MissingPluginException {
         return null;
       } on PlatformException catch (error) {

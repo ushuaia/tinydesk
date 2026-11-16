@@ -158,6 +158,16 @@ class _HostImportDialogState extends State<HostImportDialog> {
               _step == HostTransferStep.waitingForPayload),
           _progressRow(AppL10n.t.qrStage2Waiting, _receiver.hasPayload,
               _step == HostTransferStep.waitingForKey),
+          if (!busy && (_receiver.hasKey ^ _receiver.hasPayload))
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                AppL10n.t.needOtherStage,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ),
           const SizedBox(height: 12),
           TextField(
             controller: _payload,
