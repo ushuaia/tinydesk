@@ -298,7 +298,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   final WorkspaceStateStore _stateStore = WorkspaceStateStore();
   bool _languageListenerAdded = false;
   WebViewController? _webView;
-  String? _loadedPairUrl;
   String? _currentUrl;
   String? _pendingTarget;
   bool _pairingLogin = false;
@@ -475,23 +474,13 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
 
   void _onStateChanged() {
     final snapshot = _session.connection.state;
-    final pairUrl = snapshot.pairUrl;
     final becameReady = snapshot.phase == ConnectionPhase.ready &&
         _lastPhase != ConnectionPhase.ready;
     _lastPhase = snapshot.phase;
     // Reload when pairing changed (first connect) or after a reconnect so
     // the web view is re-authorised and the saved scene is restored.
-    if (snapshot.phase == ConnectionPhase.ready) {
-      final needsLogin =
-          pairUrl != null && (becameReady || pairUrl != _loadedPairUrl);
-      // After the login the link is cleared; a rebuilt view (tab switch)
-      // then restores the saved page using the cookie already in the
-      // WebView store.
-      final needsRestore = pairUrl == null && becameReady;
-      if (needsLogin || needsRestore) {
-        if (pairUrl != null) _loadedPairUrl = pairUrl;
-        unawaited(_loadWorkspace(snapshot));
-      }
+    if (snapshot.phase == ConnectionPhase.ready && becameReady) {
+      unawaited(_loadWorkspace(snapshot));
     }
     if (mounted) setState(() {});
   }
@@ -576,13 +565,33 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     // this host was showing, or the UI root on first visit.
     final target = await _restoreTarget();
 
-    // Authentication runs inside the WebView: open the one-time pairing
-    // link and let opencode's own web UI perform the login. Nothing here
-    // parses the auth response, so upstream protocol changes (Set-Cookie →
-    // JSON token → whatever comes next) require no app change.
-    final pairLink = snapshot.pairUrl;
-    final pairUri = pairLink == null ? null : Uri.tryParse(pairLink);
-    if (pairUri != null && pairUri.path.startsWith('/auth/connect')) {
+    // The WebView keeps its session cookie, so an authenticated page can be
+    // opened directly — no pairing round-trip on reconnect or tab switch.
+    final origin = 'http://127.0.0.1:${_host.localPort}';
+    final cookies = await const WebData().sessionCookies('$origin/');
+    final exact = cookies['opencode_session_${_host.localPort}'];
+    final existing = exact != null && exact.isNotEmpty
+        ? MapEntry('opencode_session_${_host.localPort}', exact)
+        : cookies.entries
+            .where((e) => e.key.startsWith('opencode_session_'))
+            .firstOrNull;
+    if (existing != null && existing.value.isNotEmpty) {
+      _session.connection.completePairing(
+        cookieName: existing.key,
+        cookieValue: existing.value,
+      );
+      await _webView!.loadRequest(Uri.parse(target));
+      return;
+    }
+
+    // Not authenticated yet: get a one-time link and let opencode's own web
+    // UI perform the login. The app never parses the auth response.
+    String? link;
+    try {
+      link = await _session.connection.session?.createPairLink(origin);
+    } catch (_) {}
+    final pairUri = link == null ? null : Uri.tryParse(link);
+    if (pairUri != null) {
       _pendingTarget = target;
       _pairingLogin = true;
       await _webView!.loadRequest(pairUri);

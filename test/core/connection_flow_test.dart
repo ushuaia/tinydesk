@@ -114,15 +114,10 @@ void main() {
       ConnectionPhase.sshConnecting,
       ConnectionPhase.tunneling,
       ConnectionPhase.probing,
-      ConnectionPhase.pairing,
       ConnectionPhase.ready,
     ]);
-    // The snapshot carries the one-time pairing link; the login itself
-    // happens in the WebView and the cookie is attached afterwards.
-    expect(
-      controller.state.pairUrl,
-      'http://127.0.0.1:49374/auth/connect/test',
-    );
+    // Pairing is deferred to the workspace (lazy one-time link).
+    expect(controller.state.pairUrl, isNull);
     expect(controller.state.cookieName, isNull);
     expect(controller.state.cookieValue, isNull);
   });

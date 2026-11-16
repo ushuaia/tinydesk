@@ -114,18 +114,10 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
         throw ServerUnreachable(AppL10n.t.remoteOpencodeUnreachable);
       }
 
-      _set(ConnectionPhase.pairing);
-      // Authentication is delegated to the embedded WebView: it opens this
-      // one-time link and opencode's own web UI performs the login. The app
-      // never parses the auth response, so protocol changes (Set-Cookie vs
-      // JSON token vs anything later) need no app-side adaptation.
-      final pairLink = await session.createPairLink(baseUrl);
-      state = state.copyWith(
-        phase: ConnectionPhase.ready,
-        pairUrl: pairLink,
-        cookieName: null,
-        cookieValue: null,
-      );
+      // No pairing here: the workspace keeps the WebView session cookie and
+      // only asks for a one-time link when the page is not authenticated
+      // yet. Skipping it saves an SSH round-trip on every connect.
+      state = state.copyWith(phase: ConnectionPhase.ready);
       _startKeepAlive();
     } on SshError catch (error) {
       _fail(error.userMessage);

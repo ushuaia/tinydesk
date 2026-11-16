@@ -5,7 +5,6 @@ enum ConnectionPhase {
   tunneling,
   probing,
   startingServer,
-  pairing,
   ready,
   reconnecting,
   failed,

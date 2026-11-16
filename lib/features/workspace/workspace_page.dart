@@ -300,8 +300,7 @@ class _SessionChip extends StatelessWidget {
       ConnectionPhase.authenticating ||
       ConnectionPhase.tunneling ||
       ConnectionPhase.probing ||
-      ConnectionPhase.startingServer ||
-      ConnectionPhase.pairing =>
+      ConnectionPhase.startingServer =>
         const Color(0xFFFFB020),
       ConnectionPhase.idle => const Color(0xFF8E8E93),
     };

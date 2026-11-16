@@ -18,7 +18,6 @@ class ConnectView extends StatelessWidget {
     ConnectionPhase.tunneling: AppL10n.t.establishingTunnel,
     ConnectionPhase.probing: AppL10n.t.detectingOpencode,
     ConnectionPhase.startingServer: AppL10n.t.startingOpencodeService,
-    ConnectionPhase.pairing: AppL10n.t.pairing,
     ConnectionPhase.ready: AppL10n.t.connected,
     ConnectionPhase.reconnecting: AppL10n.t.reconnecting,
     ConnectionPhase.failed: AppL10n.t.connectionFailedTitle,
