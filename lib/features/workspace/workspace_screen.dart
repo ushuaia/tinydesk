@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -575,7 +576,9 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
         : cookies.entries
             .where((e) => e.key.startsWith('opencode_session_'))
             .firstOrNull;
-    if (existing != null && existing.value.isNotEmpty) {
+    if (existing != null &&
+        existing.value.isNotEmpty &&
+        await _cookieStillValid(origin, existing)) {
       _session.connection.completePairing(
         cookieName: existing.key,
         cookieValue: existing.value,
@@ -599,6 +602,27 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     }
 
     await _webView!.loadRequest(Uri.parse(target));
+  }
+
+  /// A stored cookie can outlive the server session (service restart, expiry).
+  /// Verifying it avoids opening an unauthenticated page that renders blank.
+  Future<bool> _cookieStillValid(String origin, MapEntry<String, String> cookie) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 5);
+    try {
+      final request = await client.getUrl(Uri.parse('$origin/api/session'));
+      request.headers.set(
+        HttpHeaders.cookieHeader,
+        '${cookie.key}=${cookie.value}',
+      );
+      final response = await request.close();
+      await response.drain<void>();
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    } finally {
+      client.close(force: true);
+    }
   }
 
   /// Called when the WebView finishes the pairing login (it navigates away
