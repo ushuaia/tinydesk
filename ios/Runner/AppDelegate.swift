@@ -75,35 +75,6 @@ enum TinyDeskLanguage {
             }
             result(list)
           }
-        case "setSessionCookie":
-          guard let args = call.arguments as? [String: Any],
-                let name = args["name"] as? String,
-                let value = args["value"] as? String,
-                let domain = args["domain"] as? String else {
-            result(FlutterError(code: "BAD_ARGS", message: TinyDeskLanguage.text("Invalid arguments", "参数错误"), details: nil))
-            return
-          }
-          if let cookie = HTTPCookie(properties: [
-            .name: name,
-            .value: value,
-            .domain: domain,
-            .path: "/",
-          ]) {
-            WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie) {
-              let store = WKWebsiteDataStore.default().httpCookieStore
-              store.getAllCookies { cookies in
-                let lines = cookies
-                  .sorted { $0.name < $1.name }
-                  .map { "name=\($0.name) val=\($0.value.prefix(24)) domain=\($0.domain ?? "")" }
-                  .joined(separator: "\n")
-                try? lines.write(toFile: NSTemporaryDirectory() + "oc_cookies.txt",
-                                 atomically: true, encoding: .utf8)
-                result(true)
-              }
-            }
-          } else {
-            result(FlutterError(code: "BAD_COOKIE", message: TinyDeskLanguage.text("Could not build the cookie", "无法构造 cookie"), details: nil))
-          }
         default:
           result(FlutterMethodNotImplemented)
         }
