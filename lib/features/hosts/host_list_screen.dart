@@ -505,7 +505,6 @@ class _HostListScreenState extends State<HostListScreen> {
           },
           embedded: widget.embedded,
           onAdd: _openAddMenu,
-          onImport: _openImport,
           onSettings: _openSettings,
           onExportQr: _exportQr,
           onOpen: _openHost,

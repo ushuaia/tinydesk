@@ -16,7 +16,6 @@ class HostListPage extends StatelessWidget {
     this.embedded = false,
     this.onAdd,
     this.onSettings,
-    this.onImport,
     this.onOpen,
     this.onEdit,
     this.onDelete,
@@ -39,7 +38,6 @@ class HostListPage extends StatelessWidget {
   final bool embedded;
   final VoidCallback? onAdd;
   final VoidCallback? onSettings;
-  final VoidCallback? onImport;
   final ValueChanged<Host>? onOpen;
   final ValueChanged<Host>? onEdit;
   final ValueChanged<Host>? onDelete;
@@ -66,12 +64,6 @@ class HostListPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppL10n.t.fangchitai),
         actions: [
-          if (onImport != null)
-            IconButton(
-              onPressed: onImport,
-              icon: const Icon(Icons.qr_code_scanner),
-              tooltip: AppL10n.t.importHost,
-            ),
           if (onSettings != null)
             IconButton(
               onPressed: onSettings,
