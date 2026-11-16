@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../core/app_language.dart';
+import '../../platform/web_data.dart';
 
 import 'package:flutter/services.dart';
 
@@ -499,10 +500,11 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       final snapshot = active?.connection.state;
       if (snapshot != null) {
         final origin = 'http://127.0.0.1:${active!.host.localPort}';
+        final cookie = await const WebData().sessionCookie(active.host.localPort);
         final projects = await OpencodeClient().listProjects(
           origin,
-          cookieName: snapshot.cookieName,
-          cookieValue: snapshot.cookieValue,
+          cookieName: cookie?.key,
+          cookieValue: cookie?.value,
         );
         for (final project in projects) {
           if (project.directory.isNotEmpty && project.directory != '/') {

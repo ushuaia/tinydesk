@@ -1150,4 +1150,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewerPdfLoadFailedPrefix => 'PDF load failed: ';
+
+  @override
+  String get connectionLost => 'Connection lost — tap retry';
+
+  @override
+  String get pageLoadFailed => 'The page failed to load — tap retry';
+
+  @override
+  String get pairingLinkExpired => 'The sign-in link expired — tap retry';
 }

@@ -1104,4 +1104,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewerPdfLoadFailedPrefix => 'PDF 加载失败：';
+
+  @override
+  String get connectionLost => '连接中断，请点击重试';
+
+  @override
+  String get pageLoadFailed => '页面加载异常，请点击重试';
+
+  @override
+  String get pairingLinkExpired => '登录链接已失效，请点击重试';
 }

@@ -130,18 +130,6 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
     }
   }
 
-  /// Marks the pairing login as finished: the one-time link is consumed and
-  /// must leave the state so later page rebuilds can never reuse it. The
-  /// session cookie the WebView obtained is kept for native HTTP features
-  /// (project roots, favorite sync).
-  void completePairing({String? cookieName, String? cookieValue}) {
-    state = ConnectionSnapshot(
-      phase: ConnectionPhase.ready,
-      cookieName: cookieName,
-      cookieValue: cookieValue,
-    );
-  }
-
   void _fail(String message) {
     if (_manualDisconnect) return;
     unawaited(_closeSession());

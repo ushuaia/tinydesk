@@ -730,5 +730,8 @@
   "viewerLoading": "Loading…",
   "viewerUnsupportedPrefix": "Unsupported format: ",
   "viewerLoadingPdf": "Loading PDF…",
-  "viewerPdfLoadFailedPrefix": "PDF load failed: "
+  "viewerPdfLoadFailedPrefix": "PDF load failed: ",
+  "connectionLost": "Connection lost — tap retry",
+  "pageLoadFailed": "The page failed to load — tap retry",
+  "pairingLinkExpired": "The sign-in link expired — tap retry"
 }

@@ -11,6 +11,7 @@ import '../../core/app_session_manager.dart';
 import '../../core/connection_state.dart';
 import '../../core/host_session.dart';
 import '../../data/app_settings.dart';
+import '../../data/workspace_session.dart';
 import '../../data/favorite_sync.dart';
 import '../../data/host.dart';
 import '../../data/host_repository.dart';
@@ -294,19 +295,40 @@ class _HostWorkspaceView extends StatefulWidget {
   State<_HostWorkspaceView> createState() => _HostWorkspaceViewState();
 }
 
+/// Authentication flow of the embedded opencode web UI.
+enum _WorkspaceAuth {
+  /// Resolving the stored cookie / preparing the page.
+  checking,
+
+  /// The page can be opened with the cookie the WebView already holds.
+  verified,
+
+  /// A one-time pairing link is driving the login in the web UI.
+  pairing,
+
+  /// Something failed; the view shows the reason and a retry action.
+  failed,
+}
+
 class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   final AppSettings _settings = AppSettings();
   final WorkspaceStateStore _stateStore = WorkspaceStateStore();
   bool _languageListenerAdded = false;
   WebViewController? _webView;
   String? _currentUrl;
-  String? _pendingTarget;
-  bool _pairingLogin = false;
   String? _savedUrl;
   bool _savedUrlLoaded = false;
   Timer? _saveUrlDebounce;
-  ConnectionPhase? _lastPhase;
   bool _autoBlurKeyboard = true;
+
+  /// Authentication flow for this host's web view. `failed` is a first-class
+  /// state: every failure surfaces a message and a retry entry, so a blank
+  /// page can never be the final state.
+  _WorkspaceAuth _auth = _WorkspaceAuth.checking;
+  String? _target;
+  String? _failure;
+  int _loadAttempts = 0;
+  bool _entered = false;
 
   /// 避免进入会话时自动弹出输入法。
   ///
@@ -392,6 +414,35 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
 })();
 ''';
 
+  /// Reports whether the loaded page actually rendered. A blank body or a
+  /// login screen means the session is not usable even though a cookie was
+  /// present.
+  static const _pageHealthScript = r'''
+    (function(){
+      try {
+        var href = location.href;
+        if (window.__tdHealthHref === href) return;
+        window.__tdHealthHref = href;
+        // Give the SPA a moment to render before judging the page.
+        setTimeout(function(){
+          try {
+            if (location.href !== href) return;
+            var text = (document.body && document.body.innerText || '')
+              .replace(/\s+/g, ' ').trim();
+            var loginLike = /pairing link|连接到服务器|Connect to server/i.test(text);
+            var pairError = /expired or already used|opencode pair/i.test(text);
+            var state = text.length < 20
+              ? 'empty'
+              : (pairError ? 'pairerror' : (loginLike ? 'login' : 'ok'));
+            TinyDeskPage.postMessage(state);
+          } catch (e) {
+            TinyDeskPage.postMessage('ok');
+          }
+        }, 1500);
+      } catch (e) {}
+    })();
+  ''';
+
   /// Desktop windows are wide enough that the web UI's centered max-width
   /// layout wastes space. Mobile keeps its own layout.
   static const _wideLayoutScript = r'''
@@ -475,15 +526,21 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
 
   void _onStateChanged() {
     final snapshot = _session.connection.state;
-    final becameReady = snapshot.phase == ConnectionPhase.ready &&
-        _lastPhase != ConnectionPhase.ready;
-    _lastPhase = snapshot.phase;
-    // Reload when pairing changed (first connect) or after a reconnect so
-    // the web view is re-authorised and the saved scene is restored.
-    if (snapshot.phase == ConnectionPhase.ready && becameReady) {
-      unawaited(_loadWorkspace(snapshot));
+    if (snapshot.phase == ConnectionPhase.ready && !_entered) {
+      _entered = true;
+      unawaited(_enterWorkspace());
+    } else if (snapshot.phase != ConnectionPhase.ready) {
+      _entered = false;
     }
     if (mounted) setState(() {});
+  }
+
+  void _fail(String reason) {
+    if (!mounted) return;
+    setState(() {
+      _auth = _WorkspaceAuth.failed;
+      _failure = reason;
+    });
   }
 
   /// The URL to open after (re)connecting: the saved page when it belongs
@@ -494,15 +551,8 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
       _savedUrlLoaded = true;
     }
     final saved = _savedUrl;
-    if (saved != null) {
-      final uri = Uri.tryParse(saved);
-      if (uri != null &&
-          uri.host == '127.0.0.1' &&
-          uri.port == _host.localPort &&
-          uri.path.startsWith('/') &&
-          !uri.path.startsWith('/auth/connect')) {
-        return saved;
-      }
+    if (isRestorableUrl(saved, _host.localPort)) {
+      return saved!;
     }
     return 'http://127.0.0.1:${_host.localPort}/';
   }
@@ -526,22 +576,30 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     });
   }
 
-  Future<void> _loadWorkspace(ConnectionSnapshot snapshot) async {
-    _autoBlurKeyboard = await _settings.autoBlurKeyboard();
-
+  void _ensureWebView() {
     _webView ??= WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        'TinyDeskPage',
+        onMessageReceived: (message) => _onPageHealth(message.message),
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onUrlChange: (change) {
             _currentUrl = change.url;
             _scheduleSaveUrl(change.url);
-            unawaited(_handlePairLogin(change.url));
+            if (_auth == _WorkspaceAuth.pairing) {
+              unawaited(_completePairing(change.url));
+            }
           },
           onWebResourceError: (error) {
             debugPrint(
               'OC web error: ${error.errorCode} ${error.description} ${error.url}',
             );
+            // -999 is a cancelled navigation (we redirected it ourselves).
+            if (error.isForMainFrame == true && error.errorCode != -999) {
+              _fail(AppL10n.t.connectionLost);
+            }
           },
           onPageFinished: (_) {
             if (defaultTargetPlatform == TargetPlatform.macOS) {
@@ -552,56 +610,129 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
             if (_autoBlurKeyboard) {
               _webView?.runJavaScript(_keyboardBridgeScript);
             }
+            _webView?.runJavaScript(_pageHealthScript);
           },
         ),
       );
+  }
+
+  /// Single entry point for showing this host's web UI. Reuses the WebView
+  /// session when it is still valid and otherwise drives the pairing login.
+  Future<void> _enterWorkspace() async {
+    _autoBlurKeyboard = await _settings.autoBlurKeyboard();
+    _ensureWebView();
     if (!mounted) return;
-    setState(() {});
+    setState(() {
+      _auth = _WorkspaceAuth.checking;
+      _failure = null;
+    });
 
-    if (!mounted) return;
-
-    // Every host uses its own localPort, and opencode names its session
-    // cookie after that port, so cookies from different hosts coexist
-    // instead of overwriting each other. Restore the last page (session)
-    // this host was showing, or the UI root on first visit.
-    final target = await _restoreTarget();
-
-    // The WebView keeps its session cookie, so an authenticated page can be
-    // opened directly — no pairing round-trip on reconnect or tab switch.
     final origin = 'http://127.0.0.1:${_host.localPort}';
-    final cookies = await const WebData().sessionCookies('$origin/');
-    final exact = cookies['opencode_session_${_host.localPort}'];
-    final existing = exact != null && exact.isNotEmpty
-        ? MapEntry('opencode_session_${_host.localPort}', exact)
-        : cookies.entries
-            .where((e) => e.key.startsWith('opencode_session_'))
-            .firstOrNull;
-    if (existing != null &&
-        existing.value.isNotEmpty &&
-        await _cookieStillValid(origin, existing)) {
-      _session.connection.completePairing(
-        cookieName: existing.key,
-        cookieValue: existing.value,
-      );
-      await _webView!.loadRequest(Uri.parse(target));
+    final target = await _restoreTarget();
+    _target = target;
+
+    final cookie = await const WebData().sessionCookie(_host.localPort);
+    if (cookie != null && await _cookieStillValid(origin, cookie)) {
+      // A saved session page may have been deleted on the server: fall back
+      // to the UI root instead of showing an error page.
+      _target = await _resolveTarget(origin, target);
+      _auth = _WorkspaceAuth.verified;
+      _loadAttempts = 0;
+      if (!mounted) return;
+      setState(() {});
+      await _webView!.loadRequest(Uri.parse(_target!));
       return;
     }
 
-    // Not authenticated yet: get a one-time link and let opencode's own web
-    // UI perform the login. The app never parses the auth response.
+    // Not authenticated: get a one-time link and let opencode's own web UI
+    // perform the login. The app never parses the auth response.
     String? link;
     try {
       link = await _session.connection.session?.createPairLink(origin);
     } catch (_) {}
     final pairUri = link == null ? null : Uri.tryParse(link);
-    if (pairUri != null) {
-      _pendingTarget = target;
-      _pairingLogin = true;
-      await _webView!.loadRequest(pairUri);
+    if (pairUri == null) {
+      _fail(AppL10n.t.connectionNotReady);
       return;
     }
+    _auth = _WorkspaceAuth.pairing;
+    if (!mounted) return;
+    setState(() {});
+    await _webView!.loadRequest(pairUri);
+  }
 
-    await _webView!.loadRequest(Uri.parse(target));
+  /// Called when the WebView leaves the one-time pairing page: the login
+  /// finished. The link is consumed at this point and must never be reused.
+  Future<void> _completePairing(String? url) async {
+    final uri = Uri.tryParse(url ?? '');
+    if (uri == null || uri.path.startsWith('/auth/connect')) return;
+    _auth = _WorkspaceAuth.verified;
+    _loadAttempts = 0;
+    if (!mounted) return;
+    setState(() {});
+    final origin = 'http://127.0.0.1:${_host.localPort}';
+    final target = _target == null ? null : await _resolveTarget(origin, _target!);
+    _target = target;
+    if (target != null && url != target) {
+      await _webView?.loadRequest(Uri.parse(target));
+    }
+  }
+
+  /// The saved page may be gone (session deleted on the server). Probe it
+  /// first and fall back to the UI root on 404.
+  Future<String> _resolveTarget(String origin, String target) async {
+    if (target == origin || target == '$origin/') return '$origin/';
+    final exists = await _targetExists(target);
+    if (exists) return target;
+    _savedUrl = '$origin/';
+    unawaited(_stateStore.saveUrl(_host.id, '$origin/'));
+    return '$origin/';
+  }
+
+  Future<bool> _targetExists(String url) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 5);
+    try {
+      final request = await client.getUrl(Uri.parse(url));
+      final cookie = await const WebData().sessionCookie(_host.localPort);
+      if (cookie != null) {
+        request.headers.set(
+          HttpHeaders.cookieHeader,
+          '${cookie.key}=${cookie.value}',
+        );
+      }
+      final response = await request.close();
+      await response.drain<void>();
+      return response.statusCode != 404;
+    } catch (_) {
+      // Network hiccups are not 404s; keep the saved page.
+      return true;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Page health report from the web view. An empty page or a login page
+  /// after a successful auth means something went wrong: retry once through
+  /// the entry point, then surface a failure instead of a blank screen.
+  void _onPageHealth(String state) {
+    if (state == 'ok') {
+      _loadAttempts = 0;
+      return;
+    }
+    if (state == 'pairerror') {
+      // The one-time link was rejected by the server.
+      _fail(AppL10n.t.pairingLinkExpired);
+      return;
+    }
+    // During the pairing login the page legitimately shows a login screen.
+    if (_auth == _WorkspaceAuth.pairing) return;
+    if (_loadAttempts < 1) {
+      _loadAttempts++;
+      unawaited(_enterWorkspace());
+      return;
+    }
+    _fail(AppL10n.t.pageLoadFailed);
   }
 
   /// A stored cookie can outlive the server session (service restart, expiry).
@@ -622,52 +753,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
       return false;
     } finally {
       client.close(force: true);
-    }
-  }
-
-  /// Called when the WebView finishes the pairing login (it navigates away
-  /// from /auth/connect). Reads the session cookie back from the WebView so
-  /// native HTTP features can use it, then opens the restored page.
-  Future<void> _handlePairLogin(String? url) async {
-    if (!_pairingLogin) return;
-    final uri = Uri.tryParse(url ?? '');
-    if (uri == null || uri.path.startsWith('/auth/connect')) return;
-    _pairingLogin = false;
-    final target = _pendingTarget;
-    _pendingTarget = null;
-    final origin = 'http://127.0.0.1:${_host.localPort}/';
-    // The WebView writes its cookie store asynchronously right after the
-    // redirect, so retry briefly. Match this host's port-scoped cookie
-    // first: the shared WebView store also holds cookies of other hosts.
-    String? cookieName;
-    String? cookieValue;
-    for (var attempt = 0; attempt < 4; attempt++) {
-      final cookies = await const WebData().sessionCookies(origin);
-      final exact = cookies['opencode_session_${_host.localPort}'];
-      if (exact != null && exact.isNotEmpty) {
-        cookieName = 'opencode_session_${_host.localPort}';
-        cookieValue = exact;
-        break;
-      }
-      final fallback = cookies.entries
-          .where((e) => e.key.startsWith('opencode_session_'))
-          .firstOrNull;
-      if (fallback != null && fallback.value.isNotEmpty) {
-        cookieName = fallback.key;
-        cookieValue = fallback.value;
-        break;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-    }
-    // The link is consumed now — clear it before anything else can reuse
-    // it, even when the cookie read came back empty.
-    _session.connection.completePairing(
-      cookieName: cookieName,
-      cookieValue: cookieValue,
-    );
-    if (!mounted || target == null) return;
-    if (url != target) {
-      await _webView?.loadRequest(Uri.parse(target));
     }
   }
 
@@ -720,9 +805,26 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
         onRetry: () => unawaited(widget.manager.retry(_host.id)),
       );
     }
+    if (_auth == _WorkspaceAuth.failed) {
+      return _ErrorBody(
+        message: _failure ?? AppL10n.t.pageLoadFailed,
+        onRetry: () => unawaited(_enterWorkspace()),
+      );
+    }
     final webView = _webView;
     if (webView != null) {
-      return WebViewWidget(controller: webView);
+      return Stack(
+        children: [
+          WebViewWidget(controller: webView),
+          if (_auth == _WorkspaceAuth.checking)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Color(0x00000000),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
+      );
     }
     if (snapshot.phase == ConnectionPhase.reconnecting) {
       return const SizedBox.shrink();

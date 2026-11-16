@@ -116,10 +116,8 @@ void main() {
       ConnectionPhase.probing,
       ConnectionPhase.ready,
     ]);
-    // Pairing is deferred to the workspace (lazy one-time link).
-    expect(controller.state.pairUrl, isNull);
-    expect(controller.state.cookieName, isNull);
-    expect(controller.state.cookieValue, isNull);
+    // Pairing and cookies are owned by the workspace's WebView flow.
+    expect(controller.state.phase, ConnectionPhase.ready);
   });
 
   test('offline without auto-start fails with readable message', () async {

@@ -2053,6 +2053,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PDF load failed: '**
   String get viewerPdfLoadFailedPrefix;
+
+  /// No description provided for @connectionLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost — tap retry'**
+  String get connectionLost;
+
+  /// No description provided for @pageLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The page failed to load — tap retry'**
+  String get pageLoadFailed;
+
+  /// No description provided for @pairingLinkExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in link expired — tap retry'**
+  String get pairingLinkExpired;
 }
 
 class _AppLocalizationsDelegate

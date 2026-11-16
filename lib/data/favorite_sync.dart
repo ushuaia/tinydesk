@@ -5,6 +5,7 @@ import '../../opencode/opencode_client.dart';
 import '../../ssh/tunnel_session.dart';
 import 'favorite_store.dart';
 import 'project_metadata_store.dart';
+import '../platform/web_data.dart';
 
 /// Keeps favorites in sync with each project's `.tinydesk/favorites.json`.
 ///
@@ -59,11 +60,12 @@ class FavoriteSync {
     final state = session.connection.state;
     if (state.phase != ConnectionPhase.ready) return const [];
     try {
+      final cookie = await const WebData().sessionCookie(session.host.localPort);
       final projects = await _client
           .listProjects(
             'http://127.0.0.1:${session.host.localPort}',
-            cookieName: state.cookieName,
-            cookieValue: state.cookieValue,
+            cookieName: cookie?.key,
+            cookieValue: cookie?.value,
           )
           .timeout(const Duration(seconds: 4));
       return [
