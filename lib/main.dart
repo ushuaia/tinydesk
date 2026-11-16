@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,12 @@ import 'data/sandbox_migration.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Turn stray async socket errors (peer resets on relays) into logged
+  // non-fatal events instead of unhandled exceptions.
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('async error: $error');
+    return true;
+  };
   // Must complete before any store reads SharedPreferences, so the
   // sandbox-era data lands before the UI renders the host list.
   try {

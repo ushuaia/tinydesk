@@ -58,7 +58,13 @@ class PortForwarder {
           channels.add(channel);
 
           socket.listen(
-            channel.sink.add,
+            (data) {
+              try {
+                channel.sink.add(data);
+              } catch (_) {
+                socket.destroy();
+              }
+            },
             onDone: () {
               channel.close();
               channels.remove(channel);

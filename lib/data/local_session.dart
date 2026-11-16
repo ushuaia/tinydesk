@@ -133,10 +133,62 @@ class LocalSession implements TunnelSession {
     );
     server.listen(
       (client) {
-        Socket.connect(InternetAddress.loopbackIPv4, servicePort)
-            .then((remote) {
-          client.cast<List<int>>().pipe(remote);
-          remote.cast<List<int>>().pipe(client);
+        Socket.connect(InternetAddress.loopbackIPv4, servicePort).then((remote) {
+          // Bidirectional relay with explicit teardown on either side
+          // resetting or finishing. Stream.pipe alone leaves the peer open
+          // and raises uncaught SocketExceptions when the server closes an
+          // idle keep-alive connection.
+          var closed = false;
+          void closeBoth() {
+            if (closed) return;
+            closed = true;
+            try {
+              client.destroy();
+            } catch (_) {}
+            try {
+              remote.destroy();
+            } catch (_) {}
+          }
+
+          // Socket errors also surface asynchronously on `done`; capture
+          // them so a peer reset never becomes an unhandled exception.
+          unawaited(client.done.catchError((_) {}));
+          unawaited(remote.done.catchError((_) {}));
+
+          // Proper TCP relay: half-close the write side instead of tearing
+          // the whole socket down, otherwise an HTTP client that finishes
+          // its request (FIN) loses the response and the WebView reports a
+          // reset connection.
+          client.listen(
+            (data) {
+              try {
+                remote.add(data);
+              } catch (_) {
+                closeBoth();
+              }
+            },
+            onError: (_) => closeBoth(),
+            onDone: () {
+              // Request finished; keep reading the response.
+              unawaited(remote.close().catchError((_) {}));
+            },
+            cancelOnError: true,
+          );
+          remote.listen(
+            (data) {
+              try {
+                client.add(data);
+              } catch (_) {
+                closeBoth();
+              }
+            },
+            onError: (_) => closeBoth(),
+            onDone: () {
+              unawaited(client.close().catchError((_) {}));
+              closeBoth();
+            },
+            cancelOnError: true,
+          );
         }).catchError((_) {
           client.destroy();
         });

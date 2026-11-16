@@ -302,8 +302,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   String? _currentUrl;
   String? _pendingTarget;
   bool _pairingLogin = false;
-  Timer? _pairLoginTimeout;
-  int _pairLoginRetries = 0;
   String? _savedUrl;
   bool _savedUrlLoaded = false;
   Timer? _saveUrlDebounce;
@@ -429,8 +427,9 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   void initState() {
     super.initState();
     _session.connection.addListener(_onStateChanged);
-    if (_session.phase == ConnectionPhase.idle ||
-        _session.phase == ConnectionPhase.failed) {
+    // Do not retry on idle: restore()/openHost already kicked a connect and
+    // a duplicate attempt would generate a second pairing link.
+    if (_session.phase == ConnectionPhase.failed) {
       unawaited(widget.manager.retry(_host.id));
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -549,6 +548,11 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
             _scheduleSaveUrl(change.url);
             unawaited(_handlePairLogin(change.url));
           },
+          onWebResourceError: (error) {
+            debugPrint(
+              'OC web error: ${error.errorCode} ${error.description} ${error.url}',
+            );
+          },
           onPageFinished: (_) {
             if (defaultTargetPlatform == TargetPlatform.macOS) {
               _webView?.runJavaScript(_wideLayoutScript);
@@ -581,16 +585,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     if (pairUri != null && pairUri.path.startsWith('/auth/connect')) {
       _pendingTarget = target;
       _pairingLogin = true;
-      _pairLoginTimeout?.cancel();
-      // If the login never leaves the pairing page (expired link, service
-      // restarted mid-flow …), reconnect to obtain a fresh one-time link.
-      _pairLoginTimeout = Timer(const Duration(seconds: 12), () {
-        if (!mounted || !_pairingLogin) return;
-        _pairingLogin = false;
-        if (_pairLoginRetries >= 2) return; // leave the error page visible
-        _pairLoginRetries++;
-        unawaited(widget.manager.retry(_host.id));
-      });
       await _webView!.loadRequest(pairUri);
       return;
     }
@@ -606,9 +600,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     final uri = Uri.tryParse(url ?? '');
     if (uri == null || uri.path.startsWith('/auth/connect')) return;
     _pairingLogin = false;
-    _pairLoginRetries = 0;
-    _pairLoginTimeout?.cancel();
-    _pairLoginTimeout = null;
     final target = _pendingTarget;
     _pendingTarget = null;
     final origin = 'http://127.0.0.1:${_host.localPort}/';
@@ -649,7 +640,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
 
   @override
   void dispose() {
-    _pairLoginTimeout?.cancel();
     _saveUrlDebounce?.cancel();
     _session.connection.removeListener(_onStateChanged);
     super.dispose();
