@@ -528,7 +528,10 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     final snapshot = _session.connection.state;
     if (snapshot.phase == ConnectionPhase.ready && !_entered) {
       _entered = true;
-      unawaited(_enterWorkspace());
+      unawaited(_enterWorkspace().timeout(
+        const Duration(seconds: 45),
+        onTimeout: () => _fail(AppL10n.t.connectionLost),
+      ));
     } else if (snapshot.phase != ConnectionPhase.ready) {
       _entered = false;
     }
@@ -618,13 +621,14 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
 
   /// Single entry point for showing this host's web UI. Reuses the WebView
   /// session when it is still valid and otherwise drives the pairing login.
-  Future<void> _enterWorkspace() async {
+  Future<void> _enterWorkspace({bool isRetry = false}) async {
     _autoBlurKeyboard = await _settings.autoBlurKeyboard();
     _ensureWebView();
     if (!mounted) return;
     setState(() {
       _auth = _WorkspaceAuth.checking;
       _failure = null;
+      if (!isRetry) _loadAttempts = 0;
     });
 
     final origin = 'http://127.0.0.1:${_host.localPort}';
@@ -637,7 +641,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
       // to the UI root instead of showing an error page.
       _target = await _resolveTarget(origin, target);
       _auth = _WorkspaceAuth.verified;
-      _loadAttempts = 0;
       if (!mounted) return;
       setState(() {});
       await _webView!.loadRequest(Uri.parse(_target!));
@@ -667,7 +670,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     final uri = Uri.tryParse(url ?? '');
     if (uri == null || uri.path.startsWith('/auth/connect')) return;
     _auth = _WorkspaceAuth.verified;
-    _loadAttempts = 0;
     if (!mounted) return;
     setState(() {});
     final origin = 'http://127.0.0.1:${_host.localPort}';
@@ -716,10 +718,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   /// after a successful auth means something went wrong: retry once through
   /// the entry point, then surface a failure instead of a blank screen.
   void _onPageHealth(String state) {
-    if (state == 'ok') {
-      _loadAttempts = 0;
-      return;
-    }
+    if (state == 'ok') return;
     if (state == 'pairerror') {
       // The one-time link was rejected by the server.
       _fail(AppL10n.t.pairingLinkExpired);
@@ -729,7 +728,10 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     if (_auth == _WorkspaceAuth.pairing) return;
     if (_loadAttempts < 1) {
       _loadAttempts++;
-      unawaited(_enterWorkspace());
+      unawaited(_enterWorkspace(isRetry: true).timeout(
+        const Duration(seconds: 45),
+        onTimeout: () => _fail(AppL10n.t.connectionLost),
+      ));
       return;
     }
     _fail(AppL10n.t.pageLoadFailed);
