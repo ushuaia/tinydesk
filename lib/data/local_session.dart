@@ -44,15 +44,21 @@ class LocalSession implements TunnelSession {
   }
 
   Future<int> _ensureService() async {
-    var port = await _detectServerPort();
-    if (port == null && _host.autoStartServer) {
-      await startService();
-      port = await _detectServerPort();
+    // The opencode service is briefly unavailable while it auto-updates or
+    // when a TUI restarts it (SIGTERM old server, start the new one): probes
+    // then answer 500 for a few seconds. Retry around that window instead of
+    // failing the whole connect.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      var port = await _detectServerPort();
+      if (port != null) return port;
+      if (_host.autoStartServer) {
+        await startService();
+        port = await _detectServerPort();
+        if (port != null) return port;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
     }
-    if (port == null) {
-      throw ServerUnreachable(AppL10n.t.localServiceUnreachable);
-    }
-    return port;
+    throw ServerUnreachable(AppL10n.t.localServiceUnreachable);
   }
 
   /// Resolves the opencode binary on this machine. Uses the user's login
