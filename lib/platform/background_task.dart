@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import '../core/app_language.dart';
 
@@ -21,7 +23,7 @@ class BackgroundTask {
 
   Future<void> start() async {
     try {
-      await _channel.invokeMethod<bool>('start');
+      await _channel.invokeMethod<bool>('start').timeout(const Duration(seconds: 5));
       status.value = BackgroundTaskStatus(
         BackgroundTaskState.running,
         AppL10n.t.taskRunning,
@@ -36,7 +38,7 @@ class BackgroundTask {
   }
 
   Future<void> stop() async {
-    await _channel.invokeMethod<bool>('stop');
+    await _channel.invokeMethod<bool>('stop').timeout(const Duration(seconds: 5));
     status.value = BackgroundTaskStatus(
       BackgroundTaskState.idle,
       AppL10n.t.taskStopped,
@@ -45,7 +47,7 @@ class BackgroundTask {
 
   Future<void> update() async {
     try {
-      await _channel.invokeMethod<bool>('update');
+      await _channel.invokeMethod<bool>('update').timeout(const Duration(seconds: 5));
       status.value = BackgroundTaskStatus(
         BackgroundTaskState.running,
         AppL10n.t.taskRunning,

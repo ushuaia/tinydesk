@@ -71,7 +71,8 @@ class LocalSession implements TunnelSession {
     for (final shell in const ['/bin/zsh', '/bin/bash']) {
       if (!File(shell).existsSync()) continue;
       try {
-        final result = await Process.run(shell, ['-lc', 'command -v opencode']);
+        final result = await Process.run(shell, ['-lc', 'command -v opencode'])
+            .timeout(const Duration(seconds: 15));
         if (result.exitCode == 0) {
           final out = result.stdout.toString().trim();
           if (out.isNotEmpty) return out.split('\n').last.trim();
@@ -122,7 +123,7 @@ class LocalSession implements TunnelSession {
       final request = await client.getUrl(
         Uri.parse('http://127.0.0.1:$port/api/info'),
       );
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       await response.drain<void>();
       return response.statusCode == 200 || response.statusCode == 401;
     } catch (_) {
@@ -237,7 +238,8 @@ class LocalSession implements TunnelSession {
     if (binary == null) {
       throw OpencodeNotInstalled(AppL10n.t.localOpencodeMissing);
     }
-    final result = await Process.run(binary, args);
+    var result = await Process.run(binary, args)
+        .timeout(const Duration(seconds: 30));
     if (result.exitCode != 0) {
       final err = result.stderr.toString().trim();
       throw PairingFailed(err.isEmpty ? AppL10n.t.opencodeCommandFailed : err);
@@ -261,7 +263,8 @@ class LocalSession implements TunnelSession {
 
   @override
   Future<String> runCommand(String command) async {
-    final result = await Process.run('/bin/sh', ['-c', command]);
+    final result = await Process.run('/bin/sh', ['-c', command])
+        .timeout(const Duration(seconds: 15));
     if (result.exitCode != 0) {
       throw TunnelCommandException(
         command,

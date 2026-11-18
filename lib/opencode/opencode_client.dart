@@ -104,7 +104,7 @@ class OpencodeClient {
       ..connectionTimeout = const Duration(seconds: 5);
     try {
       final request = await client.getUrl(uri);
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       await response.drain<void>();
       return (response.statusCode == 200 || response.statusCode == 401)
           ? ServerStatus.online
@@ -131,7 +131,7 @@ class OpencodeClient {
         final token = base64Encode(utf8.encode('opencode:$password'));
         request.headers.set(HttpHeaders.authorizationHeader, 'Basic $token');
       }
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       final body = await response.transform(utf8.decoder).join();
       if (response.statusCode != 200) {
         throw PairingFailed(
@@ -170,7 +170,7 @@ class OpencodeClient {
           '$cookieName=$cookieValue',
         );
       }
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
         await response.drain<void>();
         return const [];
@@ -216,7 +216,7 @@ class OpencodeClient {
           '$cookieName=$cookieValue',
         );
       }
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
         await response.drain<void>();
         return null;
@@ -255,7 +255,7 @@ class OpencodeClient {
           '$cookieName=$cookieValue',
         );
       }
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
         await response.drain<void>();
         return null;
@@ -300,7 +300,7 @@ class OpencodeClient {
           '$cookieName=$cookieValue',
         );
       }
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
         await response.drain<void>();
         return null;
@@ -375,7 +375,7 @@ class OpencodeClient {
         HttpHeaders.acceptHeader,
         'text/html,application/xhtml+xml',
       );
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       final body = await utf8.decoder.bind(response).join();
       return resolvePairingSession(
         baseUrl: baseUrl,

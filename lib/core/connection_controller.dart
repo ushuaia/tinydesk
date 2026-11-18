@@ -29,7 +29,7 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
       : _opener = openSshTunnel,
         super(const ConnectionSnapshot(phase: ConnectionPhase.idle));
 
-  static const _maxRetries = 3;
+  static const _maxRetries = 5;
 
   final TunnelOpener _opener;
   final Backoff _backoff = Backoff();

@@ -703,7 +703,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
           '${cookie.key}=${cookie.value}',
         );
       }
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       await response.drain<void>();
       return response.statusCode != 404;
     } catch (_) {
@@ -748,7 +748,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
         HttpHeaders.cookieHeader,
         '${cookie.key}=${cookie.value}',
       );
-      final response = await request.close();
+      final response = await request.close().timeout(const Duration(seconds: 10));
       await response.drain<void>();
       return response.statusCode == 200;
     } catch (_) {
