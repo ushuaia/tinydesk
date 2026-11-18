@@ -57,7 +57,10 @@ jobs:
       - name: Start opencode server
         run: |
           opencode --version
-          nohup opencode serve --port 49374 > /tmp/opencode-serve.log 2>&1 &
+          # service start registers the daemon so `opencode pair` can find
+          # it; a plain `serve --port` leaves nothing registered and pair
+          # then tries to spawn its own server into the same port (EADDRINUSE).
+          opencode service start
           for i in $(seq 1 30); do
             if curl -s -o /dev/null http://127.0.0.1:49374/; then break; fi
             sleep 1
