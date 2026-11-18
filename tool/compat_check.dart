@@ -51,8 +51,17 @@ Future<bool> _checkCliVersion() async {
 
 Future<bool> _checkPairCli(String base) async {
   final result = await Process.run('opencode', ['pair', '--url', base]);
-  if (result.exitCode != 0) return false;
-  return _pairUrl(result.stdout as String) != null;
+  if (result.exitCode != 0) {
+    stdout.writeln('     pair exit=${result.exitCode} '
+        'err=${result.stderr.toString().trim()}');
+    return false;
+  }
+  final hasUrl = _pairUrl(result.stdout as String) != null;
+  if (!hasUrl) {
+    stdout.writeln('     pair stdout had no link: '
+        '"${(result.stdout as String).trim().substring(0, result.stdout.toString().trim().length.clamp(0, 200))}"');
+  }
+  return hasUrl;
 }
 
 Future<bool> _checkWebViewLogin(String base) async {
@@ -70,7 +79,10 @@ Future<bool> _checkWebViewLogin(String base) async {
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
       },
     );
-    if (response == null) return false;
+    if (response == null) {
+      stdout.writeln('     login-hop: no response from $current');
+      return false;
+    }
     if (response.statusCode == 302 || response.statusCode == 303) {
       final location = response.headers.value(HttpHeaders.locationHeader);
       stdout.writeln('     redirect: ${response.statusCode} → $location');
@@ -87,14 +99,23 @@ Future<bool> _checkWebViewLogin(String base) async {
 
 Future<bool> _checkTokenRedemption(String base) async {
   final url = await _freshPairUrl(base);
-  if (url == null) return false;
+  if (url == null) {
+    stdout.writeln('     token-check: no pair link to redeem');
+    return false;
+  }
   final response = await _get(
     url,
     headers: {HttpHeaders.acceptHeader: 'application/json'},
   );
-  if (response == null) return false;
+  if (response == null) {
+    stdout.writeln('     token-check: redeem request failed');
+    return false;
+  }
   final token = _token(response.body);
-  if (token == null) return false;
+  if (token == null) {
+    stdout.writeln('     token-check: body=${response.body.trim().substring(0, response.body.trim().length.clamp(0, 200))}');
+    return false;
+  }
   final port = Uri.parse(base).port;
   final session = await _get(
     '$base/api/session',
@@ -133,8 +154,16 @@ Future<bool> _checkLocaleStore(String base) async {
 
 Future<String?> _freshPairUrl(String base) async {
   final result = await Process.run('opencode', ['pair', '--url', base]);
-  if (result.exitCode != 0) return null;
-  return _pairUrl(result.stdout as String);
+  if (result.exitCode != 0) {
+    stdout.writeln('     fresh-pair exit=${result.exitCode} '
+        'err=${result.stderr.toString().trim()}');
+    return null;
+  }
+  final url = _pairUrl(result.stdout as String);
+  if (url == null) {
+    stdout.writeln('     fresh-pair stdout had no link');
+  }
+  return url;
 }
 
 String? _pairUrl(String output) {
