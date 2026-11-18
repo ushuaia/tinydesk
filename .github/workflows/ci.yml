@@ -14,7 +14,7 @@ on:
 jobs:
   analyze-and-test:
     if: github.event_name != 'schedule'
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -38,8 +38,8 @@ jobs:
   opencode-compat:
     # Detects upstream protocol changes (pairing, API paths, web UI locale
     # store) before users hit them. Always tests the latest opencode release.
-    if: github.event_name == 'schedule'
-    runs-on: macos-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
