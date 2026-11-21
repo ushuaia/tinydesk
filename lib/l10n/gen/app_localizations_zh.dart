@@ -75,7 +75,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appName => '方寸台 TinyDesk';
 
   @override
-  String get appVersion => 'v1.2.0';
+  String get appVersion => 'v1.2.1';
 
   @override
   String get language => '语言';

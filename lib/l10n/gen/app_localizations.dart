@@ -227,7 +227,7 @@ abstract class AppLocalizations {
   /// No description provided for @appVersion.
   ///
   /// In en, this message translates to:
-  /// **'v1.2.0'**
+  /// **'v1.2.1'**
   String get appVersion;
 
   /// No description provided for @language.

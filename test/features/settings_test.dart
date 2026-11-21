@@ -77,7 +77,7 @@ void main() {
     await tester.pumpWidget(buildPage());
 
     expect(find.text('TinyDesk'), findsOneWidget);
-    expect(find.text('v1.2.0'), findsOneWidget);
+    expect(find.text('v1.2.1'), findsOneWidget);
   });
 
   testWidgets('renders in Chinese when the locale is zh', (tester) async {
