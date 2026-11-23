@@ -2,8 +2,8 @@ import 'dart:async';
 
 import '../core/app_language.dart';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_pty/flutter_pty.dart';
 
 import 'host.dart';
@@ -52,7 +52,13 @@ class LocalSession implements TunnelSession {
       var port = await _detectServerPort();
       if (port != null) return port;
       if (_host.autoStartServer) {
-        await startService();
+        // A startService() hiccup (odd CLI output, slow daemon) must not
+        // abort the loop: the next probe decides whether it actually came up.
+        try {
+          await startService();
+        } catch (error) {
+          debugPrint('startService failed: $error');
+        }
         port = await _detectServerPort();
         if (port != null) return port;
       }

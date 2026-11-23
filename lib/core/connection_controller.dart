@@ -111,8 +111,10 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
       }
 
       if (status == ServerStatus.offline) {
+        debugPrint('connect: probe offline for ${host.name} ($baseUrl)');
         throw ServerUnreachable(AppL10n.t.remoteOpencodeUnreachable);
       }
+      debugPrint('connect: probe ok for ${host.name}');
 
       // No pairing here: the workspace keeps the WebView session cookie and
       // only asks for a one-time link when the page is not authenticated
@@ -120,10 +122,13 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
       state = state.copyWith(phase: ConnectionPhase.ready);
       _startKeepAlive();
     } on SshError catch (error) {
+      debugPrint('connect failed (ssh): ${error.userMessage}');
       _fail(error.userMessage);
     } on OpencodeError catch (error) {
+      debugPrint('connect failed (opencode): ${error.userMessage}');
       _fail(error.userMessage);
     } catch (error) {
+      debugPrint('connect failed: $error');
       _fail(AppL10n.t.connectionFailed(error.toString()));
     } finally {
       _connecting = false;

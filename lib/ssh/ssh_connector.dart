@@ -30,6 +30,9 @@ class SshConnector {
 
       final client = SSHClient(
         socket,
+        // The default 10s keepalive produced a constant stream of resets on
+        // some servers; a minute is enough to notice dead links.
+        keepAliveInterval: const Duration(seconds: 60),
         username: host.username,
         identities: keys,
         onVerifyHostKey: (type, fingerprintBytes) async {
