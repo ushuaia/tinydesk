@@ -49,22 +49,25 @@ class LocalSession implements TunnelSession {
     // then answer 500 for a few seconds. Retry around that window instead of
     // failing the whole connect.
     // A freshly upgraded opencode can take tens of seconds to come up the
-    // first time (migration, plugin init). Probe for ~20s instead of giving
-    // up after a couple of seconds; ask the daemon to start only early on.
+    // first time (migration, plugin init), so wait longer — but only while
+    // there is evidence something is actually starting. If the daemon cannot
+    // even be asked to start, waiting longer cannot help: fail fast.
+    var startFailures = 0;
     for (var attempt = 0; attempt < 10; attempt++) {
       var port = await _detectServerPort();
       if (port != null) return port;
       if (_host.autoStartServer && attempt < 3) {
-        // A startService() hiccup (odd CLI output, slow daemon) must not
-        // abort the loop: the next probe decides whether it actually came up.
         try {
           await startService();
         } catch (error) {
           debugPrint('startService failed: $error');
+          startFailures++;
         }
         port = await _detectServerPort();
         if (port != null) return port;
       }
+      // Nothing could be started at all -> the service is not coming up.
+      if (_host.autoStartServer && attempt >= 0 && startFailures >= 3) break;
       await Future<void>.delayed(const Duration(seconds: 2));
     }
     throw ServerUnreachable(AppL10n.t.localServiceUnreachable);
