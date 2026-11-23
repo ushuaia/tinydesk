@@ -48,10 +48,13 @@ class LocalSession implements TunnelSession {
     // when a TUI restarts it (SIGTERM old server, start the new one): probes
     // then answer 500 for a few seconds. Retry around that window instead of
     // failing the whole connect.
-    for (var attempt = 0; attempt < 3; attempt++) {
+    // A freshly upgraded opencode can take tens of seconds to come up the
+    // first time (migration, plugin init). Probe for ~20s instead of giving
+    // up after a couple of seconds; ask the daemon to start only early on.
+    for (var attempt = 0; attempt < 10; attempt++) {
       var port = await _detectServerPort();
       if (port != null) return port;
-      if (_host.autoStartServer) {
+      if (_host.autoStartServer && attempt < 3) {
         // A startService() hiccup (odd CLI output, slow daemon) must not
         // abort the loop: the next probe decides whether it actually came up.
         try {
@@ -62,7 +65,7 @@ class LocalSession implements TunnelSession {
         port = await _detectServerPort();
         if (port != null) return port;
       }
-      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      await Future<void>.delayed(const Duration(seconds: 2));
     }
     throw ServerUnreachable(AppL10n.t.localServiceUnreachable);
   }
