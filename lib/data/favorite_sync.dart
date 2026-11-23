@@ -1,8 +1,8 @@
-import '../../core/app_session_manager.dart';
-import '../../core/connection_state.dart';
-import '../../core/host_session.dart';
-import '../../opencode/opencode_client.dart';
-import '../../ssh/tunnel_session.dart';
+import '../session/app_session_manager.dart';
+import '../core/connection_state.dart';
+import '../session/host_session.dart';
+import '../opencode/opencode_client.dart';
+import '../ssh/tunnel_session.dart';
 import 'favorite_store.dart';
 import 'project_metadata_store.dart';
 import '../platform/web_data.dart';

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'core/app_language.dart';
-import 'core/app_session_manager.dart';
+import 'session/app_session_manager.dart';
 import 'core/session_scope.dart';
 import 'core/theme.dart';
 import 'data/host_repository.dart';

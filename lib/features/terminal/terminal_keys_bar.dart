@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'terminal_controller.dart';
+import '../../session/terminal_controller.dart';
 
 class TerminalKeysBar extends StatelessWidget {
   const TerminalKeysBar({super.key, required this.controller});

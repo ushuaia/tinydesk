@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tinydesk/core/app_session_manager.dart';
-import 'package:tinydesk/core/host_session.dart';
-import 'package:tinydesk/features/documents/file_browser_controller.dart';
+import 'package:tinydesk/session/app_session_manager.dart';
+import 'package:tinydesk/session/host_session.dart';
+import 'package:tinydesk/session/file_browser_controller.dart';
 import 'package:tinydesk/features/documents/floating_file_browser_host.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/app_language.dart';
-import '../../core/app_session_manager.dart';
+import '../../session/app_session_manager.dart';
 import '../../data/app_settings.dart';
 import '../../data/host_repository.dart';
 import '../../data/local_data_cleaner.dart';
 import '../../data/private_key_store.dart';
 import '../../l10n/gen/app_localizations.dart';
+import '../../platform/diag_log.dart';
+import '../../platform/file_saver.dart';
 import '../../platform/background_task.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -42,6 +44,27 @@ class _SettingsPageState extends State<SettingsPage> {
     _settings.autoBlurKeyboard().then((value) {
       if (mounted) setState(() => _autoBlurKeyboard = value);
     });
+  }
+
+  Future<void> _exportDiagnostics(AppLocalizations l10n) async {
+    final file = await DiagLog.exportable();
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    if (file == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.exportDiagnosticsEmpty)),
+      );
+      return;
+    }
+    final bytes = await file.readAsBytes();
+    final saved = await const FileSaver().save(
+      name: 'tinydesk-diagnostics.log',
+      bytes: bytes,
+    );
+    if (!mounted || saved == null) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.savedTo(saved))),
+    );
   }
 
   Future<void> _confirmClear(AppLocalizations l10n) async {
@@ -178,6 +201,12 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
             _SectionHeader(l10n.dataSection),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: Text(l10n.exportDiagnostics),
+              subtitle: Text(l10n.exportDiagnosticsSubtitle),
+              onTap: () => unawaited(_exportDiagnostics(l10n)),
+            ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
               title: Text(l10n.clearData),

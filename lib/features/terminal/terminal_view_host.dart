@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xterm/xterm.dart' hide TerminalController;
 
-import 'terminal_controller.dart';
+import '../../session/terminal_controller.dart';
 import 'terminal_keys_bar.dart';
 
 class TerminalViewHost extends StatelessWidget {

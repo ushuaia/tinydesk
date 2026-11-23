@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import '../data/host.dart';
-import '../features/documents/file_browser_controller.dart';
-import '../features/terminal/terminal_controller.dart';
-import 'connection_controller.dart';
-import 'connection_state.dart';
+import '../session/file_browser_controller.dart';
+import '../session/terminal_controller.dart';
+import '../core/connection_controller.dart';
+import '../core/connection_state.dart';
 
 /// One host's live session: its tunnel/connection and its own terminal.
 ///

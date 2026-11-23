@@ -7,9 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/app_language.dart';
-import '../../core/app_session_manager.dart';
+import '../../session/app_session_manager.dart';
 import '../../core/connection_state.dart';
-import '../../core/host_session.dart';
+import '../../session/host_session.dart';
 import '../../data/app_settings.dart';
 import '../../data/workspace_session.dart';
 import '../../data/favorite_sync.dart';
@@ -762,6 +762,8 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   void dispose() {
     _saveUrlDebounce?.cancel();
     _session.connection.removeListener(_onStateChanged);
+    // The platform web view is released when this widget leaves the tree;
+    // WebViewController intentionally exposes no dispose API.
     super.dispose();
   }
 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tinydesk/core/app_session_manager.dart';
+import 'package:tinydesk/session/app_session_manager.dart';
 import 'package:tinydesk/data/favorite_store.dart';
 import 'package:tinydesk/data/favorite_sync.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../data/remote_file.dart';
+import '../data/remote_file.dart';
 
 /// Per-session state of the floating file browser.
 ///

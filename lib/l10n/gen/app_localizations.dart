@@ -2071,6 +2071,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The sign-in link expired — tap retry'**
   String get pairingLinkExpired;
+
+  /// No description provided for @exportDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Export diagnostics'**
+  String get exportDiagnostics;
+
+  /// No description provided for @exportDiagnosticsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the recent app log for troubleshooting'**
+  String get exportDiagnosticsSubtitle;
+
+  /// No description provided for @exportDiagnosticsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No diagnostics recorded yet'**
+  String get exportDiagnosticsEmpty;
 }
 
 class _AppLocalizationsDelegate

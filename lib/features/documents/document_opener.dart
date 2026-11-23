@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_language.dart';
 
 
-import '../../core/app_session_manager.dart';
+import '../../session/app_session_manager.dart';
 import '../../core/connection_state.dart';
 import '../../data/favorite_store.dart';
 import '../../data/host.dart';

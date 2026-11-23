@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tinydesk/core/app_session_manager.dart';
+import 'package:tinydesk/session/app_session_manager.dart';
 import 'package:tinydesk/data/remote_file.dart';
-import 'package:tinydesk/features/documents/file_browser_controller.dart';
+import 'package:tinydesk/session/file_browser_controller.dart';
 import 'package:tinydesk/features/documents/open_document.dart';
 
 class _FakeManager extends AppSessionManager {

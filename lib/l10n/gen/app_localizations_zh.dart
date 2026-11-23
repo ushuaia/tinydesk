@@ -1113,4 +1113,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pairingLinkExpired => '登录链接已失效，请点击重试';
+
+  @override
+  String get exportDiagnostics => '导出诊断日志';
+
+  @override
+  String get exportDiagnosticsSubtitle => '保存最近的运行日志用于排查问题';
+
+  @override
+  String get exportDiagnosticsEmpty => '暂无诊断记录';
 }

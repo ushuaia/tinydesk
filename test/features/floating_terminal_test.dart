@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tinydesk/core/app_session_manager.dart';
+import 'package:tinydesk/session/app_session_manager.dart';
 import 'package:tinydesk/features/terminal/floating_terminal_host.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

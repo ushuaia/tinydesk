@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tinydesk/data/shell_session.dart';
-import 'package:tinydesk/core/app_session_manager.dart';
+import 'package:tinydesk/session/app_session_manager.dart';
 import 'package:tinydesk/core/connection_controller.dart';
 import 'package:tinydesk/core/connection_state.dart';
 import 'package:tinydesk/data/host.dart';

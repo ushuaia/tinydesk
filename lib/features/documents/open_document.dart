@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/app_language.dart';
 
 
-import '../../core/app_session_manager.dart';
+import '../../session/app_session_manager.dart';
 import '../../data/remote_file.dart';
-import 'file_browser_controller.dart';
+import '../../session/file_browser_controller.dart';
 
 bool _isSupported(RemoteFile file) {
   return file.isMarkdown ||

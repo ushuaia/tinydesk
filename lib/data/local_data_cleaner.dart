@@ -1,6 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../core/app_session_manager.dart';
+import '../session/app_session_manager.dart';
 import 'favorite_store.dart';
 import 'host_repository.dart';
 import '../platform/web_data.dart';

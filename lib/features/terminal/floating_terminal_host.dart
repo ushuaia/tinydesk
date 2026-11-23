@@ -6,9 +6,9 @@ import '../../core/app_language.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/app_session_manager.dart';
+import '../../session/app_session_manager.dart';
 import '../workspace/floating_window_header.dart';
-import 'terminal_controller.dart';
+import '../../session/terminal_controller.dart';
 import 'terminal_view_host.dart';
 
 const _ballSize = 56.0;

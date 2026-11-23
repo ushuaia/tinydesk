@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/app_session_manager.dart';
-import '../../core/host_session.dart';
+import '../../session/app_session_manager.dart';
+import '../../session/host_session.dart';
 import '../../ssh/tunnel_session.dart';
-import 'file_browser_controller.dart';
+import '../../session/file_browser_controller.dart';
 import 'floating_file_browser_shell.dart';
 import 'remote_file_browser_page.dart';
 

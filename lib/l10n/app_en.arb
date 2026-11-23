@@ -733,5 +733,8 @@
   "viewerPdfLoadFailedPrefix": "PDF load failed: ",
   "connectionLost": "Connection lost — tap retry",
   "pageLoadFailed": "The page failed to load — tap retry",
-  "pairingLinkExpired": "The sign-in link expired — tap retry"
+  "pairingLinkExpired": "The sign-in link expired — tap retry",
+  "exportDiagnostics": "Export diagnostics",
+  "exportDiagnosticsSubtitle": "Save the recent app log for troubleshooting",
+  "exportDiagnosticsEmpty": "No diagnostics recorded yet"
 }

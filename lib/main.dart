@@ -5,17 +5,32 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'platform/diag_log.dart';
 import 'data/host_store.dart';
 import 'data/local_machine.dart';
 import 'data/sandbox_migration.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  unawaited(DiagLog.write('app start'));
   // Turn stray async socket errors (peer resets on relays) into logged
   // non-fatal events instead of unhandled exceptions.
+  // Freeze a copy of the original so the log mirror cannot recurse.
+  final originalDebugPrint = debugPrint;
+  debugPrint = (String? message, {int? wrapWidth}) {
+    originalDebugPrint(message, wrapWidth: wrapWidth);
+    if (message != null) unawaited(DiagLog.write(message));
+  };
+  // Uncaught async errors and widget-tree errors land in the exportable log.
   PlatformDispatcher.instance.onError = (error, stack) {
     debugPrint('async error: $error');
     return true;
+  };
+  FlutterError.onError = (details) {
+    originalDebugPrint('flutter error: ${details.exception}');
+    unawaited(DiagLog.write(
+      'flutter error: ${details.exception}\n${details.stack}',
+    ));
   };
   // Must complete before any store reads SharedPreferences, so the
   // sandbox-era data lands before the UI renders the host list.

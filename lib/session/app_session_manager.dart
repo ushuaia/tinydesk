@@ -7,11 +7,11 @@ import '../data/host.dart';
 import '../data/host_repository.dart';
 import '../data/open_sessions_store.dart';
 import '../data/private_key_store.dart';
-import '../features/documents/file_browser_controller.dart';
-import '../features/terminal/terminal_controller.dart';
+import '../session/file_browser_controller.dart';
+import '../session/terminal_controller.dart';
 import '../platform/background_task.dart';
-import 'connection_controller.dart';
-import 'connection_state.dart';
+import '../core/connection_controller.dart';
+import '../core/connection_state.dart';
 import 'host_session.dart';
 
 /// App-scoped owner of every open host session.

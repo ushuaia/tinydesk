@@ -18,6 +18,7 @@ import '../../platform/rail_input_blocker.dart';
 import '../../opencode/opencode_client.dart';
 import '../../ssh/tunnel_session.dart';
 import 'document_handle.dart';
+import 'file_browser_widgets.dart';
 import 'document_handles.dart';
 import 'explorer_tree.dart';
 import '../workspace/floating_window_header.dart';
@@ -541,47 +542,8 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     return crumbs;
   }
 
-  Widget _breadcrumbs(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final crumbs = _crumbs;
-    return SizedBox(
-      height: 38,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        reverse: true, // long paths start at the current (rightmost) level
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Row(
-          children: [
-            for (var index = 0; index < crumbs.length; index++) ...[
-              if (index > 0)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Text(
-                    '›',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              Text(
-                crumbs[index].label,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: index == crumbs.length - 1
-                      ? FontWeight.w600
-                      : FontWeight.w400,
-                  color: index == crumbs.length - 1
-                      ? scheme.onSurface
-                      : scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _breadcrumbs(BuildContext context) =>
+      BreadcrumbsBar(labels: [for (final crumb in _crumbs) crumb.label]);
 
   Future<void> _download(RemoteFile file) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -668,18 +630,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       );
     }
   }
-
-  IconData _icon(RemoteFile file) {
-    if (file.isDirectory) return Icons.folder;
-    if (file.isMarkdown) return Icons.description;
-    if (file.isPdf) return Icons.picture_as_pdf;
-    if (file.isImage) return Icons.image;
-    if (file.isText) return Icons.code;
-    return Icons.insert_drive_file;
-  }
-
-  IconData _iconForTitle(String title) =>
-      _icon(RemoteFile(name: title, path: title, isDirectory: false));
 
   Future<void> _createFile() async {
     final controller = TextEditingController();
@@ -934,7 +884,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             iconSize: 18,
             tooltip: AppL10n.t.closeFile,
           ),
-        if (wide) const _ActionDivider(),
+        if (wide) const ActionDivider(),
       ],
       if (wide || doc == null) ...[
         IconButton(
@@ -943,7 +893,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           iconSize: 20,
           tooltip: _railOpen ? AppL10n.t.collapseTree : AppL10n.t.expandTree,
         ),
-        if (wide) const _ActionDivider(),
+        if (wide) const ActionDivider(),
         IconButton(
           onPressed: _createFile,
           icon: const Icon(Icons.note_add_outlined),
@@ -1061,7 +1011,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             width: 6,
             child: narrow
                 ? const SizedBox.shrink()
-                : _TreeDragBar(
+                : TreeDragBar(
                     onDragEnd: () => unawaited(
                       _explorerStore.saveWidth(widget.hostId, _treeWidth),
                     ),
@@ -1172,58 +1122,9 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   }
 
   /// Window-side title row for an open document (app bar level).
-  Widget _docTitle(BuildContext context, DocumentHandle doc) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(
-          _iconForTitle(doc.title),
-          size: 16,
-          color: scheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            doc.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        if (doc.dirty) ...[
-          const SizedBox(width: 6),
-          Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(
-              color: scheme.primary,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-        if (doc.readOnlyReason != null) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              AppL10n.t.readOnly,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+  Widget _docTitle(BuildContext context, DocumentHandle doc) =>
+      DocumentTitleBar(doc: doc, icon: iconForFileTitle(doc.title));
+
 
   Widget _miniRail(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -1290,48 +1191,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             label: Text(AppL10n.t.openTree),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActionDivider extends StatelessWidget {
-  const _ActionDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 13,
-      child: Center(
-        child: Container(
-          width: 1,
-          height: 20,
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-      ),
-    );
-  }
-}
-
-class _TreeDragBar extends StatelessWidget {
-  const _TreeDragBar({required this.onDrag, required this.onDragEnd});
-
-  final ValueChanged<double> onDrag;
-  final VoidCallback onDragEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return MouseRegion(
-      cursor: SystemMouseCursors.resizeColumn,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragUpdate: (details) => onDrag(details.delta.dx),
-        onHorizontalDragEnd: (_) => onDragEnd(),
-        child: Container(
-          width: 5,
-          color: scheme.outlineVariant,
-        ),
       ),
     );
   }

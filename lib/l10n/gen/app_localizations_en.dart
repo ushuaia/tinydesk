@@ -1159,4 +1159,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pairingLinkExpired => 'The sign-in link expired — tap retry';
+
+  @override
+  String get exportDiagnostics => 'Export diagnostics';
+
+  @override
+  String get exportDiagnosticsSubtitle =>
+      'Save the recent app log for troubleshooting';
+
+  @override
+  String get exportDiagnosticsEmpty => 'No diagnostics recorded yet';
 }

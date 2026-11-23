@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tinydesk/data/remote_file.dart';
-import 'package:tinydesk/features/documents/file_browser_controller.dart';
+import 'package:tinydesk/session/file_browser_controller.dart';
 
 void main() {
   test('starts hidden', () {

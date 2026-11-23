@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'app_session_manager.dart';
+import '../session/app_session_manager.dart';
 
 class SessionScope extends InheritedNotifier<AppSessionManager> {
   const SessionScope({

@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
-import '../../core/app_language.dart';
+import '../core/app_language.dart';
 import 'package:xterm/xterm.dart';
 
-import '../../data/shell_session.dart';
-import '../../ssh/tunnel_session.dart';
+import '../data/shell_session.dart';
+import '../ssh/tunnel_session.dart';
 
 enum TerminalStatus { idle, opening, open, closed, error }
 
