@@ -1146,4 +1146,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get closeTerminalTab => '关闭终端标签';
+
+  @override
+  String terminalTabName(int n) {
+    return '终端 $n';
+  }
+
+  @override
+  String get renameTerminalTitle => '重命名终端标签';
+
+  @override
+  String get renameTerminalSave => '保存';
 }

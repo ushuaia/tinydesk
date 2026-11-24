@@ -42,6 +42,9 @@ class TerminalController extends ChangeNotifier {
   /// Terminal font size, persisted through [AppSettings].
   int fontSize = AppSettings.terminalFontSizeDefault;
 
+  /// User-provided tab title; null until the tab is renamed.
+  String? customTitle;
+
   ShellSession? _shell;
   StreamSubscription<String>? _stdout;
   bool _opening = false;

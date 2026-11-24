@@ -744,5 +744,15 @@
   "terminalSearchHint": "Find in terminal",
   "terminalFontSize": "Terminal font size",
   "newTerminalTab": "New terminal tab",
-  "closeTerminalTab": "Close terminal tab"
+  "closeTerminalTab": "Close terminal tab",
+  "@terminalTabName": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "terminalTabName": "Terminal {n}",
+  "renameTerminalTitle": "Rename terminal tab",
+  "renameTerminalSave": "Save"
 }

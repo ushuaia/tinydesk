@@ -1195,4 +1195,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get closeTerminalTab => 'Close terminal tab';
+
+  @override
+  String terminalTabName(int n) {
+    return 'Terminal $n';
+  }
+
+  @override
+  String get renameTerminalTitle => 'Rename terminal tab';
+
+  @override
+  String get renameTerminalSave => 'Save';
 }

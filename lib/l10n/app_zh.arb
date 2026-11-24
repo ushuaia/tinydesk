@@ -339,5 +339,8 @@
   "terminalSearchHint": "在终端中查找",
   "terminalFontSize": "终端字号",
   "newTerminalTab": "新建终端标签",
-  "closeTerminalTab": "关闭终端标签"
+  "closeTerminalTab": "关闭终端标签",
+  "terminalTabName": "终端 {n}",
+  "renameTerminalTitle": "重命名终端标签",
+  "renameTerminalSave": "保存"
 }

@@ -157,7 +157,7 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
                 for (var i = 0; i < terminals.length; i++)
                   Expanded(
                     child: _TerminalTabChip(
-                      label: '${i + 1}',
+                      title: session.terminalTitle(i),
                       active: i == active,
                       canClose: terminals.length > 1,
                       onTap: () {
@@ -168,6 +168,7 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
                         await session.closeTerminalAt(i);
                         if (mounted) setState(() {});
                       },
+                      onRename: () => unawaited(_renameTerminalTab(i)),
                     ),
                   ),
               ],
@@ -181,6 +182,39 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
         ],
       ),
     );
+  }
+
+  Future<void> _renameTerminalTab(int index) async {
+    final session = widget.manager.activeSession;
+    if (session == null) return;
+    final controller = TextEditingController(text: session.terminalTitle(index));
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(AppL10n.t.renameTerminalTitle),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          onSubmitted: (value) => Navigator.pop(dialogContext, value),
+          decoration: InputDecoration(
+            hintText: AppL10n.t.terminalTabName(index + 1),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppL10n.t.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: Text(AppL10n.t.renameTerminalSave),
+          ),
+        ],
+      ),
+    );
+    if (name == null) return;
+    await session.renameTerminal(index, name);
+    if (mounted) setState(() {});
   }
 
   Future<void> _addTerminalTab() async {
@@ -346,22 +380,24 @@ class _TerminalBanner extends StatelessWidget {
   }
 }
 
-/// A terminal shell tab chip with a proper hover treatment (the default
-/// InkWell hover painted a large grey block over the strip).
+/// A terminal shell tab: centered title, close action floating on the
+/// right edge, long-press (or double-click) to rename.
 class _TerminalTabChip extends StatefulWidget {
   const _TerminalTabChip({
-    required this.label,
+    required this.title,
     required this.active,
     required this.canClose,
     required this.onTap,
     required this.onClose,
+    required this.onRename,
   });
 
-  final String label;
+  final String title;
   final bool active;
   final bool canClose;
   final VoidCallback onTap;
   final VoidCallback onClose;
+  final VoidCallback onRename;
 
   @override
   State<_TerminalTabChip> createState() => _TerminalTabChipState();
@@ -384,46 +420,56 @@ class _TerminalTabChipState extends State<_TerminalTabChip> {
         onExit: (_) => setState(() => _hovered = false),
         child: GestureDetector(
           onTap: widget.onTap,
+          onLongPress: widget.onRename,
+          onDoubleTap: widget.onRename,
           child: Container(
             height: 26,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
               color: color,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(7)),
             ),
-            child: Row(
+            child: Stack(
               children: [
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight:
-                        widget.active ? FontWeight.w600 : FontWeight.w400,
-                    color: widget.active ? Colors.white : Colors.white70,
+                Positioned.fill(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 10, right: 18),
+                      child: Text(
+                        widget.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: widget.active
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color:
+                              widget.active ? Colors.white : Colors.white70,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: widget.active
-                        ? const Color(0xFF8FC7FF)
-                        : Colors.transparent,
-                  ),
-                ),
-                const SizedBox(width: 6),
                 if (widget.canClose)
-                  GestureDetector(
-                    onTap: widget.onClose,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: Icon(
-                        Icons.close,
-                        size: 13,
-                        color: _hovered ? Colors.white : Colors.white54,
+                  Positioned(
+                    right: 4,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: widget.onClose,
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(
+                              Icons.close,
+                              size: 13,
+                              color: _hovered ? Colors.white : Colors.white54,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

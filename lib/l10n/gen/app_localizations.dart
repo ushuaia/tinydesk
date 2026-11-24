@@ -2137,6 +2137,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close terminal tab'**
   String get closeTerminalTab;
+
+  /// No description provided for @terminalTabName.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal {n}'**
+  String terminalTabName(int n);
+
+  /// No description provided for @renameTerminalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename terminal tab'**
+  String get renameTerminalTitle;
+
+  /// No description provided for @renameTerminalSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get renameTerminalSave;
 }
 
 class _AppLocalizationsDelegate

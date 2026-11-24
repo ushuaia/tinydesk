@@ -5,6 +5,7 @@ import '../session/file_browser_controller.dart';
 import '../session/terminal_controller.dart';
 import '../core/connection_controller.dart';
 import '../core/connection_state.dart';
+import '../core/app_language.dart';
 
 /// One host's live session: its tunnel/connection and its own terminal.
 ///
@@ -69,6 +70,20 @@ class HostSession {
       activeTerminalIndex = terminals.length - 1;
     }
     if (activeTerminalIndex < 0) activeTerminalIndex = 0;
+  }
+
+  /// Display title of a shell tab: the custom name when renamed, otherwise
+  /// the default numbered title.
+  String terminalTitle(int index) {
+    if (index < 0 || index >= terminals.length) return '';
+    final custom = terminals[index].customTitle;
+    if (custom != null && custom.isNotEmpty) return custom;
+    return AppL10n.t.terminalTabName(index + 1);
+  }
+
+  Future<void> renameTerminal(int index, String title) async {
+    if (index < 0 || index >= terminals.length) return;
+    terminals[index].customTitle = title.trim().isEmpty ? null : title.trim();
   }
 
   void selectTerminal(int index) {
