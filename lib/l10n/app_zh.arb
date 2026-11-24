@@ -337,5 +337,7 @@
   "exportDiagnosticsEmpty": "暂无诊断记录",
   "copy": "复制",
   "terminalSearchHint": "在终端中查找",
-  "terminalFontSize": "终端字号"
+  "terminalFontSize": "终端字号",
+  "newTerminalTab": "新建终端标签",
+  "closeTerminalTab": "关闭终端标签"
 }

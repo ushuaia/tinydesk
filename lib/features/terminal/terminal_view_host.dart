@@ -32,6 +32,8 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
   final GlobalKey<TerminalViewState> _terminalKey =
       GlobalKey<TerminalViewState>();
   Offset? _dragStart;
+  DateTime? _lastTapAt;
+  Offset? _lastTapPos;
   final TextEditingController _searchText = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
 
@@ -57,8 +59,12 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
 
   Future<void> _copySelection() async {
     final selection = _xterm.selection;
-    if (selection == null) return;
+    if (selection == null) {
+      debugPrint('term: copy skipped (no selection)');
+      return;
+    }
     final text = widget.controller.terminal.buffer.getText(selection);
+    debugPrint('term: copy ${text.length} chars');
     if (text.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: text));
   }
@@ -72,15 +78,12 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
 
   /// Builds the selection anchor for a cell; the line owns the anchor so it
   /// survives scrolling until the selection is replaced.
-  CellAnchor _anchorAt(CellOffset cell) {
-    final lines = widget.controller.terminal.buffer.lines;
-    final y = cell.y.clamp(0, lines.length - 1);
-    final line = lines[y];
-    return CellAnchor(cell.x.clamp(0, line.length), owner: line);
-  }
+  CellAnchor _anchorAt(CellOffset cell) =>
+      widget.controller.terminal.buffer.createAnchorFromOffset(cell);
 
   void _onPointerDown(PointerDownEvent event) {
     if (!_isDesktop) return;
+    debugPrint('term: down buttons=${event.buttons}');
     if (event.buttons != kPrimaryMouseButton) return;
     _dragStart = event.position;
     _xterm.clearSelection();
@@ -90,7 +93,10 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
     final start = _dragStart;
     if (start == null) return;
     final render = _terminalKey.currentState?.renderTerminal;
-    if (render == null) return;
+    if (render == null) {
+      debugPrint('term: drag, render=null');
+      return;
+    }
     final base = render.getCellOffset(render.globalToLocal(start));
     final extent = render.getCellOffset(render.globalToLocal(event.position));
     _xterm.setSelection(
@@ -98,19 +104,40 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
       _anchorAt(extent),
       mode: SelectionMode.line,
     );
+    debugPrint('term: select base=${base.x},${base.y} '
+        'extent=${extent.x},${extent.y} '
+        'active=${_xterm.selection != null}');
   }
 
   void _onPointerUp(PointerUpEvent event) {
+    final start = _dragStart;
     _dragStart = null;
-  }
+    if (start == null) return;
 
-  /// Desktop mouse: right click copies the selection, or pastes when there
-  /// is none (the classic terminal behaviour).
-  Future<void> _onSecondaryTap() async {
+    final now = DateTime.now();
+    final moved = (start - event.position).distance;
+    final last = _lastTapAt;
+    final lastPos = _lastTapPos;
+    final isDoubleTap = last != null &&
+        lastPos != null &&
+        now.difference(last) < const Duration(milliseconds: 320) &&
+        (lastPos - event.position).distance < 8 &&
+        moved < 8;
+    _lastTapAt = now;
+    _lastTapPos = event.position;
+
+    if (isDoubleTap) {
+      // Double click selects the word under the pointer.
+      final render = _terminalKey.currentState?.renderTerminal;
+      render?.selectWord(render.globalToLocal(event.position));
+      if (_xterm.selection != null) unawaited(_copySelection());
+      return;
+    }
+
+    // Select-to-copy: as soon as a drag produced a selection, the text is
+    // on the clipboard.
     if (_xterm.selection != null) {
-      await _copySelection();
-    } else {
-      await _paste();
+      unawaited(_copySelection());
     }
   }
 
@@ -214,8 +241,6 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
                   deleteDetection: true,
                   keyboardType: TextInputType.emailAddress,
                   cursorType: TerminalCursorType.verticalBar,
-                  onSecondaryTapUp:
-                      _isDesktop ? (_, _) => _onSecondaryTap() : null,
                   textStyle: TerminalStyle(
                     fontFamily: 'MesloLGS',
                     fontSize: widget.controller.fontSize.toDouble(),

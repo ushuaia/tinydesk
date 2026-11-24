@@ -1140,4 +1140,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get terminalFontSize => '终端字号';
+
+  @override
+  String get newTerminalTab => '新建终端标签';
+
+  @override
+  String get closeTerminalTab => '关闭终端标签';
 }

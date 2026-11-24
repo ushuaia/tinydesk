@@ -742,5 +742,7 @@
   "exportDiagnosticsEmpty": "No diagnostics recorded yet",
   "copy": "Copy",
   "terminalSearchHint": "Find in terminal",
-  "terminalFontSize": "Terminal font size"
+  "terminalFontSize": "Terminal font size",
+  "newTerminalTab": "New terminal tab",
+  "closeTerminalTab": "Close terminal tab"
 }

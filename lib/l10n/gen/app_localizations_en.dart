@@ -1189,4 +1189,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get terminalFontSize => 'Terminal font size';
+
+  @override
+  String get newTerminalTab => 'New terminal tab';
+
+  @override
+  String get closeTerminalTab => 'Close terminal tab';
 }

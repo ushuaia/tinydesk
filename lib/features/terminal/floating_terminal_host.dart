@@ -136,6 +136,89 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
     );
   }
 
+  /// One chip per shell tab plus add/close actions.
+  Widget _tabStrip() {
+    final session = widget.manager.activeSession;
+    if (session == null) return const SizedBox.shrink();
+    final terminals = session.terminals;
+    final active = session.activeTerminalIndex;
+    return ColoredBox(
+      color: const Color(0xFF252525),
+      child: SizedBox(
+        height: 32,
+        child: Row(
+          children: [
+            Expanded(
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                children: [
+                  for (var i = 0; i < terminals.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: InkWell(
+                        onTap: () {
+                          session.selectTerminal(i);
+                          setState(() {});
+                        },
+                        child: Container(
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: i == active
+                                ? const Color(0xFF3B6EA8)
+                                : const Color(0xFF2C2C2C),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${i + 1}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            IconButton(
+              iconSize: 16,
+              tooltip: AppL10n.t.newTerminalTab,
+              onPressed: _addTerminalTab,
+              icon: const Icon(Icons.add, color: Colors.white70),
+            ),
+            if (terminals.length > 1)
+              IconButton(
+                iconSize: 16,
+                tooltip: AppL10n.t.closeTerminalTab,
+                onPressed: _closeTerminalTab,
+                icon: const Icon(Icons.close, color: Colors.white70),
+              ),
+            const SizedBox(width: 4),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addTerminalTab() async {
+    final session = widget.manager.activeSession;
+    if (session == null) return;
+    final controller = session.addTerminal();
+    setState(() {});
+    await controller.open();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _closeTerminalTab() async {
+    final session = widget.manager.activeSession;
+    if (session == null || session.terminals.length <= 1) return;
+    await session.closeTerminalAt(session.activeTerminalIndex);
+    if (mounted) setState(() {});
+  }
+
   Widget _buildWindow(TerminalController terminal) {
     final hostName = widget.manager.activeHost?.name ?? AppL10n.t.terminal;
     final status = terminal.status;
@@ -163,6 +246,7 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
             onClose: () => unawaited(terminal.close()),
             closeTooltip: AppL10n.t.closeTerminal,
           ),
+          _tabStrip(),
           Expanded(
             child: TerminalViewHost(
               controller: terminal,

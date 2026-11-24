@@ -2125,6 +2125,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Terminal font size'**
   String get terminalFontSize;
+
+  /// No description provided for @newTerminalTab.
+  ///
+  /// In en, this message translates to:
+  /// **'New terminal tab'**
+  String get newTerminalTab;
+
+  /// No description provided for @closeTerminalTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Close terminal tab'**
+  String get closeTerminalTab;
 }
 
 class _AppLocalizationsDelegate

@@ -19,9 +19,7 @@ class HostSession {
     required this.privateKey,
     this.passphrase,
   }) {
-    terminal = TerminalController(
-      sessionProvider: () => connection.session,
-    );
+    terminals.add(TerminalController(sessionProvider: () => connection.session));
     fileBrowser = FileBrowserController();
   }
 
@@ -29,8 +27,60 @@ class HostSession {
   String privateKey;
   String? passphrase;
   final ConnectionController connection;
-  late final TerminalController terminal;
+  final List<TerminalController> terminals = [];
+  int activeTerminalIndex = 0;
   late final FileBrowserController fileBrowser;
+
+  /// The shell tab currently shown for this host.
+  TerminalController get terminal {
+    if (terminals.isEmpty) {
+      // Only reachable while a session is being torn down; keep callers safe.
+      terminals.add(
+        TerminalController(sessionProvider: () => connection.session),
+      );
+      activeTerminalIndex = 0;
+    }
+    if (activeTerminalIndex >= terminals.length) {
+      activeTerminalIndex = terminals.length - 1;
+    }
+    return terminals[activeTerminalIndex];
+  }
+
+  /// Adds a shell tab and makes it active. The new tab inherits the window
+  /// state so switching feels seamless.
+  TerminalController addTerminal() {
+    final current = terminals.isEmpty ? null : terminal;
+    final next = TerminalController(sessionProvider: () => connection.session)
+      ..visible = current?.visible ?? true
+      ..expanded = current?.expanded ?? true;
+    terminals.add(next);
+    activeTerminalIndex = terminals.length - 1;
+    return next;
+  }
+
+  /// Closes one shell tab and disposes it. When the last one closes the
+  /// floating terminal disappears with it.
+  Future<void> closeTerminalAt(int index) async {
+    if (index < 0 || index >= terminals.length) return;
+    final removed = terminals.removeAt(index);
+    await removed.close();
+    removed.dispose();
+    if (activeTerminalIndex >= terminals.length) {
+      activeTerminalIndex = terminals.length - 1;
+    }
+    if (activeTerminalIndex < 0) activeTerminalIndex = 0;
+  }
+
+  void selectTerminal(int index) {
+    if (index < 0 || index >= terminals.length) return;
+    if (index == activeTerminalIndex) return;
+    final previous = terminal;
+    terminals[index]
+      ..visible = previous.visible
+      ..expanded = previous.expanded;
+    activeTerminalIndex = index;
+    terminals[index].focusNode.requestFocus();
+  }
 
   ConnectionSnapshot get snapshot => connection.state;
 
@@ -40,7 +90,9 @@ class HostSession {
 
   /// Explicitly closes this session: terminates the shell and disconnects.
   Future<void> close() async {
-    await terminal.close();
+    for (final controller in terminals.toList()) {
+      await controller.close();
+    }
     await connection.disconnect();
   }
 }
