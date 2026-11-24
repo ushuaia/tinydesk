@@ -173,6 +173,7 @@ class _FloatingFileBrowserHostState extends State<FloatingFileBrowserHost>
       initialFile: controller.pendingFile,
       initialRequestId: controller.pendingRequestId,
       onPendingConsumed: controller.consumePendingFile,
+      controller: controller,
     );
   }
 }

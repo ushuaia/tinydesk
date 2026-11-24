@@ -11,6 +11,9 @@ class FileBrowserController extends ChangeNotifier {
   bool _visible = false;
   bool _expanded = false;
   RemoteFile? _pendingFile;
+
+  /// Set by the page while it is alive: confirms unsaved edits before closing.
+  Future<bool> Function()? closeGuard;
   int _pendingRequestId = 0;
   String _pendingProjectRoot = '';
 
@@ -39,6 +42,14 @@ class FileBrowserController extends ChangeNotifier {
     if (!_expanded) return;
     _expanded = false;
     notifyListeners();
+  }
+
+  /// Asks the window to close; the page can veto (unsaved document) or run
+  /// its save/discard dialog first.
+  Future<void> requestClose() async {
+    final guard = closeGuard;
+    if (guard != null && !await guard()) return;
+    close();
   }
 
   void close() {

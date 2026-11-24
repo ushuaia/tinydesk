@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'core/app_language.dart';
 import 'session/app_session_manager.dart';
 import 'session/session_scope.dart';
+import 'session/window_chrome.dart';
 import 'core/theme.dart';
 import 'data/host_repository.dart';
 import 'data/host_store.dart';
@@ -56,63 +57,44 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
       WindowCloseHandler.register(
         _handleWindowClose,
         onMinimizeRequested: _minimizeOverlay,
-        onZoomRequested: _zoomOverlay,
       );
     }
   }
 
-  /// macOS yellow light: collapse an open terminal or file-browser window
-  /// into its floating form. Returns false on ordinary pages so the native
-  /// miniaturize runs instead.
+  /// macOS yellow light: collapses the window that is actually on screen into
+  /// its floating ball. Returns false on ordinary pages so the native
+  /// miniaturize runs instead. Balls are ignored: a minimized overlay is not
+  /// something to minimize again.
   Future<bool> _minimizeOverlay() async {
-    final terminal = _session.activeSession?.terminal;
-    if (terminal != null && terminal.visible && terminal.expanded) {
-      terminal.minimize();
-      return true;
+    final session = _session.activeSession;
+    switch (frontWindowOf(session?.terminal, session?.fileBrowser)) {
+      case FrontWindow.terminal:
+        session!.terminal.minimize();
+        return true;
+      case FrontWindow.fileBrowser:
+        session!.fileBrowser.minimize();
+        return true;
+      case FrontWindow.none:
+        return false;
     }
-    final fileBrowser = _session.fileBrowser;
-    if (fileBrowser != null && fileBrowser.visible && fileBrowser.expanded) {
-      fileBrowser.minimize();
-      return true;
-    }
-    return false;
   }
 
-  /// macOS green light: toggle an open terminal or file-browser window
-  /// between the full-screen window and its floating form. Returns false on
-  /// ordinary pages so the native zoom runs instead.
-  Future<bool> _zoomOverlay() async {
-    final terminal = _session.activeSession?.terminal;
-    if (terminal != null && terminal.visible) {
-      terminal.toggleExpanded();
-      return true;
-    }
-    final fileBrowser = _session.fileBrowser;
-    if (fileBrowser != null && fileBrowser.visible) {
-      if (fileBrowser.expanded) {
-        fileBrowser.minimize();
-      } else {
-        fileBrowser.show();
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /// macOS red close button: the visible terminal panel is the topmost
-  /// layer, then any pushed page, and only at the session root does it ask
-  /// before quitting the whole app.
+  /// macOS red close button: closes the window that is on screen, then any
+  /// pushed page, and only at the session root does it ask before quitting.
+  /// Balls are ignored — a minimized overlay is already out of the way.
   Future<void> _handleWindowClose() async {
-    // The floating terminal is rendered above the navigator, so it must be
-    // handled first — otherwise a dialog would appear behind it.
-    final terminal = _session.activeSession?.terminal;
-    if (terminal != null && terminal.visible) {
-      await terminal.close();
-      return;
+    final session = _session.activeSession;
+    switch (frontWindowOf(session?.terminal, session?.fileBrowser)) {
+      case FrontWindow.terminal:
+        await session!.terminal.close();
+        return;
+      case FrontWindow.fileBrowser:
+        // Asks the page first: unsaved edits can veto the close.
+        await session!.fileBrowser.requestClose();
+        return;
+      case FrontWindow.none:
+        break;
     }
-    // The file browser is the next overlay layer: collapse it before the
-    // navigator reacts so its state is not skipped.
-    if (_session.handleFileBrowserBack()) return;
     final navigator = _navigatorKey.currentState;
     if (navigator == null) {
       await WindowCloseHandler.confirmClose();
@@ -125,7 +107,7 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
     }
     if (_quitDialogOpen) return;
     final context = _navigatorKey.currentContext;
-    if (context == null) {
+    if (context == null || !context.mounted) {
       await WindowCloseHandler.confirmClose();
       return;
     }

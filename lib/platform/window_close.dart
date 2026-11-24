@@ -10,18 +10,15 @@ class WindowCloseHandler {
 
   static Future<void> Function()? _onCloseRequested;
   static Future<bool> Function()? _onMinimizeRequested;
-  static Future<bool> Function()? _onZoomRequested;
 
   /// Registers the Dart-side handlers. Safe to call on every platform: the
   /// channel simply never fires where the native side is absent.
   static void register(
     Future<void> Function() handler, {
     Future<bool> Function()? onMinimizeRequested,
-    Future<bool> Function()? onZoomRequested,
   }) {
     _onCloseRequested = handler;
     _onMinimizeRequested = onMinimizeRequested;
-    _onZoomRequested = onZoomRequested;
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'closeRequested':
@@ -33,10 +30,6 @@ class WindowCloseHandler {
           final handled = await _onMinimizeRequested?.call() ?? false;
           debugPrint('[window] minimizeRequested handled=$handled');
           return handled;
-        case 'zoomRequested':
-          final zoomed = await _onZoomRequested?.call() ?? false;
-          debugPrint('[window] zoomRequested handled=$zoomed');
-          return zoomed;
       }
       return null;
     });

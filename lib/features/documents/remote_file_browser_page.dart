@@ -9,6 +9,7 @@ import '../../platform/web_data.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/explorer_state_store.dart';
+import '../../session/file_browser_controller.dart';
 import '../../session/session_scope.dart';
 import '../../data/favorite_store.dart';
 import '../../data/favorite_sync.dart';
@@ -64,6 +65,7 @@ class RemoteFileBrowserPage extends StatefulWidget {
     this.documentHandleFactory = createDocumentHandle,
     this.floating = false,
     this.active = true,
+    this.controller,
   });
 
   final TunnelSession session;
@@ -95,6 +97,10 @@ class RemoteFileBrowserPage extends StatefulWidget {
   /// False while this page is kept alive but another host is displayed; it
   /// must not drive the process-wide macOS input blocker.
   final bool active;
+
+  /// Floating mode only: lets the traffic-light close action ask this page to
+  /// confirm unsaved edits before the window disappears.
+  final FileBrowserController? controller;
 
   @override
   State<RemoteFileBrowserPage> createState() => _RemoteFileBrowserPageState();
@@ -180,6 +186,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   @override
   void initState() {
     super.initState();
+    widget.controller?.closeGuard = _confirmCloseDoc;
     final initial = widget.initialFile;
     _path = initial == null ? widget.initialPath : parentPath(initial.path);
     // Seed a synchronous root so the tree's first mount can restore the
@@ -727,6 +734,9 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
 
   @override
   void dispose() {
+    if (widget.controller?.closeGuard == _confirmCloseDoc) {
+      widget.controller?.closeGuard = null;
+    }
     _docSyncTimer?.cancel();
     if (_blockerEngaged) {
       unawaited(RailInputBlocker.setBlocking(blocking: false));

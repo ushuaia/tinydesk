@@ -94,30 +94,20 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     super.awakeFromNib()
   }
 
-  /// Route the yellow and green lights explicitly. With the title bar merged
-  /// into the content view the responder chain no longer reliably delivers
-  /// performMiniaturize:/performZoom:, so the standard buttons get their own
-  /// target/action.
+  /// Route the yellow light explicitly. With the title bar merged into the
+  /// content view the responder chain no longer reliably delivers
+  /// performMiniaturize:, so the standard button gets its own target/action.
+  /// The green light keeps the native zoom.
   private func installTrafficLightActions() {
     if let button = standardWindowButton(.miniaturizeButton) {
       button.target = self
       button.action = #selector(trafficLightMiniaturize(_:))
-    }
-    if let button = standardWindowButton(.zoomButton) {
-      button.target = self
-      button.action = #selector(trafficLightZoom(_:))
     }
   }
 
   @objc private func trafficLightMiniaturize(_ sender: Any?) {
     requestFlutterAction("minimizeRequested") { [weak self] in
       self?.performDefaultMiniaturize(nil)
-    }
-  }
-
-  @objc private func trafficLightZoom(_ sender: Any?) {
-    requestFlutterAction("zoomRequested") { [weak self] in
-      self?.performDefaultZoom(nil)
     }
   }
 
@@ -145,21 +135,11 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     }
   }
 
-  override func performZoom(_ sender: Any?) {
-    requestFlutterAction("zoomRequested") { [weak self] in
-      self?.performDefaultZoom(sender)
-    }
-  }
-
-  // NB: super.performMiniaturize/performZoom simulate a click on the
-  // standard buttons; since those buttons now target this class, calling
-  // super here would recurse. The lower-level action methods are safe.
+  // NB: super.performMiniaturize simulates a click on the standard button;
+  // since that button now targets this class, calling super here would
+  // recurse. The lower-level action method is safe.
   private func performDefaultMiniaturize(_ sender: Any?) {
     self.miniaturize(nil)
-  }
-
-  private func performDefaultZoom(_ sender: Any?) {
-    self.zoom(nil)
   }
 
   func windowShouldClose(_ sender: NSWindow) -> Bool {

@@ -60,10 +60,6 @@ void main() {
         manager.terminal.minimize();
         return true;
       },
-      onZoomRequested: () async {
-        manager.terminal.toggleExpanded();
-        return true;
-      },
     );
     addTearDown(WindowCloseHandler.unregister);
 
