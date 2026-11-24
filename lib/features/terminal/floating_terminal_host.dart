@@ -254,9 +254,6 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
                 Platform.isMacOS ? 76 : 0, // traffic lights zone
             title: AppL10n.t.terminalTitle(hostName),
             accentColor: _statusColor(status),
-            onMinimize: terminal.minimize,
-            onClose: () => unawaited(terminal.close()),
-            closeTooltip: AppL10n.t.closeTerminal,
           ),
           _tabStrip(),
           Expanded(

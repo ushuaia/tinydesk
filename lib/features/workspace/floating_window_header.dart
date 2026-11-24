@@ -13,7 +13,7 @@ class FloatingWindowHeader extends StatelessWidget {
   const FloatingWindowHeader({
     super.key,
     required this.title,
-    required this.onClose,
+    this.onClose,
     this.closeTooltip,
     this.onMinimize,
     this.onReconnect,
@@ -29,7 +29,7 @@ class FloatingWindowHeader extends StatelessWidget {
   final double leadingInset;
 
   final String title;
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
   final String? closeTooltip;
   final VoidCallback? onMinimize;
   final VoidCallback? onReconnect;
@@ -90,11 +90,12 @@ class FloatingWindowHeader extends StatelessWidget {
               tooltip: AppL10n.t.minimize,
               onPressed: onMinimize!,
             ),
-          _HeaderButton(
-            icon: Icons.close,
-            tooltip: closeTooltip ?? AppL10n.t.close,
-            onPressed: onClose,
-          ),
+          if (onClose != null)
+            _HeaderButton(
+              icon: Icons.close,
+              tooltip: closeTooltip ?? AppL10n.t.close,
+              onPressed: onClose!,
+            ),
           const SizedBox(width: 2),
         ],
       ),

@@ -93,6 +93,17 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     super.awakeFromNib()
   }
 
+  // The yellow and green lights drive the floating overlay lifecycle
+  // (collapse to the ball / expand to full screen) instead of the system
+  // miniaturize/zoom, so the in-app buttons are not needed.
+  override func performMiniaturize(_ sender: Any?) {
+    windowChannel?.invokeMethod("minimizeRequested", arguments: nil)
+  }
+
+  override func performZoom(_ sender: Any?) {
+    windowChannel?.invokeMethod("zoomRequested", arguments: nil)
+  }
+
   func windowShouldClose(_ sender: NSWindow) -> Bool {
     if allowClose {
       return true

@@ -166,6 +166,13 @@ class TerminalController extends ChangeNotifier {
     _notify();
   }
 
+  /// Collapses to the ball when expanded, or fills the screen when collapsed.
+  void toggleExpanded() {
+    if (_disposed) return;
+    expanded = !expanded;
+    _notify();
+  }
+
   Future<void> close() async {
     if (_disposed) return;
     visible = false;

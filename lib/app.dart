@@ -53,7 +53,31 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
       _session.restore(repository: _repository, keyStore: _keyStore),
     );
     if (defaultTargetPlatform == TargetPlatform.macOS) {
-      WindowCloseHandler.register(_handleWindowClose);
+      WindowCloseHandler.register(
+        _handleWindowClose,
+        onMinimizeRequested: () => _minimizeOverlay(),
+        onZoomRequested: () => _zoomOverlay(),
+      );
+    }
+  }
+
+  /// macOS yellow light: collapse the topmost overlay (terminal -> ball,
+  /// file browser -> collapsed). Only matters when an overlay is visible.
+  Future<void> _minimizeOverlay() async {
+    final terminal = _session.activeSession?.terminal;
+    if (terminal != null && terminal.visible) {
+      terminal.minimize();
+      return;
+    }
+    if (_session.handleFileBrowserBack()) return;
+  }
+
+  /// macOS green light: toggle the terminal between the full-screen window
+  /// and the ball.
+  Future<void> _zoomOverlay() async {
+    final terminal = _session.activeSession?.terminal;
+    if (terminal != null && terminal.visible) {
+      terminal.toggleExpanded();
     }
   }
 
