@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart' hide TerminalController;
 import 'package:xterm/xterm.dart' as xterm show TerminalController;
@@ -28,6 +29,9 @@ class TerminalViewHost extends StatefulWidget {
 class _TerminalViewHostState extends State<TerminalViewHost> {
   final xterm.TerminalController _xterm = xterm.TerminalController();
   final ScrollController _scroll = ScrollController();
+  final GlobalKey<TerminalViewState> _terminalKey =
+      GlobalKey<TerminalViewState>();
+  Offset? _dragStart;
   final TextEditingController _searchText = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
 
@@ -64,6 +68,40 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
     final text = data?.text;
     if (text == null || text.isEmpty) return;
     widget.controller.sendText(text);
+  }
+
+  /// Builds the selection anchor for a cell; the line owns the anchor so it
+  /// survives scrolling until the selection is replaced.
+  CellAnchor _anchorAt(CellOffset cell) {
+    final lines = widget.controller.terminal.buffer.lines;
+    final y = cell.y.clamp(0, lines.length - 1);
+    final line = lines[y];
+    return CellAnchor(cell.x.clamp(0, line.length), owner: line);
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (!_isDesktop) return;
+    if (event.buttons != kPrimaryMouseButton) return;
+    _dragStart = event.position;
+    _xterm.clearSelection();
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    final start = _dragStart;
+    if (start == null) return;
+    final render = _terminalKey.currentState?.renderTerminal;
+    if (render == null) return;
+    final base = render.getCellOffset(render.globalToLocal(start));
+    final extent = render.getCellOffset(render.globalToLocal(event.position));
+    _xterm.setSelection(
+      _anchorAt(base),
+      _anchorAt(extent),
+      mode: SelectionMode.line,
+    );
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    _dragStart = null;
   }
 
   /// Desktop mouse: right click copies the selection, or pastes when there
@@ -163,7 +201,12 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
           Expanded(
             child: Stack(
               children: [
-                TerminalView(
+                Listener(
+                  onPointerDown: _onPointerDown,
+                  onPointerMove: _onPointerMove,
+                  onPointerUp: _onPointerUp,
+                  child: TerminalView(
+                  key: _terminalKey,
                   widget.controller.terminal,
                   controller: _xterm,
                   scrollController: _scroll,
@@ -179,6 +222,7 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
                     height: 1.2,
                   ),
                   padding: const EdgeInsets.all(4),
+                  ),
                 ),
                 if (_searchOpen) _searchBar(context),
               ],
@@ -188,7 +232,6 @@ class _TerminalViewHostState extends State<TerminalViewHost> {
           if (!_isDesktop)
             TerminalKeysBar(
               controller: widget.controller,
-              onCopy: () => unawaited(_copySelection()),
               onPaste: () => unawaited(_paste()),
             ),
         ],
