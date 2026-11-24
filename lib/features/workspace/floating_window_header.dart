@@ -19,9 +19,14 @@ class FloatingWindowHeader extends StatelessWidget {
     this.onReconnect,
     this.accentColor,
     this.leadingIcon,
+    this.leadingInset = 0,
   });
 
   static const height = 40.0;
+
+  /// Space kept clear at the left edge for the macOS traffic lights when
+  /// the system title bar is merged into the Flutter surface.
+  final double leadingInset;
 
   final String title;
   final VoidCallback onClose;
@@ -38,9 +43,11 @@ class FloatingWindowHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Fixed light-grey strip over the dark terminal body, independent of the
-    // app theme so the strip stays readable on both themes.
+    // app theme so the strip stays readable on both themes. The left inset
+    // keeps clear of the macOS traffic lights.
     return Container(
       height: height,
+      padding: EdgeInsets.only(left: leadingInset),
       color: const Color(0xFFECECEC),
       child: Row(
         children: [

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -249,6 +250,8 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
       child: Column(
         children: [
           FloatingWindowHeader(
+            leadingInset:
+                Platform.isMacOS ? 76 : 0, // traffic lights zone
             title: AppL10n.t.terminalTitle(hostName),
             accentColor: _statusColor(status),
             onMinimize: terminal.minimize,

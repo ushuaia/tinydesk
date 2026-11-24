@@ -16,6 +16,14 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     self.setContentSize(NSSize(width: 1440, height: 900))
     self.center()
 
+    // Merge the system title bar into our own: transparent title bar with
+    // full-size content lets the Flutter surface draw its own header, with
+    // the traffic lights overlaying it, instead of stacking two title bars.
+    self.titlebarAppearsTransparent = true
+    self.titleVisibility = .hidden
+    self.styleMask.insert(.fullSizeContentView)
+    self.isMovableByWindowBackground = false
+
     RegisterGeneratedPlugins(registry: flutterViewController)
     TinyDeskChannels.register(with: flutterViewController)
 

@@ -137,9 +137,20 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
           darkTheme: buildTheme(Brightness.dark),
           builder: (context, child) {
             AppL10n.update(AppLocalizations.of(context));
+            // With the system title bar merged into the surface, the main
+            // UI must clear the macOS traffic lights; the floating overlays
+            // draw their own headers with a leading inset instead.
+            final topInset =
+                defaultTargetPlatform == TargetPlatform.macOS ? 28.0 : 0.0;
             return Stack(
               children: [
-                if (child != null) Positioned.fill(child: child),
+                if (child != null)
+                  Positioned.fill(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: topInset),
+                      child: child,
+                    ),
+                  ),
                 Positioned.fill(
                   child: FloatingFileBrowserHost(manager: _session),
                 ),
