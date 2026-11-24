@@ -152,18 +152,23 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
       child: Row(
         children: [
           Expanded(
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            child: Row(
               children: [
                 for (var i = 0; i < terminals.length; i++)
-                  _TerminalTabChip(
-                    label: '${i + 1}',
-                    active: i == active,
-                    onTap: () {
-                      session.selectTerminal(i);
-                      setState(() {});
-                    },
+                  Expanded(
+                    child: _TerminalTabChip(
+                      label: '${i + 1}',
+                      active: i == active,
+                      canClose: terminals.length > 1,
+                      onTap: () {
+                        session.selectTerminal(i);
+                        setState(() {});
+                      },
+                      onClose: () async {
+                        await session.closeTerminalAt(i);
+                        if (mounted) setState(() {});
+                      },
+                    ),
                   ),
               ],
             ),
@@ -172,11 +177,6 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
             icon: Icons.add,
             onPressed: _addTerminalTab,
           ),
-          if (terminals.length > 1)
-            _TabStripIconButton(
-              icon: Icons.close,
-              onPressed: _closeTerminalTab,
-            ),
           const SizedBox(width: 6),
         ],
       ),
@@ -192,12 +192,6 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _closeTerminalTab() async {
-    final session = widget.manager.activeSession;
-    if (session == null || session.terminals.length <= 1) return;
-    await session.closeTerminalAt(session.activeTerminalIndex);
-    if (mounted) setState(() {});
-  }
 
   Widget _buildWindow(TerminalController terminal) {
     final hostName = widget.manager.activeHost?.name ?? AppL10n.t.terminal;
@@ -358,12 +352,16 @@ class _TerminalTabChip extends StatefulWidget {
   const _TerminalTabChip({
     required this.label,
     required this.active,
+    required this.canClose,
     required this.onTap,
+    required this.onClose,
   });
 
   final String label;
   final bool active;
+  final bool canClose;
   final VoidCallback onTap;
+  final VoidCallback onClose;
 
   @override
   State<_TerminalTabChip> createState() => _TerminalTabChipState();
@@ -405,7 +403,7 @@ class _TerminalTabChipState extends State<_TerminalTabChip> {
                     color: widget.active ? Colors.white : Colors.white70,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const Spacer(),
                 Container(
                   width: 6,
                   height: 6,
@@ -416,6 +414,19 @@ class _TerminalTabChipState extends State<_TerminalTabChip> {
                         : Colors.transparent,
                   ),
                 ),
+                const SizedBox(width: 6),
+                if (widget.canClose)
+                  GestureDetector(
+                    onTap: widget.onClose,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Icon(
+                        Icons.close,
+                        size: 13,
+                        color: _hovered ? Colors.white : Colors.white54,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
