@@ -145,8 +145,9 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
     return Container(
       height: 30,
       decoration: const BoxDecoration(
+        color: Color(0xFFECECEC),
         border: Border(
-          bottom: BorderSide(color: Color(0xFF2E2E2E), width: 1),
+          bottom: BorderSide(color: Color(0xFFDDDDDD), width: 1),
         ),
       ),
       child: Row(
@@ -408,16 +409,14 @@ class _TerminalTabChipState extends State<_TerminalTabChip> {
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.active
-        ? const Color(0xFFECECEC)
-        : _hovered
-            ? const Color(0xFF333333)
-            : Colors.transparent;
+    // White rounded card on the light-grey strip, iTerm2 style: the active
+    // tab reads dark, inactive ones grey; hovering reveals the close button.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       child: MouseRegion(
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
+        cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: widget.onTap,
           onLongPress: widget.onRename,
@@ -425,50 +424,40 @@ class _TerminalTabChipState extends State<_TerminalTabChip> {
           child: Container(
             height: 26,
             decoration: BoxDecoration(
-              color: color,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(7)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Stack(
               children: [
                 Positioned.fill(
                   child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 10, right: 18),
-                      child: Text(
-                        widget.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: widget.active
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                          color:
-                              widget.active ? Colors.white : Colors.white70,
-                        ),
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight:
+                            widget.active ? FontWeight.w600 : FontWeight.w400,
+                        color: widget.active
+                            ? const Color(0xFF1A1A1A)
+                            : const Color(0xFF666666),
                       ),
                     ),
                   ),
                 ),
-                if (widget.canClose)
+                if (widget.canClose && _hovered)
                   Positioned(
-                    right: 4,
+                    right: 3,
                     top: 0,
                     bottom: 0,
                     child: Center(
                       child: GestureDetector(
                         onTap: widget.onClose,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: Padding(
-                            padding: const EdgeInsets.all(2),
-                            child: Icon(
-                              Icons.close,
-                              size: 13,
-                              color: _hovered ? Colors.white : Colors.white54,
-                            ),
-                          ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 12,
+                          color: Color(0xFF666666),
                         ),
                       ),
                     ),
@@ -512,13 +501,15 @@ class _TabStripIconButtonState extends State<_TabStripIconButton> {
             width: 28,
             height: 26,
             decoration: BoxDecoration(
-              color: _hovered ? const Color(0xFF3A3A3A) : Colors.transparent,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
               widget.icon,
               size: 15,
-              color: _hovered ? Colors.white : Colors.white70,
+              color: _hovered
+                  ? const Color(0xFF1A1A1A)
+                  : const Color(0xFF666666),
             ),
           ),
         ),
