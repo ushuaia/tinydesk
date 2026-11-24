@@ -85,9 +85,9 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
             Positioned.fromRect(
               rect: Rect.fromLTWH(
                 0,
-                safe.top,
+                0,
                 screen.width,
-                math.max(0, bottomLimit - safe.top),
+                math.max(0, bottomLimit),
               ),
               child: _buildWindow(terminal),
             ),

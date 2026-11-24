@@ -37,12 +37,11 @@ class FloatingWindowHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Follow the app theme so both overlays match the surrounding chrome
-    // instead of forcing a fixed dark strip.
-    final scheme = Theme.of(context).colorScheme;
+    // Fixed light-grey strip over the dark terminal body, independent of the
+    // app theme so the strip stays readable on both themes.
     return Container(
       height: height,
-      color: scheme.surfaceContainerHighest,
+      color: const Color(0xFFECECEC),
       child: Row(
         children: [
           const SizedBox(width: 10),
@@ -57,7 +56,7 @@ class FloatingWindowHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
           ] else if (leadingIcon != null) ...[
-            Icon(leadingIcon, size: 14, color: scheme.onSurfaceVariant),
+            Icon(leadingIcon, size: 14, color: const Color(0xFF444444)),
             const SizedBox(width: 8),
           ],
           Expanded(
@@ -67,7 +66,7 @@ class FloatingWindowHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
-                color: scheme.onSurface,
+                color: const Color(0xFF1A1A1A),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -109,7 +108,6 @@ class _HeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       label: tooltip,
       button: true,
@@ -123,7 +121,7 @@ class _HeaderButton extends StatelessWidget {
             height: 40,
             alignment: Alignment.center,
             color: Colors.transparent,
-            child: Icon(icon, size: 18, color: scheme.onSurfaceVariant),
+            child: Icon(icon, size: 18, color: const Color(0xFF444444)),
           ),
         ),
       ),
