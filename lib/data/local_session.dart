@@ -52,8 +52,11 @@ class LocalSession implements TunnelSession {
     // first time (migration, plugin init), so wait longer — but only while
     // there is evidence something is actually starting. If the daemon cannot
     // even be asked to start, waiting longer cannot help: fail fast.
+    // A manual-start host (autoStartServer=false) has nothing to wait for:
+    // only a couple of probes. A host we may start gets the long window.
+    final maxAttempts = _host.autoStartServer ? 10 : 2;
     var startFailures = 0;
-    for (var attempt = 0; attempt < 10; attempt++) {
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
       var port = await _detectServerPort();
       if (port != null) return port;
       if (_host.autoStartServer && attempt < 3) {
@@ -67,7 +70,7 @@ class LocalSession implements TunnelSession {
         if (port != null) return port;
       }
       // Nothing could be started at all -> the service is not coming up.
-      if (_host.autoStartServer && attempt >= 0 && startFailures >= 3) break;
+      if (_host.autoStartServer && startFailures >= 3) break;
       await Future<void>.delayed(const Duration(seconds: 2));
     }
     throw ServerUnreachable(AppL10n.t.localServiceUnreachable);

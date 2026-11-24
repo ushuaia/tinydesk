@@ -29,7 +29,7 @@ class DiagLog {
       }
       final stamp = DateTime.now().toIso8601String().substring(11, 23);
       file.writeAsStringSync('$stamp $message\n',
-          mode: FileMode.append, flush: true);
+          mode: FileMode.append);
     } catch (_) {}
   }
 

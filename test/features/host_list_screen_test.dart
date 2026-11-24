@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tinydesk/session/app_session_manager.dart';
-import 'package:tinydesk/core/session_scope.dart';
+import 'package:tinydesk/session/session_scope.dart';
 import 'package:tinydesk/data/host.dart';
 import 'package:tinydesk/data/host_repository.dart';
 import 'package:tinydesk/data/host_store.dart';

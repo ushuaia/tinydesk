@@ -9,7 +9,7 @@ import '../../platform/web_data.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/explorer_state_store.dart';
-import '../../core/session_scope.dart';
+import '../../session/session_scope.dart';
 import '../../data/favorite_store.dart';
 import '../../data/favorite_sync.dart';
 import '../../data/remote_file.dart';

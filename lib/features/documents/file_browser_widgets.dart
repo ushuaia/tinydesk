@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_language.dart';
 import '../../data/remote_file.dart';
 import 'document_handle.dart';
 
@@ -144,10 +145,11 @@ class DocumentTitleBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              doc.readOnlyReason!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+              AppL10n.t.readOnly,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
+                  ?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ),
         ],

@@ -31,6 +31,9 @@ Future<void> main() async {
     unawaited(DiagLog.write(
       'flutter error: ${details.exception}\n${details.stack}',
     ));
+    // Keep Flutter's default behaviour (error screen + console report):
+    // swallowing it silently would hide real failures from the user.
+    FlutterError.presentError(details);
   };
   // Must complete before any store reads SharedPreferences, so the
   // sandbox-era data lands before the UI renders the host list.

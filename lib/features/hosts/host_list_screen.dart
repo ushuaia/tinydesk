@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
 
-import '../../core/session_scope.dart';
+import '../../session/session_scope.dart';
 import '../../core/app_language.dart';
 import '../../data/host.dart';
 import '../../data/host_repository.dart';
