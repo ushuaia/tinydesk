@@ -77,7 +77,21 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     eventMonitor = NSEvent.addLocalMonitorForEvents(
       matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
     ) { [weak self] event in
-      guard let self = self, self.blockInput, event.window === self else {
+      guard let self = self, event.window === self else {
+        return event
+      }
+      // Double-clicking the merged title bar (native strip or our 40px
+      // headers) zooms the window to the screen, like a native title bar.
+      // The traffic-light zone keeps its own behaviour.
+      if event.type == .leftMouseDown, event.clickCount == 2 {
+        let viewHeight = self.contentView?.bounds.height ?? self.frame.height
+        let flutterY = viewHeight - event.locationInWindow.y
+        if flutterY >= 0, flutterY <= 40, event.locationInWindow.x > 84 {
+          self.zoom(nil)
+          return nil
+        }
+      }
+      guard self.blockInput else {
         return event
       }
       let point = event.locationInWindow
