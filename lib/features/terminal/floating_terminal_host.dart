@@ -169,13 +169,11 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
             ),
           ),
           _TabStripIconButton(
-            tooltip: AppL10n.t.newTerminalTab,
             icon: Icons.add,
             onPressed: _addTerminalTab,
           ),
           if (terminals.length > 1)
             _TabStripIconButton(
-              tooltip: AppL10n.t.closeTerminalTab,
               icon: Icons.close,
               onPressed: _closeTerminalTab,
             ),
@@ -429,12 +427,10 @@ class _TerminalTabChipState extends State<_TerminalTabChip> {
 
 class _TabStripIconButton extends StatefulWidget {
   const _TabStripIconButton({
-    required this.tooltip,
     required this.icon,
     required this.onPressed,
   });
 
-  final String tooltip;
   final IconData icon;
   final VoidCallback onPressed;
 
@@ -449,26 +445,23 @@ class _TabStripIconButtonState extends State<_TabStripIconButton> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Tooltip(
-        message: widget.tooltip,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          child: GestureDetector(
-            onTap: widget.onPressed,
-            child: Container(
-              width: 28,
-              height: 26,
-              decoration: BoxDecoration(
-                color: _hovered ? const Color(0xFF3A3A3A) : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(
-                widget.icon,
-                size: 15,
-                color: _hovered ? Colors.white : Colors.white70,
-              ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: Container(
+            width: 28,
+            height: 26,
+            decoration: BoxDecoration(
+              color: _hovered ? const Color(0xFF3A3A3A) : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              widget.icon,
+              size: 15,
+              color: _hovered ? Colors.white : Colors.white70,
             ),
           ),
         ),
