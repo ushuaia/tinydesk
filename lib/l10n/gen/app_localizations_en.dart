@@ -78,7 +78,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appName => 'TinyDesk';
 
   @override
-  String get appVersion => 'v1.2.1';
+  String get appVersion => 'v1.2.2';
 
   @override
   String get language => 'Language';
