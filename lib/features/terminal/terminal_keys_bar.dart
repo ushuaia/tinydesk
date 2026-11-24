@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_language.dart';
 import '../../session/terminal_controller.dart';
 
 class TerminalKeysBar extends StatelessWidget {
-  const TerminalKeysBar({super.key, required this.controller});
+  const TerminalKeysBar({
+    super.key,
+    required this.controller,
+    this.onCopy,
+    this.onPaste,
+  });
 
   final TerminalController controller;
+  final VoidCallback? onCopy;
+  final VoidCallback? onPaste;
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +25,10 @@ class TerminalKeysBar extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.only(left: 6, right: 24),
           children: [
+            if (onCopy != null)
+              _KeyButton(label: AppL10n.t.copy, onTap: onCopy!),
+            if (onPaste != null)
+              _KeyButton(label: AppL10n.t.paste, onTap: onPaste!),
             _KeyButton(
               label: 'Esc',
               onTap: () => controller.sendKey('\x1b'),

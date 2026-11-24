@@ -1180,4 +1180,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportDiagnosticsEmpty => 'No diagnostics recorded yet';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get terminalSearchHint => 'Find in terminal';
+
+  @override
+  String get terminalFontSize => 'Terminal font size';
 }

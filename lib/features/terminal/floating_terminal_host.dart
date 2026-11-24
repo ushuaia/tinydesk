@@ -161,10 +161,6 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
             accentColor: _statusColor(status),
             onMinimize: terminal.minimize,
             onClose: () => unawaited(terminal.close()),
-            onReconnect: status == TerminalStatus.closed ||
-                    status == TerminalStatus.error
-                ? () => unawaited(terminal.open())
-                : null,
             closeTooltip: AppL10n.t.closeTerminal,
           ),
           Expanded(

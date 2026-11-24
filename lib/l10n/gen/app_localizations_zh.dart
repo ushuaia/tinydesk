@@ -1131,4 +1131,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportDiagnosticsEmpty => '暂无诊断记录';
+
+  @override
+  String get copy => '复制';
+
+  @override
+  String get terminalSearchHint => '在终端中查找';
+
+  @override
+  String get terminalFontSize => '终端字号';
 }

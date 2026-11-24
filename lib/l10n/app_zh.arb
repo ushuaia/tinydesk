@@ -334,5 +334,8 @@
   "pairingLinkExpired": "登录链接已失效，请点击重试",
   "exportDiagnostics": "导出诊断日志",
   "exportDiagnosticsSubtitle": "保存最近的运行日志用于排查问题",
-  "exportDiagnosticsEmpty": "暂无诊断记录"
+  "exportDiagnosticsEmpty": "暂无诊断记录",
+  "copy": "复制",
+  "terminalSearchHint": "在终端中查找",
+  "terminalFontSize": "终端字号"
 }

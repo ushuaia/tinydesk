@@ -37,6 +37,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _keepAlive = true;
   bool _autoBlurKeyboard = true;
   double _fontScale = 1.0;
+  int _terminalFontSize = AppSettings.terminalFontSizeDefault;
 
   @override
   void initState() {
@@ -44,6 +45,18 @@ class _SettingsPageState extends State<SettingsPage> {
     _settings.autoBlurKeyboard().then((value) {
       if (mounted) setState(() => _autoBlurKeyboard = value);
     });
+    _settings.terminalFontSize().then((value) {
+      if (mounted) setState(() => _terminalFontSize = value);
+    });
+  }
+
+  Future<void> _adjustTerminalFontSize(int delta) async {
+    final next = (_terminalFontSize + delta).clamp(
+      AppSettings.terminalFontSizeMin,
+      AppSettings.terminalFontSizeMax,
+    );
+    setState(() => _terminalFontSize = next);
+    await _settings.setTerminalFontSize(next);
   }
 
   Future<void> _exportDiagnostics(AppLocalizations l10n) async {
@@ -153,6 +166,27 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _darkMode,
               onChanged: (v) => setState(() => _darkMode = v),
               title: Text(l10n.darkMode),
+            ),
+            ListTile(
+              title: Text(l10n.terminalFontSize),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: _terminalFontSize > AppSettings.terminalFontSizeMin
+                        ? () => _adjustTerminalFontSize(-1)
+                        : null,
+                    icon: const Icon(Icons.remove),
+                  ),
+                  Text('$_terminalFontSize'),
+                  IconButton(
+                    onPressed: _terminalFontSize < AppSettings.terminalFontSizeMax
+                        ? () => _adjustTerminalFontSize(1)
+                        : null,
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
             ),
             ListTile(
               title: Text(l10n.fontScale),

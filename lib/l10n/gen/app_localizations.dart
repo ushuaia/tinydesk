@@ -2107,6 +2107,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No diagnostics recorded yet'**
   String get exportDiagnosticsEmpty;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @terminalSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Find in terminal'**
+  String get terminalSearchHint;
+
+  /// No description provided for @terminalFontSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal font size'**
+  String get terminalFontSize;
 }
 
 class _AppLocalizationsDelegate

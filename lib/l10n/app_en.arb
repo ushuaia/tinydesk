@@ -739,5 +739,8 @@
   "pairingLinkExpired": "The sign-in link expired — tap retry",
   "exportDiagnostics": "Export diagnostics",
   "exportDiagnosticsSubtitle": "Save the recent app log for troubleshooting",
-  "exportDiagnosticsEmpty": "No diagnostics recorded yet"
+  "exportDiagnosticsEmpty": "No diagnostics recorded yet",
+  "copy": "Copy",
+  "terminalSearchHint": "Find in terminal",
+  "terminalFontSize": "Terminal font size"
 }

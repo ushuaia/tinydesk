@@ -8,6 +8,7 @@ import 'package:xterm/xterm.dart';
 
 import '../data/shell_session.dart';
 import '../ssh/tunnel_session.dart';
+import '../data/app_settings.dart';
 
 enum TerminalStatus { idle, opening, open, closed, error }
 
@@ -17,6 +18,7 @@ enum TerminalStatus { idle, opening, open, closed, error }
 class TerminalController extends ChangeNotifier {
   TerminalController({required this.sessionProvider}) {
     _attachTerminal();
+    _loadFontSize();
   }
 
   final TunnelSession? Function() sessionProvider;
@@ -37,6 +39,9 @@ class TerminalController extends ChangeNotifier {
   bool ctrl = false;
   bool alt = false;
 
+  /// Terminal font size, persisted through [AppSettings].
+  int fontSize = AppSettings.terminalFontSizeDefault;
+
   ShellSession? _shell;
   StreamSubscription<String>? _stdout;
   bool _opening = false;
@@ -45,6 +50,32 @@ class TerminalController extends ChangeNotifier {
 
   bool get isOpen => status == TerminalStatus.open;
   bool get hasTerminal => visible || status != TerminalStatus.idle;
+
+  Future<void> _loadFontSize() async {
+    final size = await AppSettings().terminalFontSize();
+    if (_disposed || size == fontSize) return;
+    fontSize = size;
+    _notify();
+  }
+
+  Future<void> setFontSize(int size) async {
+    final clamped = size.clamp(
+      AppSettings.terminalFontSizeMin,
+      AppSettings.terminalFontSizeMax,
+    );
+    if (clamped == fontSize) return;
+    fontSize = clamped;
+    _notify();
+    await AppSettings().setTerminalFontSize(clamped);
+  }
+
+  Future<void> adjustFontSize(int delta) => setFontSize(fontSize + delta);
+
+  /// Sends literal text (paste) to the shell.
+  void sendText(String text) {
+    if (text.isEmpty) return;
+    _send(text);
+  }
 
   void _notify() {
     if (!_disposed) notifyListeners();
