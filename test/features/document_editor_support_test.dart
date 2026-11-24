@@ -11,11 +11,12 @@ import 'package:tinydesk/opencode/opencode_client.dart';
 import 'package:tinydesk/ssh/tunnel_session.dart';
 
 class _FakeSession implements TunnelSession {
-  _FakeSession({Uint8List? bytes, this.listing = const []})
+  _FakeSession({Uint8List? bytes, this.listing = const [], this.failListing = false})
       : bytes = bytes ?? Uint8List(0);
 
   Uint8List bytes;
   List<RemoteFile> listing;
+  bool failListing;
 
   @override
   Future<Uint8List> readBytes(String path) async => bytes;
@@ -24,7 +25,10 @@ class _FakeSession implements TunnelSession {
   Future<String> readText(String path) async => '';
 
   @override
-  Future<List<RemoteFile>> listDirectory(String path) async => listing;
+  Future<List<RemoteFile>> listDirectory(String path) async {
+    if (failListing) throw const FileSystemException('connection reset');
+    return listing;
+  }
 
   @override
   Future<String> runCommand(String command) async => '';
@@ -157,6 +161,16 @@ void main() {
     expect(
       await DocumentEditorSupport.changedOnRemote(resized, opened),
       isTrue,
+    );
+  });
+
+  test('changedOnRemote reports an unverifiable state instead of guessing',
+      () async {
+    final broken = _FakeSession(failListing: true);
+
+    await expectLater(
+      DocumentEditorSupport.changedOnRemote(broken, _file()),
+      throwsA(isA<FileSystemException>()),
     );
   });
 }

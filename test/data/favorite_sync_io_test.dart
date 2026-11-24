@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tinydesk/session/app_session_manager.dart';
 import 'package:tinydesk/data/favorite_store.dart';
@@ -10,11 +11,15 @@ import '../support/fake_tunnel_session.dart';
 
 class _MemorySession extends FakeTunnelSession {
   final Map<String, String> storage = {};
+  bool failReads = false;
 
   @override
   Future<String> readText(String path) async {
+    if (failReads) throw Exception('connection reset');
     final data = storage[path];
-    if (data == null) throw Exception('missing $path');
+    if (data == null) {
+      throw SftpStatusError(SftpStatusCode.noSuchFile, 'missing $path');
+    }
     return data;
   }
 
@@ -108,6 +113,38 @@ void main() {
     final entry = (decoded['favorites'] as Map)['/p/old.md'] as Map;
     expect(entry['deleted'], isTrue);
     expect(await index.load(), isEmpty);
+  });
+
+  test('an unreadable remote file is neither merged nor overwritten', () async {
+    final index = FavoriteIndex();
+    await index.add(_doc('/p/local.md'));
+
+    final original = jsonEncode({
+      'version': 1,
+      'favorites': {
+        '/p/remote.md': {
+          'name': 'remote.md',
+          'kind': 'text',
+          'addedAt': '2026-01-01T00:00:00.000Z',
+          'updatedAt': '2026-01-01T00:00:00.000Z',
+          'deleted': false,
+        },
+      },
+    });
+    final session = _MemorySession()..failReads = true;
+    session.storage['/p/.tinydesk/favorites.json'] = original;
+
+    final manager = AppSessionManager(backgroundTasks: false);
+    addTearDown(manager.dispose);
+
+    await FavoriteSync(manager: manager, index: index).syncProject(
+      session: session,
+      hostId: 'h1',
+      projectRoot: '/p',
+    );
+
+    expect(session.storage['/p/.tinydesk/favorites.json'], original);
+    expect((await index.load()).map((item) => item.path), ['/p/local.md']);
   });
 
   test('a remote tombstone removes the local favorite', () async {

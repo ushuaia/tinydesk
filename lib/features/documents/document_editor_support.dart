@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../../data/remote_file.dart';
@@ -72,37 +73,36 @@ class DocumentEditorSupport {
   }
 
   /// True when the remote file changed since it was opened (size or mtime).
+  ///
+  /// Throws when the check itself cannot run (for example the directory
+  /// listing failed), so callers can tell "unchanged" apart from "unknown"
+  /// instead of silently overwriting a file they never verified.
   static Future<bool> changedOnRemote(
     TunnelSession session,
     RemoteFile opened,
   ) async {
-    try {
-      final slash = opened.path.lastIndexOf('/');
-      final dir = slash <= 0 ? '/' : opened.path.substring(0, slash);
-      final files = await session.listDirectory(dir);
-      RemoteFile? current;
-      for (final item in files) {
-        if (item.name == opened.name) {
-          current = item;
-          break;
-        }
+    final slash = opened.path.lastIndexOf('/');
+    final dir = slash <= 0 ? '/' : opened.path.substring(0, slash);
+    final files = await session.listDirectory(dir);
+    RemoteFile? current;
+    for (final item in files) {
+      if (item.name == opened.name) {
+        current = item;
+        break;
       }
-      if (current == null) return true;
-      if (opened.size != null &&
-          current.size != null &&
-          current.size != opened.size) {
-        return true;
-      }
-      if (opened.modifiedAt != null &&
-          current.modifiedAt != null &&
-          current.modifiedAt!.isAfter(opened.modifiedAt!)) {
-        return true;
-      }
-      return false;
-    } catch (_) {
-      // Cannot verify: let the save proceed rather than blocking the user.
-      return false;
     }
+    if (current == null) return true;
+    if (opened.size != null &&
+        current.size != null &&
+        current.size != opened.size) {
+      return true;
+    }
+    if (opened.modifiedAt != null &&
+        current.modifiedAt != null &&
+        current.modifiedAt!.isAfter(opened.modifiedAt!)) {
+      return true;
+    }
+    return false;
   }
 
   static RemoteFile withSavedContent(RemoteFile opened, String content) {
@@ -113,6 +113,37 @@ class DocumentEditorSupport {
       size: utf8.encode(content).length,
       modifiedAt: DateTime.now(),
     );
+  }
+
+  /// Asks before a save would clobber a file that changed on the server, or
+  /// whose state could not be checked ([unknown]). Returns false when the user
+  /// cancels or dismisses the dialog.
+  static Future<bool> confirmOverwrite(
+    BuildContext context, {
+    bool unknown = false,
+  }) async {
+    final overwrite = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(unknown
+            ? AppL10n.t.remoteStateUnknownTitle
+            : AppL10n.t.fileChangedRemotely),
+        content: Text(
+          unknown ? AppL10n.t.remoteStateUnknown : AppL10n.t.overwriteConfirm,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppL10n.t.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(AppL10n.t.overwrite),
+          ),
+        ],
+      ),
+    );
+    return overwrite ?? false;
   }
 }
 

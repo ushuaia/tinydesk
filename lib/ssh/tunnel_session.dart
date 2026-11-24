@@ -10,8 +10,13 @@ import '../data/remote_file.dart';
 import '../opencode/opencode_client.dart';
 import '../data/shell_session.dart';
 import '../opencode/opencode_errors.dart';
+import 'atomic_write.dart';
 import 'port_forward.dart';
+import 'remote_tree.dart';
 import 'ssh_connector.dart';
+
+/// 0644, used when the server reports a file without permission bits.
+const _defaultFileMode = 0x1A4;
 
 /// A shell command on the host exited with a non-zero status.
 class TunnelCommandException implements Exception {
@@ -184,17 +189,35 @@ class SshTunnelSession implements TunnelSession {
   @override
   Future<void> writeText(String path, String content) async {
     final sftp = await _sftpClient;
-    final file = await sftp.open(
+    await writeRemoteAtomically(
       path,
-      mode: SftpFileOpenMode.create |
-          SftpFileOpenMode.write |
-          SftpFileOpenMode.truncate,
+      utf8.encode(content),
+      modeOf: (target) async {
+        try {
+          return (await sftp.stat(target)).mode?.value ?? _defaultFileMode;
+        } on SftpStatusError catch (error) {
+          if (error.code == SftpStatusCode.noSuchFile) return null;
+          rethrow;
+        }
+      },
+      writeFile: (target, bytes) async {
+        final file = await sftp.open(
+          target,
+          mode: SftpFileOpenMode.create |
+              SftpFileOpenMode.write |
+              SftpFileOpenMode.truncate,
+        );
+        try {
+          await file.writeBytes(Uint8List.fromList(bytes));
+        } finally {
+          await file.close();
+        }
+      },
+      setMode: (target, mode) =>
+          sftp.setStat(target, SftpFileAttrs(mode: SftpFileMode.value(mode))),
+      rename: sftp.rename,
+      remove: sftp.remove,
     );
-    try {
-      await file.writeBytes(utf8.encode(content));
-    } finally {
-      await file.close();
-    }
   }
 
   @override
@@ -214,21 +237,16 @@ class SshTunnelSession implements TunnelSession {
   @override
   Future<void> delete(String path) async {
     final sftp = await _sftpClient;
-    try {
-      await sftp.remove(path);
-      return;
-    } catch (_) {}
-    try {
-      await sftp.rmdir(path);
-      return;
-    } catch (_) {}
-    // Directory with content: remove the children first, then the folder.
-    final children = await listDirectory(path);
-    for (final child in children) {
-      final char = child.path.endsWith('/') ? '' : '/';
-      await delete('${child.path}$char');
-    }
-    await sftp.rmdir(path);
+    await removeRemoteTree(
+      path,
+      listChildren: (dir) async => [
+        for (final name in await sftp.listdir(dir))
+          if (name.filename != '.' && name.filename != '..')
+            _joinPath(dir, name.filename),
+      ],
+      removeFile: sftp.remove,
+      removeDir: sftp.rmdir,
+    );
   }
 
   @override

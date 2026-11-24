@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tinydesk/data/project_metadata_store.dart';
 
@@ -10,11 +11,15 @@ class _MemorySession extends FakeTunnelSession {
   final Map<String, String> storage = {};
   final List<String> deletes = [];
   bool failWrites = false;
+  Object? readError;
 
   @override
   Future<String> readText(String path) async {
+    if (readError != null) throw readError!;
     final value = storage[path];
-    if (value == null) throw FileSystemException('missing', path);
+    if (value == null) {
+      throw SftpStatusError(SftpStatusCode.noSuchFile, 'missing $path');
+    }
     return value;
   }
 
@@ -106,6 +111,38 @@ void main() {
     expect(data?['value'], 'legacy');
     expect(session.storage.containsKey('/p/.tinydesk/favorites.json'), isTrue);
     expect(session.deletes, isEmpty);
+  });
+
+  test('a read error other than a missing file is not treated as empty',
+      () async {
+    final session = _MemorySession()
+      ..storage['/p/.tinydesk/users/alice/favorites.json'] =
+          jsonEncode(_payload('alice'))
+      ..readError = Exception('connection reset');
+
+    final store = ProjectMetadataStore(
+      session: session,
+      projectRoot: '/p',
+      userScope: 'alice',
+    );
+
+    await expectLater(
+      () => store.readJson('favorites.json'),
+      throwsA(isA<Exception>()),
+    );
+    expect(session.deletes, isEmpty);
+  });
+
+  test('a file that is not a JSON object is an error, not empty', () async {
+    final session = _MemorySession()
+      ..storage['/p/.tinydesk/favorites.json'] = '[1, 2]';
+
+    final store = ProjectMetadataStore(session: session, projectRoot: '/p');
+
+    await expectLater(
+      () => store.readJson('favorites.json'),
+      throwsA(isA<FormatException>()),
+    );
   });
 
   test('different users do not see each other data', () async {

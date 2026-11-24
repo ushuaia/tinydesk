@@ -204,10 +204,8 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       final previous = _dirMtimes[path];
       if (previous != null && !modified.isAfter(previous)) continue;
       if (!mounted) return;
-      setState(() {
-        _children.remove(path);
-        _dirMtimes.remove(path);
-      });
+      // Keep the cached listing on screen until the new one arrives; clearing
+      // it first made the folder blink empty every time it changed.
       await _loadDirectory(path);
     }
   }
@@ -216,7 +214,8 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     if (_loading.contains(path)) return;
     _loading.add(path);
     try {
-      final files = await widget.session.listDirectory(path);
+      // Copy before sorting: a session may hand back a fixed-length list.
+      final files = [...await widget.session.listDirectory(path)];
       final mtime = await widget.session.statModified(path);
       files.sort((a, b) {
         if (a.isDirectory != b.isDirectory) return a.isDirectory ? -1 : 1;

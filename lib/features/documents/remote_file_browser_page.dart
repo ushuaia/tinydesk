@@ -18,6 +18,8 @@ import '../../platform/rail_input_blocker.dart';
 import '../../opencode/opencode_client.dart';
 import '../../ssh/tunnel_session.dart';
 import 'document_handle.dart';
+import 'document_paths.dart';
+import 'document_sync.dart';
 import 'file_browser_widgets.dart';
 import 'document_handles.dart';
 import 'explorer_tree.dart';
@@ -113,8 +115,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   bool _blockerRegistered = false;
   bool _blockerEngaged = false;
   Timer? _docSyncTimer;
-  DateTime? _externalNoticeAt;
-
+  final DocSyncPolicy _syncPolicy = DocSyncPolicy();
   DocumentHandle? _doc;
   List<RemoteFile> _roots = const [];
   RemoteFile? _currentFile;
@@ -133,31 +134,10 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     });
   }
 
-  String _kindOf(RemoteFile file) {
-    if (file.isMarkdown) return 'markdown';
-    if (file.isPdf) return 'pdf';
-    if (file.isCsv || file.isSpreadsheet || file.isWord) return 'office';
-    if (file.isImage) return 'image';
-    if (file.isText) return 'text';
-    return 'file';
-  }
-
   /// Longest known project root containing [path], so `.tinydesk` metadata
   /// lands in the project rather than in an arbitrary parent directory.
-  String _projectRootFor(String path) {
-    String? best;
-    for (final root in _roots) {
-      final value = root.path;
-      if (value.isEmpty || value == '/') continue;
-      if (path == value || path.startsWith('$value/')) {
-        if (best == null || value.length > best.length) best = value;
-      }
-    }
-    if (best != null) return best;
-    if (widget.projectRoot.isNotEmpty) return widget.projectRoot;
-    final parent = _parentOf(path);
-    return parent.isEmpty ? '/' : parent;
-  }
+  String _projectRootFor(String path) =>
+      projectRootFor(path, roots: _roots, fallback: widget.projectRoot);
 
   /// Best effort: upload this project's favorites after a local change.
   Future<void> _pushFavorites(String projectRoot) async {
@@ -183,7 +163,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         FavoriteDocument(
           path: file.path,
           name: file.name,
-          kind: _kindOf(file),
+          kind: documentKind(file),
           addedAt: DateTime.now(),
           hostId: widget.hostId,
           projectRoot: _projectRootFor(file.path),
@@ -205,13 +185,13 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   void initState() {
     super.initState();
     final initial = widget.initialFile;
-    _path = initial == null ? widget.initialPath : _parentOf(initial.path);
+    _path = initial == null ? widget.initialPath : parentPath(initial.path);
     // Seed a synchronous root so the tree's first mount can restore the
     // persisted expansion state before the async project list arrives.
     final seedRoot = widget.projectRoot.isEmpty ? '/' : widget.projectRoot;
     _roots = [
       RemoteFile(
-        name: _basename(seedRoot),
+        name: baseName(seedRoot),
         path: seedRoot,
         isDirectory: true,
       ),
@@ -266,20 +246,10 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     setState(() {
       _path = home;
       _roots = [
-        RemoteFile(name: _basename(home), path: home, isDirectory: true),
+        RemoteFile(name: baseName(home), path: home, isDirectory: true),
       ];
     });
     await _loadRoots();
-  }
-
-  String _parentOf(String path) {
-    var value = path;
-    if (value.endsWith('/') && value.length > 1) {
-      value = value.substring(0, value.length - 1);
-    }
-    final index = value.lastIndexOf('/');
-    if (index <= 0) return '/';
-    return value.substring(0, index);
   }
 
   Future<void> _loadExplorerState(RemoteFile? initial) async {
@@ -467,23 +437,14 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   }
 
   /// True when [path] lies inside [parent] (parent is a strict ancestor).
-  /// Used to drop nested roots so a root never appears twice in the tree.
-  String _basename(String path) {
-    if (path == '/' || path.isEmpty) return '/';
-    final trimmed =
-        path.endsWith('/') ? path.substring(0, path.length - 1) : path;
-    final slash = trimmed.lastIndexOf('/');
-    return slash < 0 ? trimmed : trimmed.substring(slash + 1);
-  }
-
   void _addRoot(String path) {
-    if (path.isEmpty || path == '/' || _basename(path).isEmpty) return;
+    if (path.isEmpty || path == '/' || baseName(path).isEmpty) return;
     final hasIt = _roots.any((root) => root.path == path);
     if (hasIt) return;
     setState(() {
       _roots = [
         ..._roots,
-        RemoteFile(name: _basename(path), path: path, isDirectory: true),
+        RemoteFile(name: baseName(path), path: path, isDirectory: true),
       ];
     });
   }
@@ -519,7 +480,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       _roots = [
         for (final path in paths)
           RemoteFile(
-            name: _basename(path),
+            name: baseName(path),
             path: path,
             isDirectory: true,
           ),
@@ -930,30 +891,27 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     final doc = _doc;
     if (doc == null) return;
     try {
-      if (!await doc.checkExternalUpdate()) return;
-      if (doc.dirty) {
-        // Never overwrite unsaved edits; surface the conflict at most once
-        // a minute.
-        final now = DateTime.now();
-        final last = _externalNoticeAt;
-        if (last == null || now.difference(last).inMinutes >= 1) {
-          _externalNoticeAt = now;
+      final changed = await doc.checkExternalUpdate();
+      final action = _syncPolicy.decide(
+        changed: changed,
+        dirty: doc.dirty,
+        now: DateTime.now(),
+      );
+      switch (action) {
+        case DocSyncAction.none:
+          return;
+        case DocSyncAction.conflict:
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppL10n.t.docConflict(doc.title),
-              ),
-            ),
+            SnackBar(content: Text(AppL10n.t.docConflict(doc.title))),
           );
-        }
-        return;
+        case DocSyncAction.reload:
+          await doc.reloadExternalChanges();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppL10n.t.docReloaded(doc.title))),
+          );
       }
-      await doc.reloadExternalChanges();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppL10n.t.docReloaded(doc.title))),
-      );
     } catch (_) {}
   }
 

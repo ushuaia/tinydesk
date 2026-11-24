@@ -74,7 +74,7 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Legacy accessor: the active session's connection.
   ConnectionController get connection =>
-      activeSession?.connection ?? (_idleConnection ??= ConnectionController.fake());
+      activeSession?.connection ?? (_idleConnection ??= ConnectionController());
 
   /// Legacy accessor: the active session's terminal.
   TerminalController get terminal {
@@ -143,6 +143,7 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
     String privateKey, {
     String? passphrase,
     bool connect = true,
+    bool persist = true,
   }) async {
     var session = _sessions[host.id];
     if (session == null) {
@@ -171,7 +172,7 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
     }
     _activeHostId = host.id;
     _notify();
-    await _persist();
+    if (persist) await _persist();
 
     if (connect) {
       final phase = session.connection.state.phase;
@@ -237,6 +238,7 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
   /// disconnects the tunnel. Other sessions are untouched.
   Future<void> closeSession(String hostId) async {
     if (_disposed) return;
+    final index = _order.indexOf(hostId);
     final session = _sessions.remove(hostId);
     _order.remove(hostId);
     if (session == null) return;
@@ -257,7 +259,14 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
     session.fileBrowser.dispose();
     session.connection.dispose();
     if (_activeHostId == hostId) {
-      _activeHostId = _order.isEmpty ? null : _order.last;
+      // Stay next to where the tab was: the tab that slid into its slot, or
+      // the previous one when the closed tab was last.
+      if (_order.isEmpty) {
+        _activeHostId = null;
+      } else {
+        final slot = index < 0 ? _order.length - 1 : index;
+        _activeHostId = _order[slot.clamp(0, _order.length - 1)];
+      }
     }
     await _syncBackgroundTask();
     _notify();
@@ -296,7 +305,7 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
         key = pair.$1;
         passphrase = pair.$2;
       }
-      await openHost(host, key, passphrase: passphrase, connect: false);
+      await openHost(host, key, passphrase: passphrase, connect: false, persist: false);
     }
     if (saved.activeHostId != null &&
         _sessions.containsKey(saved.activeHostId)) {

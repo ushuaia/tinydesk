@@ -609,6 +609,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileChangedRemotely => 'The file was modified remotely';
 
   @override
+  String get remoteStateUnknownTitle => 'Cannot check the server copy';
+
+  @override
+  String get remoteStateUnknown =>
+      'TinyDesk could not read the file on the server, so saving now may overwrite changes made elsewhere. Continue?';
+
+  @override
   String get unsavedChanges => 'Unsaved changes';
 
   @override
@@ -826,6 +833,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get remoteOpencodeUnreachable =>
       'The remote opencode service is not responding — start it and try again';
+
+  @override
+  String get connectionTimedOut =>
+      'The server did not respond in time — check the network and try again';
 
   @override
   String get opencodeCommandFailed => 'opencode command failed';

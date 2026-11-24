@@ -12,7 +12,7 @@ void main() {
   });
 
   test('initial snapshot is idle', () {
-    final controller = ConnectionController.fake();
+    final controller = ConnectionController();
     expect(controller.state.phase, ConnectionPhase.idle);
   });
 }

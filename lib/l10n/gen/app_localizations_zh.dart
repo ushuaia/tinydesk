@@ -585,6 +585,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileChangedRemotely => '文件已在远端被修改';
 
   @override
+  String get remoteStateUnknownTitle => '无法确认服务器文件状态';
+
+  @override
+  String get remoteStateUnknown => '未能读取服务器上的文件，继续保存可能覆盖在其他地方的修改。仍要继续吗？';
+
+  @override
   String get unsavedChanges => '未保存的修改';
 
   @override
@@ -796,6 +802,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get remoteOpencodeUnreachable => '远程 opencode 未响应，请启动服务后重试';
+
+  @override
+  String get connectionTimedOut => '服务器响应超时，请检查网络后重试';
 
   @override
   String get opencodeCommandFailed => 'opencode 命令失败';

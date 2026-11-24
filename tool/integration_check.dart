@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:tinydesk/data/host.dart';
@@ -53,43 +52,24 @@ Future<void> main() async {
       return;
     }
 
-    stdout.writeln('4. Creating pairing session...');
-    final pairing = await opencode.createSession(
+    stdout.writeln('4. Creating one-time pairing link over SSH...');
+    final pairUrl = await opencode.pairViaSsh(
       client,
       localBaseUrl: baseUrl,
     );
-    stdout.writeln('   cookie: ${pairing.cookieName}');
+    stdout.writeln(
+      '   link: ${pairUrl.replaceFirst(RegExp(r'/auth/connect/\S+'), '/auth/connect/<redacted>')}',
+    );
 
-    stdout.writeln('5. GET /api/location...');
+    stdout.writeln('5. Redeeming the link (expects a session cookie)...');
     final http = HttpClient();
-    final request = await http.getUrl(
-      Uri.parse('${pairing.baseUrl}/api/location'),
-    );
-    request.headers.set(
-      HttpHeaders.cookieHeader,
-      '${pairing.cookieName}=${pairing.cookieValue}',
-    );
+    final request = await http.getUrl(Uri.parse(pairUrl));
+    request.followRedirects = false;
     final response = await request.close();
+    await response.drain<void>();
+    final redeemed = response.statusCode < 400;
     stdout.writeln('   status: ${response.statusCode}');
-    stdout.writeln(
-      '   body: ${await response.transform(utf8.decoder).join()}',
-    );
-
-    stdout.writeln('6. GET /api/session...');
-    final sessionRequest = await http.getUrl(
-      Uri.parse('${pairing.baseUrl}/api/session'),
-    );
-    sessionRequest.headers.set(
-      HttpHeaders.cookieHeader,
-      '${pairing.cookieName}=${pairing.cookieValue}',
-    );
-    final sessionResponse = await sessionRequest.close();
-    final sessionBody =
-        await sessionResponse.transform(utf8.decoder).join();
-    stdout.writeln('   status: ${sessionResponse.statusCode}');
-    stdout.writeln(
-      '   body: ${sessionBody.substring(0, sessionBody.length.clamp(0, 1200))}',
-    );
+    stdout.writeln('   link redeemed: $redeemed');
     http.close(force: true);
   } finally {
     await forward.close();

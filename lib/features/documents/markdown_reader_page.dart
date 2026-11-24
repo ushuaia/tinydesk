@@ -560,29 +560,22 @@ class MarkdownReaderPageState extends State<MarkdownReaderPage>
     if (opened == null) return;
     _saving = true;
     try {
-      final changed = await DocumentEditorSupport.changedOnRemote(
-        widget.session,
-        opened,
-      );
-      if (changed && mounted) {
-        final overwrite = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(AppL10n.t.fileChangedRemotely),
-            content: Text(AppL10n.t.overwriteConfirm),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(AppL10n.t.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(AppL10n.t.overwrite),
-              ),
-            ],
-          ),
+      bool? changed;
+      try {
+        changed = await DocumentEditorSupport.changedOnRemote(
+          widget.session,
+          opened,
         );
-        if (overwrite != true) return;
+      } catch (_) {
+        changed = null;
+      }
+      if (mounted && changed != false) {
+        if (!await DocumentEditorSupport.confirmOverwrite(
+          context,
+          unknown: changed == null,
+        )) {
+          return;
+        }
       }
       await widget.session.writeText(widget.file.path, _buffer);
       if (!mounted) return;

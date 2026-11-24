@@ -1154,6 +1154,18 @@ abstract class AppLocalizations {
   /// **'The file was modified remotely'**
   String get fileChangedRemotely;
 
+  /// No description provided for @remoteStateUnknownTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot check the server copy'**
+  String get remoteStateUnknownTitle;
+
+  /// No description provided for @remoteStateUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'TinyDesk could not read the file on the server, so saving now may overwrite changes made elsewhere. Continue?'**
+  String get remoteStateUnknown;
+
   /// No description provided for @unsavedChanges.
   ///
   /// In en, this message translates to:
@@ -1525,6 +1537,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The remote opencode service is not responding — start it and try again'**
   String get remoteOpencodeUnreachable;
+
+  /// No description provided for @connectionTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'The server did not respond in time — check the network and try again'**
+  String get connectionTimedOut;
 
   /// No description provided for @opencodeCommandFailed.
   ///

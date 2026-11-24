@@ -337,6 +337,8 @@
   "overwriteConfirm": "Saving will overwrite the newer content on the server. Continue?",
   "overwrite": "Overwrite",
   "fileChangedRemotely": "The file was modified remotely",
+  "remoteStateUnknownTitle": "Cannot check the server copy",
+  "remoteStateUnknown": "TinyDesk could not read the file on the server, so saving now may overwrite changes made elsewhere. Continue?",
   "unsavedChanges": "Unsaved changes",
   "editorNotReady": "Editor not ready",
   "jumpToPathTitle": "Jump to path",
@@ -490,6 +492,7 @@
   "hostOpencodeMissing": "opencode is not installed on the host — install it and try again",
   "localOpencodeMissing": "opencode is not installed on this machine — install it and try again",
   "remoteOpencodeUnreachable": "The remote opencode service is not responding — start it and try again",
+  "connectionTimedOut": "The server did not respond in time — check the network and try again",
   "opencodeCommandFailed": "opencode command failed",
   "cannotReachHost": "Cannot reach {host}:{port} — check the network",
   "@cannotReachHost": {

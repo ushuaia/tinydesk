@@ -164,31 +164,20 @@ class TextDocumentController extends ChangeNotifier {
     saving = true;
     _notify();
     try {
-      final changed = await DocumentEditorSupport.changedOnRemote(
-        session,
-        opened,
-      );
-      if (changed && !_disposed) {
+      bool? changed;
+      try {
+        changed = await DocumentEditorSupport.changedOnRemote(session, opened);
+      } catch (_) {
+        changed = null;
+      }
+      if (!_disposed && changed != false) {
         final context = navigatorContext;
-        if (context != null && context.mounted) {
-          final overwrite = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(AppL10n.t.fileChangedRemotely),
-              content: Text(AppL10n.t.overwriteConfirm),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(AppL10n.t.cancel),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text(AppL10n.t.overwrite),
-                ),
-              ],
-            ),
-          );
-          if (overwrite != true) return false;
+        if (context == null || !context.mounted) return false;
+        if (!await DocumentEditorSupport.confirmOverwrite(
+          context,
+          unknown: changed == null,
+        )) {
+          return false;
         }
       }
       await session.writeText(file.path, buffer);

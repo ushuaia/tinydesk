@@ -98,6 +98,17 @@ Host buildHost({bool autoStart = false}) => Host(
       autoStartServer: autoStart,
     );
 
+class _NoDelayBackoff extends Backoff {
+  @override
+  Duration next(int attempt) => Duration.zero;
+}
+
+Future<void> _waitUntil(bool Function() done) async {
+  for (var i = 0; i < 500 && !done(); i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+}
+
 void main() {
   test('connect walks phases and lands on ready', () async {
     final session = FakeSession();
@@ -200,4 +211,111 @@ void main() {
 
     await controller.disconnect();
   });
+
+  test('a successful reconnect resets the retry budget', () async {
+    final failingOpens = {8};
+    var opens = 0;
+    FakeSession? current;
+    final controller = ConnectionController(
+      backoff: _NoDelayBackoff(),
+      opener: (host, key, passphrase, onUnknown, onChanged) async {
+        opens++;
+        if (failingOpens.contains(opens)) {
+          throw StateError('network blip');
+        }
+        return current = FakeSession();
+      },
+    );
+
+    await controller.connect(buildHost(), 'KEY');
+    for (var drop = 1; drop <= 7; drop++) {
+      final dropped = current!;
+      dropped.simulateDrop();
+      await _waitUntil(
+        () => !identical(current, dropped) &&
+            controller.state.phase == ConnectionPhase.ready,
+      );
+      expect(controller.state.phase, ConnectionPhase.ready, reason: 'drop $drop');
+    }
+
+    expect(opens, 9);
+    expect(controller.state.phase, ConnectionPhase.ready);
+    await controller.disconnect();
+  });
+
+  test('a hung connect attempt times out and a later connect can proceed',
+      () async {
+    final hung = Completer<TunnelSession>();
+    final late = FakeSession();
+    final ready = FakeSession();
+    var opens = 0;
+    final controller = ConnectionController(
+      connectTimeout: const Duration(milliseconds: 20),
+      opener: (host, key, passphrase, onUnknown, onChanged) {
+        opens++;
+        return opens == 1 ? hung.future : Future.value(ready);
+      },
+    );
+
+    await controller.connect(buildHost(), 'KEY');
+    expect(controller.state.phase, ConnectionPhase.failed);
+    expect(controller.state.message, isNotNull);
+
+    hung.complete(late);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(late.isClosed, isTrue, reason: 'late session must not leak');
+
+    await controller.connect(buildHost(), 'KEY');
+    expect(controller.state.phase, ConnectionPhase.ready);
+    await controller.disconnect();
+  });
+
+  test('a keep-alive that never returns is not stacked', () async {
+    final session = _HangingKeepAliveSession();
+    final controller = ConnectionController(
+      keepAliveInterval: const Duration(milliseconds: 5),
+      keepAliveTimeout: const Duration(seconds: 30),
+      opener: (host, key, passphrase, onUnknown, onChanged) async => session,
+    );
+
+    await controller.connect(buildHost(), 'KEY');
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+
+    expect(session.hangs, 1);
+    await controller.disconnect();
+  });
+
+  test('a keep-alive that times out reconnects the tunnel', () async {
+    final first = _HangingKeepAliveSession();
+    final second = FakeSession();
+    var opens = 0;
+    final controller = ConnectionController(
+      backoff: _NoDelayBackoff(),
+      keepAliveInterval: const Duration(milliseconds: 5),
+      keepAliveTimeout: const Duration(milliseconds: 10),
+      opener: (host, key, passphrase, onUnknown, onChanged) async {
+        opens++;
+        return opens == 1 ? first : second;
+      },
+    );
+
+    await controller.connect(buildHost(), 'KEY');
+    await _waitUntil(
+      () => opens == 2 && controller.state.phase == ConnectionPhase.ready,
+    );
+
+    expect(opens, 2);
+    expect(controller.state.phase, ConnectionPhase.ready);
+    await controller.disconnect();
+  });
+}
+
+class _HangingKeepAliveSession extends FakeSession {
+  int hangs = 0;
+
+  @override
+  Future<void> keepAlive() {
+    hangs++;
+    return Completer<void>().future;
+  }
 }

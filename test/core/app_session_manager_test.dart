@@ -107,6 +107,21 @@ AppSessionManager _manager(List<_FakeSession> sessions) {
   );
 }
 
+class _RestoreStore extends OpenSessionsStore {
+  _RestoreStore(this.snapshot);
+
+  final OpenSessionsSnapshot snapshot;
+  int saves = 0;
+
+  @override
+  Future<OpenSessionsSnapshot> load() async => snapshot;
+
+  @override
+  Future<void> save(OpenSessionsSnapshot snapshot) async {
+    saves++;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -176,8 +191,51 @@ void main() {
     expect(sessions.last.isClosed, isFalse);
   });
 
-  test('open sessions persist and restore on next launch', () async {
+  test('restoring several sessions persists the set once', () async {
+    final repository = HostRepository(SharedPreferencesHostStore());
+    final keyStore = PrivateKeyStore();
+    await repository.upsert(_host('h1'));
+    await repository.upsert(_host('h2'));
+    await keyStore.save('h1', 'KEY1', null);
+    await keyStore.save('h2', 'KEY2', null);
+
+    final store = _RestoreStore(const OpenSessionsSnapshot(
+      hostIds: ['h1', 'h2'],
+      activeHostId: 'h2',
+    ));
     final sessions = <_FakeSession>[];
+    final manager = AppSessionManager(
+      connectionFactory: () => _controller(sessions),
+      backgroundTasks: false,
+      openSessionsStore: store,
+    );
+    addTearDown(manager.dispose);
+
+    await manager.restore(repository: repository, keyStore: keyStore);
+
+    expect(manager.sessions, hasLength(2));
+    expect(manager.activeHost?.id, 'h2');
+    expect(store.saves, 1);
+  });
+
+  test('closing the active session activates its neighbour', () async {
+    final sessions = <_FakeSession>[];
+    final manager = _manager(sessions);
+    addTearDown(manager.dispose);
+
+    await manager.connect(_host('h1'), 'KEY');
+    await manager.connect(_host('h2'), 'KEY');
+    await manager.connect(_host('h3'), 'KEY');
+
+    manager.activate('h1');
+    await manager.closeSession('h1');
+    expect(manager.activeHost?.id, 'h2');
+
+    await manager.closeSession('h2');
+    expect(manager.activeHost?.id, 'h3');
+  });
+
+  test('open sessions persist and restore on next launch', () async {    final sessions = <_FakeSession>[];
     final repository = HostRepository(SharedPreferencesHostStore());
     final keyStore = PrivateKeyStore();
     await repository.upsert(_host('h1'));
@@ -207,8 +265,7 @@ void main() {
     expect(second.activeHost?.id, 'h1');
   });
 
-  test('each session owns a file browser controller', () async {
-    final sessions = <_FakeSession>[];
+  test('each session owns a file browser controller', () async {    final sessions = <_FakeSession>[];
     final manager = _manager(sessions);
     addTearDown(manager.dispose);
 

@@ -21,18 +21,25 @@ class Backoff {
 }
 
 class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
-  ConnectionController({TunnelOpener? opener})
-      : _opener = opener ?? openSshTunnel,
-        super(const ConnectionSnapshot(phase: ConnectionPhase.idle));
-
-  ConnectionController.fake()
-      : _opener = openSshTunnel,
+  ConnectionController({
+    TunnelOpener? opener,
+    Backoff? backoff,
+    this.connectTimeout = const Duration(seconds: 90),
+    this.keepAliveInterval = const Duration(seconds: 30),
+    this.keepAliveTimeout = const Duration(seconds: 20),
+  })  : _opener = opener ?? openSshTunnel,
+        _backoff = backoff ?? Backoff(),
         super(const ConnectionSnapshot(phase: ConnectionPhase.idle));
 
   static const _maxRetries = 5;
 
+  final Duration connectTimeout;
+  final Duration keepAliveInterval;
+  final Duration keepAliveTimeout;
+
   final TunnelOpener _opener;
-  final Backoff _backoff = Backoff();
+  final Backoff _backoff;
+  bool _keepAliveBusy = false;
 
   TunnelSession? _session;
   Timer? _keepAliveTimer;
@@ -86,15 +93,16 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
     try {
       _set(host.isLocal ? ConnectionPhase.tunneling : ConnectionPhase.sshConnecting);
 
-      final TunnelSession session = host.isLocal
-          ? await LocalSession.open(host)
-          : await _opener(
+      final Future<TunnelSession> opening = host.isLocal
+          ? LocalSession.open(host)
+          : _opener(
               host,
               privateKey,
               passphrase,
               onUnknownHostKey ?? (_) async => true,
               onHostKeyChanged ?? (_, _) async => false,
             );
+      final TunnelSession session = await _withDeadline(opening);
       _session = session;
       unawaited(session.closed.then((_) => _handleClosed(session)));
 
@@ -106,7 +114,7 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
 
       if (status == ServerStatus.offline && host.autoStartServer) {
         _set(ConnectionPhase.startingServer);
-        await session.startService();
+        await _withDeadline(session.startService());
         status = await session.probe(baseUrl);
       }
 
@@ -119,6 +127,7 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
       // No pairing here: the workspace keeps the WebView session cookie and
       // only asks for a one-time link when the page is not authenticated
       // yet. Skipping it saves an SSH round-trip on every connect.
+      _attempt = 0;
       state = state.copyWith(phase: ConnectionPhase.ready);
       _startKeepAlive();
     } on SshError catch (error) {
@@ -181,17 +190,40 @@ class ConnectionController extends ValueNotifier<ConnectionSnapshot> {
     }
   }
 
+  /// Waits for [work] at most [connectTimeout]. A session that arrives after
+  /// the deadline is closed, so a hung attempt cannot leak a tunnel.
+  Future<T> _withDeadline<T>(Future<T> work) {
+    return work.timeout(
+      connectTimeout,
+      onTimeout: () {
+        unawaited(
+          work.then((value) async {
+            if (value is TunnelSession) await value.close();
+          }, onError: (_) {}),
+        );
+        throw ServerUnreachable(AppL10n.t.connectionTimedOut);
+      },
+    );
+  }
+
   void _startKeepAlive() {
     _keepAliveTimer?.cancel();
-    _keepAliveTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
-      final session = _session;
-      if (session == null) return;
-      try {
-        await session.keepAlive();
-      } catch (_) {
-        _handleClosed(session);
-      }
-    });
+    _keepAliveTimer = Timer.periodic(keepAliveInterval, (_) => _keepAliveOnce());
+  }
+
+  /// One heartbeat. Skipped while the previous one is still in flight, and a
+  /// heartbeat that outlives [keepAliveTimeout] counts as a dead link.
+  Future<void> _keepAliveOnce() async {
+    final session = _session;
+    if (session == null || _keepAliveBusy) return;
+    _keepAliveBusy = true;
+    try {
+      await session.keepAlive().timeout(keepAliveTimeout);
+    } catch (_) {
+      _handleClosed(session);
+    } finally {
+      _keepAliveBusy = false;
+    }
   }
 
   Future<void> _closeSession() async {

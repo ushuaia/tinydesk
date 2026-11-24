@@ -97,7 +97,11 @@ class FavoriteSync {
       remoteJson = await metadata
           .readJson(remoteFile)
           .timeout(const Duration(seconds: 2));
-    } catch (_) {}
+    } catch (_) {
+      // The remote state is unknown, so merging or pushing would drop
+      // entries another device wrote. Retry on the next sync instead.
+      return;
+    }
 
     final all = await index.loadAll();
     final local = all

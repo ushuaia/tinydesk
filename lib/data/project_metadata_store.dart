@@ -62,17 +62,21 @@ class ProjectMetadataStore {
     return legacy;
   }
 
+  /// Returns null only when the file does not exist. Any other failure is
+  /// rethrown, so callers never mistake an unreadable file for an empty one
+  /// and overwrite it.
   Future<Map<String, dynamic>?> _readJsonAt(String path) async {
+    final String text;
     try {
-      final text = await session.readText(path);
-      if (text.trim().isEmpty) return null;
-      final decoded = jsonDecode(text);
-      return decoded is Map<String, dynamic> ? decoded : null;
-    } on SftpStatusError {
-      return null;
-    } catch (_) {
-      return null;
+      text = await session.readText(path);
+    } on SftpStatusError catch (error) {
+      if (error.code == SftpStatusCode.noSuchFile) return null;
+      rethrow;
     }
+    if (text.trim().isEmpty) return null;
+    final decoded = jsonDecode(text);
+    if (decoded is Map<String, dynamic>) return decoded;
+    throw FormatException('$path does not contain a JSON object');
   }
 
   Future<void> writeJson(String name, Map<String, dynamic> data) async {
