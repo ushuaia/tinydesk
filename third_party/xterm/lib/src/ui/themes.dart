@@ -4,7 +4,7 @@ import 'package:xterm/src/ui/terminal_theme.dart';
 class TerminalThemes {
   static const defaultTheme = TerminalTheme(
     cursor: Color(0XAAAEAFAD),
-    selection: Color(0XAAAEAFAD),
+    selection: Color(0xFF565656),
     foreground: Color(0XFFCCCCCC),
     background: Color(0XFF1E1E1E),
     black: Color(0XFF000000),
