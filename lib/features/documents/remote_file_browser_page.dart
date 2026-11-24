@@ -753,6 +753,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         child: Column(
           children: [
             FloatingWindowHeader(
+              leadingInset: Platform.isMacOS ? 88 : 0,
               leadingIcon: Icons.folder_open,
               title: widget.hostName.isEmpty
                   ? AppL10n.t.filesTitle

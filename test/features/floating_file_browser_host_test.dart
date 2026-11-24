@@ -69,6 +69,22 @@ void main() {
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
   });
 
+  testWidgets('a stale saved offset cannot push the ball off-screen',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'filebrowser.ball.x': 5000.0,
+      'filebrowser.ball.y': 5000.0,
+    });
+    final controller = FileBrowserController()..show()..minimize();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(host(controller));
+    await tester.pumpAndSettle();
+
+    final ball = tester.getRect(find.byIcon(Icons.folder_open));
+    expect(ball.right, lessThanOrEqualTo(800));
+    expect(ball.bottom, lessThanOrEqualTo(600));
+  });
+
   testWidgets('didPopRoute minimizes an expanded browser', (tester) async {
     final controller = FileBrowserController()..show();
     addTearDown(controller.dispose);

@@ -251,7 +251,7 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
         children: [
           FloatingWindowHeader(
             leadingInset:
-                Platform.isMacOS ? 76 : 0, // traffic lights zone
+                Platform.isMacOS ? 88 : 0, // traffic lights zone
             title: AppL10n.t.terminalTitle(hostName),
             accentColor: _statusColor(status),
           ),

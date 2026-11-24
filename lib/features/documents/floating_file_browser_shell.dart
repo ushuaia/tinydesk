@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../../core/app_language.dart';
 
@@ -42,7 +44,23 @@ class FloatingFileBrowserShell extends StatelessWidget {
       media.size.width - _ballSize - _edge,
       bottomLimit * 0.42,
     );
-    final offset = ballOffset ?? fallback;
+    // A saved offset comes from whatever window size it was dragged in; clamp
+    // it so the ball always stays reachable after the window is resized.
+    final saved = ballOffset ?? fallback;
+    final offset = Offset(
+      saved.dx
+          .clamp(_edge, math.max(_edge, media.size.width - _ballSize - _edge))
+          .toDouble(),
+      saved.dy
+          .clamp(
+            media.padding.top + _edge,
+            math.max(
+              media.padding.top + _edge,
+              bottomLimit - _ballSize - _edge,
+            ),
+          )
+          .toDouble(),
+    );
 
     return Stack(
       children: [
