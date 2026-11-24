@@ -55,30 +55,48 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
     if (defaultTargetPlatform == TargetPlatform.macOS) {
       WindowCloseHandler.register(
         _handleWindowClose,
-        onMinimizeRequested: () => _minimizeOverlay(),
-        onZoomRequested: () => _zoomOverlay(),
+        onMinimizeRequested: _minimizeOverlay,
+        onZoomRequested: _zoomOverlay,
       );
     }
   }
 
-  /// macOS yellow light: collapse the topmost overlay (terminal -> ball,
-  /// file browser -> collapsed). Only matters when an overlay is visible.
-  Future<void> _minimizeOverlay() async {
+  /// macOS yellow light: collapse an open terminal or file-browser window
+  /// into its floating form. Returns false on ordinary pages so the native
+  /// miniaturize runs instead.
+  Future<bool> _minimizeOverlay() async {
     final terminal = _session.activeSession?.terminal;
-    if (terminal != null && terminal.visible) {
+    if (terminal != null && terminal.visible && terminal.expanded) {
       terminal.minimize();
-      return;
+      return true;
     }
-    if (_session.handleFileBrowserBack()) return;
+    final fileBrowser = _session.fileBrowser;
+    if (fileBrowser != null && fileBrowser.visible && fileBrowser.expanded) {
+      fileBrowser.minimize();
+      return true;
+    }
+    return false;
   }
 
-  /// macOS green light: toggle the terminal between the full-screen window
-  /// and the ball.
-  Future<void> _zoomOverlay() async {
+  /// macOS green light: toggle an open terminal or file-browser window
+  /// between the full-screen window and its floating form. Returns false on
+  /// ordinary pages so the native zoom runs instead.
+  Future<bool> _zoomOverlay() async {
     final terminal = _session.activeSession?.terminal;
     if (terminal != null && terminal.visible) {
       terminal.toggleExpanded();
+      return true;
     }
+    final fileBrowser = _session.fileBrowser;
+    if (fileBrowser != null && fileBrowser.visible) {
+      if (fileBrowser.expanded) {
+        fileBrowser.minimize();
+      } else {
+        fileBrowser.show();
+      }
+      return true;
+    }
+    return false;
   }
 
   /// macOS red close button: the visible terminal panel is the topmost

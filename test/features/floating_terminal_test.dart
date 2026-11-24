@@ -7,8 +7,7 @@ import 'package:tinydesk/features/terminal/floating_terminal_host.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> sendWindowEvent(String method) async {
-  final data =
-      const StandardMethodCodec().encodeMethodCall(MethodCall(method)) as ByteData;
+  final data = const StandardMethodCodec().encodeMethodCall(MethodCall(method));
   await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .handlePlatformMessage('opencode/window', data, (response) {});
 }
@@ -57,8 +56,14 @@ void main() {
     manager.terminal.expanded = true;
     WindowCloseHandler.register(
       () async => manager.terminal.close(),
-      onMinimizeRequested: () async => manager.terminal.minimize(),
-      onZoomRequested: () async => manager.terminal.toggleExpanded(),
+      onMinimizeRequested: () async {
+        manager.terminal.minimize();
+        return true;
+      },
+      onZoomRequested: () async {
+        manager.terminal.toggleExpanded();
+        return true;
+      },
     );
     addTearDown(WindowCloseHandler.unregister);
 

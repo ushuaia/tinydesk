@@ -96,12 +96,40 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
   // The yellow and green lights drive the floating overlay lifecycle
   // (collapse to the ball / expand to full screen) instead of the system
   // miniaturize/zoom, so the in-app buttons are not needed.
+  // Ask Flutter whether it consumes the action (a terminal / file-browser
+  // overlay is open); when it answers false, run the native behaviour so the
+  // yellow and green lights keep working on ordinary pages.
+  private func requestFlutterAction(_ name: String, fallback: @escaping () -> Void) {
+    guard let channel = windowChannel else {
+      fallback()
+      return
+    }
+    channel.invokeMethod(name, arguments: nil) { response in
+      let handled = (response as? Bool) ?? false
+      if !handled {
+        fallback()
+      }
+    }
+  }
+
   override func performMiniaturize(_ sender: Any?) {
-    windowChannel?.invokeMethod("minimizeRequested", arguments: nil)
+    requestFlutterAction("minimizeRequested") { [weak self] in
+      self?.performDefaultMiniaturize(sender)
+    }
   }
 
   override func performZoom(_ sender: Any?) {
-    windowChannel?.invokeMethod("zoomRequested", arguments: nil)
+    requestFlutterAction("zoomRequested") { [weak self] in
+      self?.performDefaultZoom(sender)
+    }
+  }
+
+  private func performDefaultMiniaturize(_ sender: Any?) {
+    super.performMiniaturize(sender)
+  }
+
+  private func performDefaultZoom(_ sender: Any?) {
+    super.performZoom(sender)
   }
 
   func windowShouldClose(_ sender: NSWindow) -> Bool {
