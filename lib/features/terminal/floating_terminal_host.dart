@@ -142,63 +142,45 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
     if (session == null) return const SizedBox.shrink();
     final terminals = session.terminals;
     final active = session.activeTerminalIndex;
-    return ColoredBox(
-      color: const Color(0xFF252525),
-      child: SizedBox(
-        height: 32,
-        child: Row(
-          children: [
-            Expanded(
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                children: [
-                  for (var i = 0; i < terminals.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: InkWell(
-                        onTap: () {
-                          session.selectTerminal(i);
-                          setState(() {});
-                        },
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: i == active
-                                ? const Color(0xFF3B6EA8)
-                                : const Color(0xFF2C2C2C),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            IconButton(
-              iconSize: 16,
-              tooltip: AppL10n.t.newTerminalTab,
-              onPressed: _addTerminalTab,
-              icon: const Icon(Icons.add, color: Colors.white70),
-            ),
-            if (terminals.length > 1)
-              IconButton(
-                iconSize: 16,
-                tooltip: AppL10n.t.closeTerminalTab,
-                onPressed: _closeTerminalTab,
-                icon: const Icon(Icons.close, color: Colors.white70),
-              ),
-            const SizedBox(width: 4),
-          ],
+    return Container(
+      height: 34,
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Color(0xFF2E2E2E), width: 1),
         ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              children: [
+                for (var i = 0; i < terminals.length; i++)
+                  _TerminalTabChip(
+                    label: '${i + 1}',
+                    active: i == active,
+                    onTap: () {
+                      session.selectTerminal(i);
+                      setState(() {});
+                    },
+                  ),
+              ],
+            ),
+          ),
+          _TabStripIconButton(
+            tooltip: AppL10n.t.newTerminalTab,
+            icon: Icons.add,
+            onPressed: _addTerminalTab,
+          ),
+          if (terminals.length > 1)
+            _TabStripIconButton(
+              tooltip: AppL10n.t.closeTerminalTab,
+              icon: Icons.close,
+              onPressed: _closeTerminalTab,
+            ),
+          const SizedBox(width: 6),
+        ],
       ),
     );
   }
@@ -367,6 +349,129 @@ class _TerminalBanner extends StatelessWidget {
               child: Text(AppL10n.t.retry, style: TextStyle(fontSize: 11)),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A terminal shell tab chip with a proper hover treatment (the default
+/// InkWell hover painted a large grey block over the strip).
+class _TerminalTabChip extends StatefulWidget {
+  const _TerminalTabChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  State<_TerminalTabChip> createState() => _TerminalTabChipState();
+}
+
+class _TerminalTabChipState extends State<_TerminalTabChip> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.active
+        ? const Color(0xFF3B6EA8)
+        : _hovered
+            ? const Color(0xFF3A3A3A)
+            : Colors.transparent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            height: 26,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight:
+                        widget.active ? FontWeight.w600 : FontWeight.w400,
+                    color: widget.active ? Colors.white : Colors.white70,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.active
+                        ? const Color(0xFF8FC7FF)
+                        : Colors.transparent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabStripIconButton extends StatefulWidget {
+  const _TabStripIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  State<_TabStripIconButton> createState() => _TabStripIconButtonState();
+}
+
+class _TabStripIconButtonState extends State<_TabStripIconButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Tooltip(
+        message: widget.tooltip,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: GestureDetector(
+            onTap: widget.onPressed,
+            child: Container(
+              width: 28,
+              height: 26,
+              decoration: BoxDecoration(
+                color: _hovered ? const Color(0xFF3A3A3A) : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(
+                widget.icon,
+                size: 15,
+                color: _hovered ? Colors.white : Colors.white70,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
