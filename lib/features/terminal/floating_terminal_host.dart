@@ -143,7 +143,7 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
     final terminals = session.terminals;
     final active = session.activeTerminalIndex;
     return Container(
-      height: 34,
+      height: 30,
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(color: Color(0xFF2E2E2E), width: 1),
@@ -409,9 +409,9 @@ class _TerminalTabChipState extends State<_TerminalTabChip> {
   @override
   Widget build(BuildContext context) {
     final color = widget.active
-        ? const Color(0xFF3B6EA8)
+        ? const Color(0xFFECECEC)
         : _hovered
-            ? const Color(0xFF3A3A3A)
+            ? const Color(0xFF333333)
             : Colors.transparent;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
