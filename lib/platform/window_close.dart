@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Intercepts the macOS window close button so Flutter can decide between
@@ -29,9 +30,13 @@ class WindowCloseHandler {
         case 'minimizeRequested':
           // Returning false tells the native side to run its default
           // miniaturize (used on pages without a floating overlay).
-          return await _onMinimizeRequested?.call() ?? false;
+          final handled = await _onMinimizeRequested?.call() ?? false;
+          debugPrint('[window] minimizeRequested handled=$handled');
+          return handled;
         case 'zoomRequested':
-          return await _onZoomRequested?.call() ?? false;
+          final zoomed = await _onZoomRequested?.call() ?? false;
+          debugPrint('[window] zoomRequested handled=$zoomed');
+          return zoomed;
       }
       return null;
     });

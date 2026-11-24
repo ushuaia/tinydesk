@@ -23,6 +23,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     self.titleVisibility = .hidden
     self.styleMask.insert(.fullSizeContentView)
     self.isMovableByWindowBackground = false
+    self.installTrafficLightActions()
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     TinyDeskChannels.register(with: flutterViewController)
@@ -93,19 +94,45 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     super.awakeFromNib()
   }
 
-  // The yellow and green lights drive the floating overlay lifecycle
-  // (collapse to the ball / expand to full screen) instead of the system
-  // miniaturize/zoom, so the in-app buttons are not needed.
+  /// Route the yellow and green lights explicitly. With the title bar merged
+  /// into the content view the responder chain no longer reliably delivers
+  /// performMiniaturize:/performZoom:, so the standard buttons get their own
+  /// target/action.
+  private func installTrafficLightActions() {
+    if let button = standardWindowButton(.miniaturizeButton) {
+      button.target = self
+      button.action = #selector(trafficLightMiniaturize(_:))
+    }
+    if let button = standardWindowButton(.zoomButton) {
+      button.target = self
+      button.action = #selector(trafficLightZoom(_:))
+    }
+  }
+
+  @objc private func trafficLightMiniaturize(_ sender: Any?) {
+    requestFlutterAction("minimizeRequested") { [weak self] in
+      self?.performDefaultMiniaturize(nil)
+    }
+  }
+
+  @objc private func trafficLightZoom(_ sender: Any?) {
+    requestFlutterAction("zoomRequested") { [weak self] in
+      self?.performDefaultZoom(nil)
+    }
+  }
+
   // Ask Flutter whether it consumes the action (a terminal / file-browser
   // overlay is open); when it answers false, run the native behaviour so the
-  // yellow and green lights keep working on ordinary pages.
+  // lights keep working on ordinary pages.
   private func requestFlutterAction(_ name: String, fallback: @escaping () -> Void) {
     guard let channel = windowChannel else {
+      NSLog("[TinyDesk] \(name): no channel, native fallback")
       fallback()
       return
     }
     channel.invokeMethod(name, arguments: nil) { response in
       let handled = (response as? Bool) ?? false
+      NSLog("[TinyDesk] \(name): handled=\(handled)")
       if !handled {
         fallback()
       }
@@ -124,12 +151,15 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     }
   }
 
+  // NB: super.performMiniaturize/performZoom simulate a click on the
+  // standard buttons; since those buttons now target this class, calling
+  // super here would recurse. The lower-level action methods are safe.
   private func performDefaultMiniaturize(_ sender: Any?) {
-    super.performMiniaturize(sender)
+    self.miniaturize(nil)
   }
 
   private func performDefaultZoom(_ sender: Any?) {
-    super.performZoom(sender)
+    self.zoom(nil)
   }
 
   func windowShouldClose(_ sender: NSWindow) -> Bool {

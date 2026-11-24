@@ -64,8 +64,6 @@ class RemoteFileBrowserPage extends StatefulWidget {
     this.documentHandleFactory = createDocumentHandle,
     this.floating = false,
     this.active = true,
-    this.onMinimize,
-    this.onClose,
   });
 
   final TunnelSession session;
@@ -97,8 +95,6 @@ class RemoteFileBrowserPage extends StatefulWidget {
   /// False while this page is kept alive but another host is displayed; it
   /// must not drive the process-wide macOS input blocker.
   final bool active;
-  final VoidCallback? onMinimize;
-  final VoidCallback? onClose;
 
   @override
   State<RemoteFileBrowserPage> createState() => _RemoteFileBrowserPageState();
@@ -330,11 +326,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
 
   Future<void> _closeDoc() async {
     await _confirmCloseDoc();
-  }
-
-  Future<void> _closeWindow() async {
-    if (!await _confirmCloseDoc()) return;
-    widget.onClose?.call();
   }
 
   Future<void> _openFile(RemoteFile file) async {
@@ -763,11 +754,9 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           children: [
             FloatingWindowHeader(
               leadingIcon: Icons.folder_open,
-              title:
-                  widget.hostName.isEmpty ? AppL10n.t.filesTitle : AppL10n.t.filesTitleW(widget.hostName),
-              onMinimize: widget.onMinimize,
-              onClose: () => unawaited(_closeWindow()),
-              closeTooltip: AppL10n.t.closeWindow,
+              title: widget.hostName.isEmpty
+                  ? AppL10n.t.filesTitle
+                  : AppL10n.t.filesTitleW(widget.hostName),
             ),
             Container(
               height: RemoteFileBrowserPage._floatingToolbarHeight,

@@ -13,8 +13,6 @@ void main() {
   });
 
   Widget buildPage({
-    required VoidCallback onMinimize,
-    required VoidCallback onClose,
     String initialPath = '/home/test',
     String projectRoot = '/home/test',
   }) {
@@ -25,46 +23,24 @@ void main() {
         projectRoot: projectRoot,
         hostId: 'h1',
         floating: true,
-        onMinimize: onMinimize,
-        onClose: onClose,
       ),
     );
   }
 
-  testWidgets('floating mode turns the back button into minimize',
+  testWidgets('floating header leaves window chrome to the traffic lights',
       (tester) async {
-    var minimized = 0;
-    var closed = 0;
-    await tester.pumpWidget(buildPage(
-      onMinimize: () => minimized++,
-      onClose: () => closed++,
-    ));
+    await tester.pumpWidget(buildPage());
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.remove), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.remove));
-    expect(minimized, 1);
-    expect(closed, 0);
-  });
-
-  testWidgets('closing without a document calls onClose', (tester) async {
-    var closed = 0;
-    await tester.pumpWidget(buildPage(
-      onMinimize: () {},
-      onClose: () => closed++,
-    ));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.close));
-    await tester.pumpAndSettle();
-    expect(closed, 1);
+    // The macOS traffic lights own minimize/close; the in-window header must
+    // not duplicate them.
+    expect(find.byIcon(Icons.remove), findsNothing);
+    expect(find.byIcon(Icons.close), findsNothing);
   });
 
   testWidgets('empty initial path falls back to the home directory',
       (tester) async {
     await tester.pumpWidget(buildPage(
-      onMinimize: () {},
-      onClose: () {},
       initialPath: '',
       projectRoot: '',
     ));
