@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../core/app_language.dart';
+import '../../core/ball_snap.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -74,6 +75,14 @@ class _FloatingFileBrowserHostState extends State<FloatingFileBrowserHost>
     } catch (_) {}
   }
 
+  void _snapAndSaveBall(Size screen, EdgeInsets safe) {
+    final current = _ballOffset ?? _defaultOffset(screen, safe);
+    setState(() {
+      _ballOffset = snapBallToEdge(current, screen, safe, _ballSize);
+    });
+    unawaited(_saveBallOffset());
+  }
+
   Future<void> _saveBallOffset() async {
     final offset = _ballOffset;
     if (offset == null) return;
@@ -131,7 +140,7 @@ class _FloatingFileBrowserHostState extends State<FloatingFileBrowserHost>
           onBallTap: widget.manager.showFileBrowser,
           onBallDragUpdate: (delta) =>
               _dragBall(delta, media.size, media.padding),
-          onBallDragEnd: () => unawaited(_saveBallOffset()),
+          onBallDragEnd: () => _snapAndSaveBall(media.size, media.padding),
           child: _buildWindows(opened),
         );
       },

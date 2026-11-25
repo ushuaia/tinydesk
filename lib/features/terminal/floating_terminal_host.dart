@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../../core/app_language.dart';
+import '../../core/ball_snap.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -131,7 +132,18 @@ class _FloatingTerminalHostState extends State<FloatingTerminalHost> {
             );
           });
         },
-        onPanEnd: (_) => unawaited(_saveBallOffset()),
+        onPanEnd: (_) {
+          setState(() {
+            _ballOffset = snapBallToEdge(
+              _ballOffset ?? offset,
+              screen,
+              safe,
+              _ballSize,
+              edge: _edge,
+            );
+          });
+          unawaited(_saveBallOffset());
+        },
         child: _TerminalBall(status: terminal.status),
       ),
     );
