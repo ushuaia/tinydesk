@@ -9,8 +9,29 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
   private var contentLeft: CGFloat = 0
   private var contentTop: CGFloat = 0
   private var allowClose = false
+  private var instanceLockFD: Int32 = -1
 
   override func awakeFromNib() {
+    // A copy started from another bundle (e.g. a build output) does not hold
+    // our lock file, but it still shares the saved tunnel ports.
+    if let other = otherRunningInstance() {
+      NSLog("[TinyDesk] another instance is already running (pid \(other.processIdentifier)); exiting")
+      self.orderOut(nil)
+      _ = other.activate(options: [.activateAllWindows])
+      super.awakeFromNib()
+      DispatchQueue.main.async { NSApp.terminate(nil) }
+      return
+    }
+
+    guard acquireInstanceLock() else {
+      NSLog("[TinyDesk] another instance is already running; exiting")
+      self.orderOut(nil)
+      _ = activateRunningInstance()
+      super.awakeFromNib()
+      DispatchQueue.main.async { NSApp.terminate(nil) }
+      return
+    }
+
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
     self.setContentSize(NSSize(width: 1440, height: 900))
@@ -106,6 +127,44 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     }
 
     super.awakeFromNib()
+  }
+
+  /// One process per logged-in user. Instances share the saved hosts and
+  /// their tunnel ports, so a second copy would fight the first over the
+  /// same local port (Address already in use).
+  private func acquireInstanceLock() -> Bool {
+    guard let base = FileManager.default.urls(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask
+    ).first else {
+      return true
+    }
+    let dir = base.appendingPathComponent("cox.work.tinydesk", isDirectory: true)
+    try? FileManager.default.createDirectory(
+      at: dir,
+      withIntermediateDirectories: true
+    )
+    let fd = open(dir.appendingPathComponent("app.lock").path, O_CREAT | O_RDWR, 0o644)
+    guard fd >= 0 else { return true }
+    if flock(fd, LOCK_EX | LOCK_NB) != 0 {
+      Darwin.close(fd)
+      return false
+    }
+    instanceLockFD = fd
+    return true
+  }
+
+  private func otherRunningInstance() -> NSRunningApplication? {
+    guard let id = Bundle.main.bundleIdentifier else { return nil }
+    return NSRunningApplication.runningApplications(withBundleIdentifier: id)
+      .first { $0.processIdentifier != getpid() }
+  }
+
+  /// Brings the already-running copy to the front so launching a second
+  /// bundle (e.g. a build output) does not look like nothing happened.
+  private func activateRunningInstance() -> Bool {
+    guard let other = otherRunningInstance() else { return false }
+    return other.activate(options: [.activateAllWindows])
   }
 
   /// Route the yellow light explicitly. With the title bar merged into the
