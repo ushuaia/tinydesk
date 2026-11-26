@@ -14,7 +14,7 @@ void main() {
     if (await root.exists()) await root.delete(recursive: true);
   });
 
-  test('lists entries, hides dotfiles, directories first then by name',
+  test('lists entries including dotfiles, directories first then by name',
       () async {
     await File('${root.path}/b.txt').writeAsString('hello');
     await File('${root.path}/.hidden').writeAsString('secret');
@@ -23,7 +23,10 @@ void main() {
 
     final files = await listLocalDirectory(root.path);
 
-    expect(files.map((f) => f.name), ['alpha', 'Zeta', 'b.txt']);
+    // Dotfiles are no longer filtered here; the explorer tree owns the
+    // show/hide switch.
+    expect(files.map((f) => f.name),
+        ['alpha', 'Zeta', '.hidden', 'b.txt']);
     expect(files.where((f) => f.isDirectory).length, 2);
     expect(files.last.size, 5);
   });
