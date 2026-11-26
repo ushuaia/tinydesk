@@ -123,6 +123,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   double _treeWidth = 280;
   int _treeRefreshToken = 0;
   bool _railOpen = false;
+  bool _showHidden = true;
   bool _dividerDragging = false;
   late final MultiSplitViewController _splitController = MultiSplitViewController(
     areas: [
@@ -325,6 +326,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     if (!mounted) return;
     setState(() {
       _expanded = state.expandedPaths;
+      _showHidden = state.showHidden;
       _treeWidth = state.treeWidth.clamp(220.0, 340.0);
       _splitController.areas = [
         Area(size: _treeWidth, min: 220, max: 340),
@@ -507,6 +509,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       expandedPaths: _expanded,
       refreshToken: _treeRefreshToken,
       autoSync: widget.active,
+      showHidden: _showHidden,
       onDirectorySelected: _selectDirectory,
       onFileSelected: (file) => unawaited(_openFile(file)),
       onExpandedChanged: (paths) {
@@ -1199,6 +1202,22 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
                       ),
                 ),
                 const Spacer(),
+                IconButton(
+                  onPressed: () {
+                    setState(() => _showHidden = !_showHidden);
+                    unawaited(
+                      _explorerStore.saveShowHidden(widget.hostId, _showHidden),
+                    );
+                  },
+                  icon: Icon(
+                    _showHidden ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: _showHidden
+                      ? AppL10n.t.hideHiddenFiles
+                      : AppL10n.t.showHiddenFiles,
+                ),
                 IconButton(
                   onPressed: () => _setRail(false),
                   icon: const Icon(Icons.keyboard_double_arrow_left),

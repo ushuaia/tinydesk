@@ -26,6 +26,7 @@ class ExplorerTree extends StatefulWidget {
     required this.onDirectorySelected,
     required this.onFileSelected,
     required this.onExpandedChanged,
+    this.showHidden = true,
     this.onDownload,
     this.onCopyPath,
     this.onDelete,
@@ -37,6 +38,9 @@ class ExplorerTree extends StatefulWidget {
 
   final TunnelSession session;
   final List<RemoteFile> roots;
+
+  /// Whether dotfiles and dot directories are listed.
+  final bool showHidden;
   final String currentPath;
   final List<String> expandedPaths;
   final ValueChanged<String> onDirectorySelected;
@@ -504,6 +508,8 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       );
     }
     for (final file in children) {
+      // Dotfiles stay in the cache; visibility is a render-time switch.
+      if (!widget.showHidden && file.name.startsWith('.')) continue;
       if (file.isDirectory) {
         _appendRows(rows, file.path, depth);
       } else {

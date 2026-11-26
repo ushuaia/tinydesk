@@ -1322,6 +1322,18 @@ abstract class AppLocalizations {
   /// **'Collapse directory tree'**
   String get collapseTree;
 
+  /// No description provided for @showHiddenFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Show hidden files'**
+  String get showHiddenFiles;
+
+  /// No description provided for @hideHiddenFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide hidden files'**
+  String get hideHiddenFiles;
+
   /// No description provided for @expandTree.
   ///
   /// In en, this message translates to:

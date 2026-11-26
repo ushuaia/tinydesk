@@ -4,7 +4,6 @@ import 'remote_file.dart';
 
 /// Lists a local directory with the same shape the remote explorer expects.
 ///
-/// - hides dotfiles (same as the SFTP listing)
 /// - sorts directories first, then case-insensitive by name
 /// - treats symlinks that point at directories as directories
 /// - skips broken symlinks instead of failing the whole listing
@@ -15,7 +14,6 @@ Future<List<RemoteFile>> listLocalDirectory(String path) async {
   final files = <RemoteFile>[];
   await for (final entity in Directory(path).list(followLinks: false)) {
     final name = entity.path.split('/').last;
-    if (name.startsWith('.')) continue;
     try {
       // Follow symlinks here: a link whose target is gone has to be skipped.
       final stat = FileStat.statSync(entity.path);

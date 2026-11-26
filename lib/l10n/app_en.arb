@@ -407,6 +407,8 @@
   "deleteIrreversible": "This cannot be undone.",
   "openTree": "Open directory tree",
   "collapseTree": "Collapse directory tree",
+  "showHiddenFiles": "Show hidden files",
+  "hideHiddenFiles": "Hide hidden files",
   "expandTree": "Expand directory tree",
   "directoryTree": "Directory tree",
   "favorite": "Favorite",

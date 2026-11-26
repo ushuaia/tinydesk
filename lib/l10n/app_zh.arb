@@ -204,6 +204,8 @@
   "deleteIrreversible": "删除后不可恢复。",
   "openTree": "打开目录树",
   "collapseTree": "收起目录树",
+  "showHiddenFiles": "显示隐藏文件",
+  "hideHiddenFiles": "隐藏隐藏文件",
   "expandTree": "展开目录树",
   "directoryTree": "目录树",
   "favorite": "收藏",

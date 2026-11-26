@@ -118,10 +118,7 @@ class SshTunnelSession implements TunnelSession {
     final resolved = path == '~' ? await homeDirectory() : path;
     final names = await sftp.listdir(resolved);
     final files = names
-        .where((name) =>
-            name.filename != '.' &&
-            name.filename != '..' &&
-            !name.filename.startsWith('.'))
+        .where((name) => name.filename != '.' && name.filename != '..')
         .map((name) {
       final modifyTime = name.attr.modifyTime;
       return RemoteFile(

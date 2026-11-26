@@ -681,6 +681,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get collapseTree => '收起目录树';
 
   @override
+  String get showHiddenFiles => '显示隐藏文件';
+
+  @override
+  String get hideHiddenFiles => '隐藏隐藏文件';
+
+  @override
   String get expandTree => '展开目录树';
 
   @override

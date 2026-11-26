@@ -8,17 +8,20 @@ class ExplorerState {
     this.expandedPaths = const [],
     this.treeWidth = 280,
     this.miniRailOpen = false,
+    this.showHidden = true,
   });
 
   final List<String> expandedPaths;
   final double treeWidth;
   final bool miniRailOpen;
+  final bool showHidden;
 }
 
 class ExplorerStateStore {
   static const _expandedPrefix = 'explorer.expanded.v1.';
   static const _widthPrefix = 'explorer.width.v1.';
   static const _railPrefix = 'explorer.miniRail.v1.';
+  static const _hiddenPrefix = 'explorer.showHidden.v1.';
 
   Future<ExplorerState> load(String hostId) async {
     try {
@@ -31,10 +34,12 @@ class ExplorerStateStore {
               .toList();
       final width = prefs.getDouble('$_widthPrefix$hostId') ?? 280;
       final rail = prefs.getBool('$_railPrefix$hostId') ?? true;
+      final hidden = prefs.getBool('$_hiddenPrefix$hostId') ?? true;
       return ExplorerState(
         expandedPaths: expanded,
         treeWidth: width,
         miniRailOpen: rail,
+        showHidden: hidden,
       );
     } catch (_) {
       return const ExplorerState();
@@ -52,6 +57,13 @@ class ExplorerStateStore {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('$_widthPrefix$hostId', width);
+    } catch (_) {}
+  }
+
+  Future<void> saveShowHidden(String hostId, bool show) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('$_hiddenPrefix$hostId', show);
     } catch (_) {}
   }
 

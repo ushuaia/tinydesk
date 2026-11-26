@@ -706,6 +706,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collapseTree => 'Collapse directory tree';
 
   @override
+  String get showHiddenFiles => 'Show hidden files';
+
+  @override
+  String get hideHiddenFiles => 'Hide hidden files';
+
+  @override
   String get expandTree => 'Expand directory tree';
 
   @override
