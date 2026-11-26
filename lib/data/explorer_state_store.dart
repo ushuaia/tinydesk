@@ -33,6 +33,7 @@ class ExplorerStateStore {
   static const _hiddenPrefix = 'explorer.showHidden.v1.';
   static const _rootPrefix = 'explorer.selectedRoot.v1.';
   static const _docsPrefix = 'explorer.openDocs.v1.';
+  static const _activeDocPrefix = 'explorer.activeDoc.v1.';
 
   Future<ExplorerState> load(String hostId) async {
     try {
@@ -53,6 +54,7 @@ class ExplorerStateStore {
           : (jsonDecode(docsRaw) as List<dynamic>)
               .map((item) => item as String)
               .toList();
+      final activeDoc = prefs.getString('$_activeDocPrefix$hostId') ?? '';
       return ExplorerState(
         expandedPaths: expanded,
         treeWidth: width,
@@ -60,6 +62,7 @@ class ExplorerStateStore {
         showHidden: hidden,
         selectedRoot: root,
         openDocPaths: docs,
+        activeDocPath: activeDoc,
       );
     } catch (_) {
       return const ExplorerState();
@@ -95,7 +98,7 @@ class ExplorerStateStore {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('$_docsPrefix$hostId', jsonEncode(paths));
-      await prefs.setString('$_rootPrefix$hostId', activePath);
+      await prefs.setString('$_activeDocPrefix$hostId', activePath);
     } catch (_) {}
   }
 

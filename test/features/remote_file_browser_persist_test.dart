@@ -99,4 +99,48 @@ void main() {
     expect(find.text('body-a.txt', skipOffstage: false), findsOneWidget);
     expect(find.text('body-b.txt'), findsOneWidget);
   });
+
+  testWidgets('the floating window restores its pages too', (tester) async {
+    const a = RemoteFile(name: 'a.txt', path: '/home/test/a.txt', isDirectory: false);
+    const b = RemoteFile(name: 'b.txt', path: '/home/test/b.txt', isDirectory: false);
+
+    Widget floating() => MaterialApp(
+          home: RemoteFileBrowserPage(
+            session: FakeTunnelSession(
+              home: '/home/test',
+              files: const [a, b],
+            ),
+            hostId: 'h1',
+            floating: true,
+            documentHandleFactory: ({
+              required session,
+              required file,
+              required hostId,
+              required projectRoot,
+              required userScope,
+            }) =>
+                _TabHandle(file),
+          ),
+        );
+
+    await tester.pumpWidget(floating());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('a.txt'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('b.txt'));
+    await tester.pumpAndSettle();
+
+    // Close the window (page destroyed), then reopen it.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(floating());
+    await tester.pumpAndSettle();
+
+    final state = await ExplorerStateStore().load('h1');
+    expect(state.openDocPaths,
+        ['/home/test/a.txt', '/home/test/b.txt']);
+    expect(
+      tester.widget<IndexedStack>(find.byType(IndexedStack)).index,
+      1,
+    );
+  });
 }

@@ -126,6 +126,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   bool _showHidden = true;
   /// Files to restore once the project roots have loaded.
   List<String> _pendingRestorePaths = const [];
+  String _pendingActivePath = '';
   bool _stateLoaded = false;
   bool _rootsLoaded = false;
   String? _initialSelectedRoot;
@@ -182,6 +183,16 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         active,
       ),
     );
+    // The visible page also decides which project the tree shows next time,
+    // even when the user never touched the dropdown.
+    if (active.isNotEmpty) {
+      unawaited(
+        _explorerStore.saveSelectedRoot(
+          widget.hostId,
+          _projectRootFor(active),
+        ),
+      );
+    }
   }
 
   /// Removes and disposes one tab. [confirmed] skips the save prompt
@@ -362,6 +373,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       // collapses it to focus the content.
       _railOpen = true;
       _pendingRestorePaths = state.openDocPaths;
+      _pendingActivePath = state.activeDocPath;
     });
     _stateLoaded = true;
     unawaited(_restoreTabs());
@@ -404,11 +416,17 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     // The file the browser was last showing wins; a file freshly requested
     // from the terminal outranks both.
     final active = _activeDoc?.file.path ??
-        paths.where((p) => _tabs.any((t) => t.file.path == p)).lastOrNull;
+        (_pendingActivePath.isNotEmpty &&
+                _tabs.any((tab) => tab.file.path == _pendingActivePath)
+            ? _pendingActivePath
+            : paths.where((p) => _tabs.any((t) => t.file.path == p)).lastOrNull);
     if (active != null) {
       final index = _tabs.indexWhere((tab) => tab.file.path == active);
       if (index >= 0) {
+        final root = _projectRootFor(active);
+        setState(() => _initialSelectedRoot = root);
         _activateTab(index);
+        unawaited(_explorerStore.saveSelectedRoot(widget.hostId, root));
         return;
       }
     }
