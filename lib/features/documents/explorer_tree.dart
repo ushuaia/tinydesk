@@ -365,7 +365,9 @@ class _ExplorerTreeState extends State<ExplorerTree> {
             PopupMenuItem<String>(
               value: root.path,
               height: 44,
-              child: Row(
+              child: SizedBox(
+                width: 300,
+                child: Row(
                 children: [
                   Icon(
                     root.path == current.path
@@ -401,12 +403,13 @@ class _ExplorerTreeState extends State<ExplorerTree> {
                 ],
               ),
             ),
+          ),
         ],
         child: Container(
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(

@@ -297,9 +297,16 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     if (box is! RenderBox || !box.hasSize) return;
     final size = MediaQuery.of(context).size;
     final narrow = size.width < 700;
-    final paneWidth = narrow
-        ? (size.width * 0.82).clamp(220.0, 340.0)
-        : _treeWidth;
+    // The desktop sidebar sits beside the content, so nothing needs to be
+    // blocked: the webview area is never covered.
+    if (!narrow) {
+      if (_blockerEngaged) {
+        _blockerEngaged = false;
+        unawaited(RailInputBlocker.setBlocking(blocking: false));
+      }
+      return;
+    }
+    final paneWidth = (size.width * 0.82).clamp(220.0, 340.0);
     final top = widget.floating
         ? FloatingWindowHeader.height + RemoteFileBrowserPage._floatingToolbarHeight
         : MediaQuery.of(context).padding.top + kToolbarHeight;
@@ -336,6 +343,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   }
 
   Future<void> _openFile(RemoteFile file) async {
+    final narrow = _isNarrow(context);
     if (!await _confirmCloseDoc()) return;
     final handle = widget.documentHandleFactory(
       session: widget.session,
@@ -354,11 +362,15 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     handle.addListener(_onDocChanged);
     setState(() {
       _doc = handle;
-      _railOpen = false;
+      // The overlay drawer closes after a pick; the desktop sidebar stays
+      // (VSCode behaviour), it never auto-hides.
+      _railOpen = narrow ? false : _railOpen;
       _currentFile = file;
       _isFavorite = _favoritePaths.contains(file.path);
     });
-    unawaited(_explorerStore.saveMiniRail(widget.hostId, false));
+    if (narrow) {
+      unawaited(_explorerStore.saveMiniRail(widget.hostId, false));
+    }
   }
 
   void _selectDirectory(String path) {
@@ -932,10 +944,35 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       MediaQuery.of(context).size.width < 700;
 
   Widget _bodyWithMobileGestures(BuildContext context) {
-    final narrow = _isNarrow(context);
-    final paneWidth = narrow
-        ? (MediaQuery.of(context).size.width * 0.82).clamp(220.0, 340.0)
-        : _treeWidth;
+    // Desktop: a real sidebar. It sits beside the content, resizes the
+    // content area and never hides on its own (VSCode style). Mobile keeps
+    // the overlay drawer it always had.
+    if (!_isNarrow(context)) {
+      if (!_railOpen) return _content(context);
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: _treeWidth, child: _treePanel(context)),
+          TreeDragBar(
+            onDragEnd: () => unawaited(
+              _explorerStore.saveWidth(widget.hostId, _treeWidth),
+            ),
+            onDrag: (delta) {
+              setState(() {
+                _treeWidth = (_treeWidth + delta).clamp(220.0, 340.0);
+              });
+            },
+          ),
+          Expanded(child: _content(context)),
+        ],
+      );
+    }
+    return _overlayBody(context);
+  }
+
+  Widget _overlayBody(BuildContext context) {
+    final paneWidth =
+        (MediaQuery.of(context).size.width * 0.82).clamp(220.0, 340.0);
     // Overlay drawer: the content keeps its full size and is simply covered
     // (clipped) by the tree panel while open.
     return Stack(
@@ -967,19 +1004,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             top: 0,
             bottom: 0,
             width: 6,
-            child: narrow
-                ? const SizedBox.shrink()
-                : TreeDragBar(
-                    onDragEnd: () => unawaited(
-                      _explorerStore.saveWidth(widget.hostId, _treeWidth),
-                    ),
-                    onDrag: (delta) {
-                      setState(() {
-                        _treeWidth =
-                            (_treeWidth + delta).clamp(220.0, 340.0);
-                      });
-                    },
-                  ),
+            child: const SizedBox.shrink(),
           ),
           // While the tree is open, interacting with the content area closes
           // it first (classic drawer behaviour), on every platform.
@@ -1000,11 +1025,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
                     _setRail(false);
                   }
                 },
-                child: Container(
-                  color: narrow
-                      ? const Color(0x0D000000)
-                      : const Color(0x00000000),
-                ),
+                child: Container(color: const Color(0x0D000000)),
               ),
             ),
           ),
@@ -1013,20 +1034,16 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             left: 0,
             top: 0,
             bottom: 0,
-            child: narrow
-                ? SizedBox(
-                    width: 16,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: () => _setRail(true),
-                      onHorizontalDragEnd: (details) {
-                        if ((details.primaryVelocity ?? 0) > 200) {
-                          _setRail(true);
-                        }
-                      },
-                    ),
-                  )
-                : _miniRail(context),
+            width: 16,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => _setRail(true),
+              onHorizontalDragEnd: (details) {
+                if ((details.primaryVelocity ?? 0) > 200) {
+                  _setRail(true);
+                }
+              },
+            ),
           ),
       ],
     );
@@ -1083,27 +1100,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   Widget _docTitle(BuildContext context, DocumentHandle doc) =>
       DocumentTitleBar(doc: doc, icon: iconForFileTitle(doc.title));
 
-
-  Widget _miniRail(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: AppL10n.t.expandTree,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _setRail(true),
-        child: Container(
-          width: 10,
-          color: scheme.surfaceContainerHighest,
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.chevron_right,
-            size: 14,
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _emptyContent(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
