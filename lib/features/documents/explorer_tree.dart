@@ -137,10 +137,11 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     if (selected != null && _roots.any((root) => root.path == selected)) {
       return selected;
     }
-    final fallback = _rootFor(widget.currentPath) ??
+    // Never overwrite the remembered selection with a fallback: project
+    // roots arrive asynchronously, and a restored root only becomes valid
+    // once the list is complete.
+    return _rootFor(widget.currentPath) ??
         (_roots.isEmpty ? null : _roots.first.path);
-    _selectedRoot = fallback;
-    return fallback;
   }
 
   void _selectRoot(String path) {
