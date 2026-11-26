@@ -99,7 +99,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel, .keyDown]
     ) { [weak self] event in
       guard let self = self else { return event }
-      // Cmd+` cycles the main page and the open overlays. Handling it here
+      // Cmd+J cycles the main page and the open overlays. Handling it here
       // means it still works when a webview or the terminal owns the
       // keyboard focus inside Flutter.
       if event.type == .keyDown, self.isOverlayShortcut(event) {
@@ -176,7 +176,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     return other.activate(options: [.activateAllWindows])
   }
 
-  /// Cmd+` (the key left of 1, with or without shift).
+  /// Cmd+J toggles between the main page and the open overlays.
   private func isOverlayShortcut(_ event: NSEvent) -> Bool {
     let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
     guard mods.contains(.command),
@@ -184,7 +184,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
           !mods.contains(.control) else {
       return false
     }
-    return event.charactersIgnoringModifiers == "`"
+    return event.charactersIgnoringModifiers?.lowercased() == "j"
   }
 
   /// Route the yellow light explicitly. With the title bar merged into the
