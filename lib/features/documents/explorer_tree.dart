@@ -521,7 +521,7 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     return Icons.insert_drive_file_outlined;
   }
 }
-class _TreeRow extends StatelessWidget {
+class _TreeRow extends StatefulWidget {
   const _TreeRow({
     required this.label,
     required this.depth,
@@ -554,9 +554,16 @@ class _TreeRow extends StatelessWidget {
   final bool favorite;
   final ValueChanged<RemoteFile>? onToggleFavorite;
 
+  @override
+  State<_TreeRow> createState() => _TreeRowState();
+}
+
+class _TreeRowState extends State<_TreeRow> {
+  bool _hovered = false;
+
   /// Anchored popup: opens below the row, clamped inside the overlay.
   Future<void> _showMenu(BuildContext context) async {
-    final file = this.file;
+    final file = widget.file;
     if (file == null) return;
     final box = context.findRenderObject() as RenderBox;
     final overlay =
@@ -579,48 +586,52 @@ class _TreeRow extends StatelessWidget {
       position: position,
       items: [
         PopupMenuItem(value: 'open', child: Text(AppL10n.t.open)),
-        if (onToggleFavorite != null)
+        if (widget.onToggleFavorite != null)
           PopupMenuItem(
             value: 'favorite',
-            child: Text(favorite ? AppL10n.t.unfavorite : AppL10n.t.favorite),
+            child: Text(
+                widget.favorite ? AppL10n.t.unfavorite : AppL10n.t.favorite),
           ),
         PopupMenuItem(value: 'download', child: Text(AppL10n.t.download)),
         PopupMenuItem(value: 'copy', child: Text(AppL10n.t.copyPath)),
-        if (onDelete != null)
+        if (widget.onDelete != null)
           PopupMenuItem(value: 'delete', child: Text(AppL10n.t.delete)),
       ],
     );
     if (!context.mounted) return;
-    if (value == 'open') onTap();
-    if (value == 'favorite') onToggleFavorite?.call(file);
-    if (value == 'download') onDownload?.call(file);
-    if (value == 'copy') onCopyPath?.call(file);
-    if (value == 'delete') onDelete?.call(file);
+    if (value == 'open') widget.onTap();
+    if (value == 'favorite') widget.onToggleFavorite?.call(file);
+    if (value == 'download') widget.onDownload?.call(file);
+    if (value == 'copy') widget.onCopyPath?.call(file);
+    if (value == 'delete') widget.onDelete?.call(file);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final background =
-        highlighted ? scheme.primaryContainer : null;
-    final foreground =
-        highlighted ? scheme.onPrimaryContainer : scheme.onSurface;
-    final iconColor = highlighted ? scheme.primary : scheme.onSurfaceVariant;
+    // VSCode-style selection: a quiet accent wash, the label keeps its colour.
+    final background = widget.highlighted
+        ? scheme.primary.withValues(alpha: 0.10)
+        : _hovered
+            ? scheme.onSurface.withValues(alpha: 0.05)
+            : null;
+    final iconColor =
+        widget.highlighted ? scheme.primary : scheme.onSurfaceVariant;
+    final file = widget.file;
     final hasMenu = file != null &&
-        (onDownload != null ||
-            onCopyPath != null ||
-            onToggleFavorite != null);
+        (widget.onDownload != null ||
+            widget.onCopyPath != null ||
+            widget.onToggleFavorite != null);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Container(
           height: 28,
           margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          padding: EdgeInsets.only(
-            left: 8.0 + depth * 14,
-            right: 2,
-          ),
+          padding: const EdgeInsets.only(left: 8, right: 2),
           decoration: BoxDecoration(
             color: background,
             borderRadius: BorderRadius.circular(6),
@@ -628,42 +639,55 @@ class _TreeRow extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
+                width: widget.depth * 14,
+                child: CustomPaint(
+                  size: Size(widget.depth * 14, 28),
+                  painter: _GuidePainter(
+                    depth: widget.depth,
+                    color: scheme.outlineVariant.withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+              SizedBox(
                 width: 16,
-                child: isDirectory
-                    ? (loading
+                child: widget.isDirectory
+                    ? (widget.loading
                         ? const SizedBox(
                             width: 12,
                             height: 12,
                             child:
                                 CircularProgressIndicator(strokeWidth: 1.5),
                           )
-                        : Icon(
-                            expanded
-                                ? Icons.keyboard_arrow_down
-                                : Icons.keyboard_arrow_right,
-                            size: 15,
-                            color: iconColor,
+                        : AnimatedRotation(
+                            turns: widget.expanded ? 0.25 : 0,
+                            duration: const Duration(milliseconds: 120),
+                            child: Icon(
+                              Icons.chevron_right,
+                              size: 15,
+                              color: iconColor,
+                            ),
                           ))
                     : const SizedBox.shrink(),
               ),
               Icon(
-                isDirectory
-                    ? (expanded ? Icons.folder_open : Icons.folder)
-                    : (icon ?? Icons.insert_drive_file_outlined),
+                widget.isDirectory
+                    ? (widget.expanded ? Icons.folder_open : Icons.folder)
+                    : (widget.icon ?? Icons.insert_drive_file_outlined),
                 size: 15,
                 color: iconColor,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  label,
+                  widget.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12.5,
-                    color: foreground,
-                    fontWeight:
-                        isDirectory ? FontWeight.w500 : FontWeight.w400,
+                    color: scheme.onSurface,
+                    fontWeight: widget.isDirectory
+                        ? FontWeight.w500
+                        : FontWeight.w400,
                   ),
                 ),
               ),
@@ -673,7 +697,7 @@ class _TreeRow extends StatelessWidget {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => unawaited(_showMenu(context)),
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: 24,
                       height: 24,
                       child: Icon(
@@ -774,4 +798,28 @@ class _ErrorRow extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// Faint vertical lines under each ancestor level, like VSCode's guides.
+class _GuidePainter extends CustomPainter {
+  const _GuidePainter({required this.depth, required this.color});
+
+  final int depth;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    for (var i = 0; i < depth; i++) {
+      final x = i * 14.0 + 7;
+      canvas.drawLine(Offset(x, 4), Offset(x, size.height - 4), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GuidePainter oldDelegate) =>
+      oldDelegate.depth != depth || oldDelegate.color != color;
 }

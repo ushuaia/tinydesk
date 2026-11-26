@@ -40,6 +40,14 @@ bool documentLivesUnder(String documentPath, String deletedPath) {
   return documentPath.startsWith(prefix);
 }
 
+/// One open document tab: its handle plus the file it was opened from.
+class _OpenDoc {
+  _OpenDoc({required this.handle, required this.file});
+
+  final DocumentHandle handle;
+  final RemoteFile file;
+}
+
 typedef DocumentHandleFactory = DocumentHandle? Function({
   required TunnelSession session,
   required RemoteFile file,
@@ -126,7 +134,11 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   bool _blockerEngaged = false;
   Timer? _docSyncTimer;
   final DocSyncPolicy _syncPolicy = DocSyncPolicy();
-  DocumentHandle? _doc;
+
+  /// Open documents, each kept alive so scroll positions and unsaved edits
+  /// survive tab switches (IndexedStack).
+  final List<_OpenDoc> _tabs = [];
+  int _activeTab = -1;
   List<RemoteFile> _roots = const [];
   RemoteFile? _currentFile;
   Set<String> _favoritePaths = {};
@@ -135,6 +147,51 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   void _onDocChanged() {
     if (mounted) setState(() {});
   }
+
+  /// The tab that is on screen right now.
+  _OpenDoc? get _activeDoc =>
+      _activeTab >= 0 && _activeTab < _tabs.length ? _tabs[_activeTab] : null;
+
+  void _activateTab(int index) {
+    setState(() {
+      _activeTab = index;
+      _currentFile = _tabs[index].file;
+      _isFavorite = _favoritePaths.contains(_currentFile!.path);
+    });
+  }
+
+  /// Removes and disposes one tab. [confirmed] skips the save prompt
+  /// (the caller already asked).
+  Future<void> _closeTabAt(int index, {bool confirmed = false}) async {
+    if (index < 0 || index >= _tabs.length) return;
+    if (!confirmed) {
+      final ok = await _tabs[index].handle.confirmClose(context);
+      if (!ok || !mounted) return;
+    }
+    final tab = _tabs[index];
+    tab.handle.removeListener(_onDocChanged);
+    await tab.handle.close();
+    tab.handle.dispose();
+    if (!mounted) return;
+    setState(() {
+      _tabs.removeAt(index);
+      if (_tabs.isEmpty) {
+        _activeTab = -1;
+        _currentFile = null;
+        _isFavorite = false;
+      } else if (_activeTab > index) {
+        _activeTab--;
+        _currentFile = _tabs[_activeTab].file;
+        _isFavorite = _favoritePaths.contains(_currentFile!.path);
+      } else if (_activeTab == index) {
+        _activeTab = _activeTab.clamp(0, _tabs.length - 1);
+        _currentFile = _tabs[_activeTab].file;
+        _isFavorite = _favoritePaths.contains(_currentFile!.path);
+      }
+    });
+    if (mounted) _treeRefreshToken++;
+  }
+
 
   Future<void> _loadFavoritePaths() async {
     final items = await _favorites.load();
@@ -332,31 +389,38 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     );
   }
 
+  /// Confirms every dirty tab, then closes them all. Used when the whole
+  /// window (or page) is going away.
   Future<bool> _confirmCloseDoc() async {
-    final doc = _doc;
-    if (doc == null) return true;
-    final ok = await doc.confirmClose(context);
-    if (!ok) return false;
-    doc.removeListener(_onDocChanged);
-    await doc.close();
-    doc.dispose();
-    if (mounted) {
-      setState(() {
-        _doc = null;
-        _currentFile = null;
-        _isFavorite = false;
-      });
+    for (var i = 0; i < _tabs.length; i++) {
+      if (!await _tabs[i].handle.confirmClose(context)) return false;
+    }
+    while (_tabs.isNotEmpty && mounted) {
+      await _closeTabAt(_tabs.length - 1, confirmed: true);
     }
     return true;
   }
 
+  /// Toolbar ✕: closes just the visible tab (VSCode behaviour).
   Future<void> _closeDoc() async {
-    await _confirmCloseDoc();
+    if (_activeTab < 0) return;
+    await _closeTabAt(_activeTab);
   }
 
-  Future<void> _openFile(RemoteFile file) async {
+  Future<void> _openFile(RemoteFile file, {bool reloadIfOpen = false}) async {
     final narrow = _isNarrow(context);
-    if (!await _confirmCloseDoc()) return;
+    // Already open: bring its tab forward (and refresh on demand).
+    final index = _tabs.indexWhere((tab) => tab.file.path == file.path);
+    if (index >= 0) {
+      if (reloadIfOpen) {
+        try {
+          await _tabs[index].handle.reloadExternalChanges();
+        } catch (_) {}
+      }
+      _activateTab(index);
+      if (narrow) _setRail(false);
+      return;
+    }
     final handle = widget.documentHandleFactory(
       session: widget.session,
       file: file,
@@ -373,7 +437,8 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     }
     handle.addListener(_onDocChanged);
     setState(() {
-      _doc = handle;
+      _tabs.add(_OpenDoc(handle: handle, file: file));
+      _activeTab = _tabs.length - 1;
       // The overlay drawer closes after a pick; the desktop sidebar stays
       // (VSCode behaviour), it never auto-hides.
       _railOpen = narrow ? false : _railOpen;
@@ -398,10 +463,11 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       _setRail(true);
       return;
     }
-    final doc = _doc;
-    // Save/discard prompt first (if dirty), but keep the file open until the
-    // user confirms leaving the page.
-    if (doc != null && !await doc.confirmClose(context)) return;
+    // Save/discard prompt per dirty tab first, but keep the files open
+    // until the user confirms leaving the page.
+    for (final tab in List.of(_tabs)) {
+      if (tab.handle.dirty && !await tab.handle.confirmClose(context)) return;
+    }
     if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -421,11 +487,14 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       ),
     );
     if (confirmed != true) return;
-    if (doc != null) {
-      doc.removeListener(_onDocChanged);
-      await doc.close();
-      doc.dispose();
-      if (mounted) setState(() => _doc = null);
+    for (final tab in _tabs) {
+      tab.handle.removeListener(_onDocChanged);
+      await tab.handle.close();
+      tab.handle.dispose();
+    }
+    if (mounted) {
+      _tabs.clear();
+      _activeTab = -1;
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -587,19 +656,24 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     try {
       await widget.session.delete(file.path);
       if (!mounted) return;
-      final current = _currentFile;
-      if (current != null && documentLivesUnder(current.path, file.path)) {
-        final doc = _doc;
-        if (doc != null) {
-          doc.removeListener(_onDocChanged);
-          await doc.close();
-          doc.dispose();
+      for (var i = _tabs.length - 1; i >= 0; i--) {
+        if (documentLivesUnder(_tabs[i].file.path, file.path)) {
+          final tab = _tabs[i];
+          tab.handle.removeListener(_onDocChanged);
+          await tab.handle.close();
+          tab.handle.dispose();
+          if (!mounted) return;
+          setState(() => _tabs.removeAt(i));
         }
+      }
+      if (mounted && _tabs.isEmpty) {
         setState(() {
-          _doc = null;
+          _activeTab = -1;
           _currentFile = null;
           _isFavorite = false;
         });
+      } else if (mounted && _activeTab >= _tabs.length) {
+        _activateTab(_tabs.length - 1);
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -766,20 +840,21 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       unawaited(RailInputBlocker.setBlocking(blocking: false));
     }
     if (_blockerRegistered) RailInputBlocker.unregisterIf(_onBlockerIntercepted);
-    final doc = _doc;
-    if (doc != null) {
-      doc.removeListener(_onDocChanged);
-      unawaited(doc.close());
-      doc.dispose();
+    for (final tab in _tabs) {
+      tab.handle.removeListener(_onDocChanged);
+      unawaited(tab.handle.close());
+      tab.handle.dispose();
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final doc = _doc;
+    final doc = _activeDoc?.handle;
     final wide = MediaQuery.of(context).size.width >= 700;
-    if (doc != null) doc.navigatorContext = context;
+    for (final tab in _tabs) {
+      tab.handle.navigatorContext = context;
+    }
     _syncRailInputBlocker();
 
     if (widget.floating) {
@@ -912,31 +987,32 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   /// never get overwritten — a snackbar notes the conflict instead.
   Future<void> _syncDocTick() async {
     if (!mounted || !widget.active) return;
-    final doc = _doc;
-    if (doc == null) return;
-    try {
-      final changed = await doc.checkExternalUpdate();
-      final action = _syncPolicy.decide(
-        changed: changed,
-        dirty: doc.dirty,
-        now: DateTime.now(),
-      );
-      switch (action) {
-        case DocSyncAction.none:
-          return;
-        case DocSyncAction.conflict:
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppL10n.t.docConflict(doc.title))),
-          );
-        case DocSyncAction.reload:
-          await doc.reloadExternalChanges();
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppL10n.t.docReloaded(doc.title))),
-          );
-      }
-    } catch (_) {}
+    for (final tab in List.of(_tabs)) {
+      final doc = tab.handle;
+      try {
+        final changed = await doc.checkExternalUpdate();
+        final action = _syncPolicy.decide(
+          changed: changed,
+          dirty: doc.dirty,
+          now: DateTime.now(),
+        );
+        switch (action) {
+          case DocSyncAction.none:
+            continue;
+          case DocSyncAction.conflict:
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppL10n.t.docConflict(doc.title))),
+            );
+          case DocSyncAction.reload:
+            await doc.reloadExternalChanges();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppL10n.t.docReloaded(doc.title))),
+            );
+        }
+      } catch (_) {}
+    }
   }
 
   void _refreshTree() {
@@ -949,7 +1025,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     _refreshTree();
     final file = _currentFile;
     if (file == null) return;
-    await _openFile(file);
+    await _openFile(file, reloadIfOpen: true);
   }
 
   bool _isNarrow(BuildContext context) =>
@@ -1140,9 +1216,54 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   }
 
   Widget _content(BuildContext context) {
-    final doc = _doc;
-    if (doc == null) return _emptyContent(context);
-    return doc.buildBody(context);
+    if (_tabs.isEmpty) return _emptyContent(context);
+    return Column(
+      children: [
+        _docTabBar(context),
+        Expanded(
+          child: IndexedStack(
+            index: _activeTab.clamp(0, _tabs.length - 1),
+            children: [
+              for (final tab in _tabs)
+                KeyedSubtree(
+                  key: ValueKey(tab.file.path),
+                  child: tab.handle.buildBody(context),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Editor tabs above the content, styled like the terminal tab strip.
+  Widget _docTabBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: scheme.outlineVariant,
+            width: 0.5,
+          ),
+        ),
+      ),
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        children: [
+          for (var i = 0; i < _tabs.length; i++)
+            _DocTabChip(
+              title: _tabs[i].handle.title,
+              dirty: _tabs[i].handle.dirty,
+              active: i == _activeTab,
+              onTap: () => _activateTab(i),
+              onClose: () => unawaited(_closeTabAt(i)),
+            ),
+        ],
+      ),
+    );
   }
 
   /// Window-side title row for an open document (app bar level).
@@ -1194,6 +1315,101 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             label: Text(AppL10n.t.openTree),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One editor tab: title, unsaved dot, close button on hover.
+class _DocTabChip extends StatefulWidget {
+  const _DocTabChip({
+    required this.title,
+    required this.dirty,
+    required this.active,
+    required this.onTap,
+    required this.onClose,
+  });
+
+  final String title;
+  final bool dirty;
+  final bool active;
+  final VoidCallback onTap;
+  final VoidCallback onClose;
+
+  @override
+  State<_DocTabChip> createState() => _DocTabChipState();
+}
+
+class _DocTabChipState extends State<_DocTabChip> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            height: 26,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: widget.active
+                  ? scheme.surfaceContainerHighest
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.dirty) ...[
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 150),
+                  child: Text(
+                    widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: widget.active
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: widget.active
+                          ? scheme.onSurface
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                if (_hovered) ...[
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.onClose,
+                    child: Icon(
+                      Icons.close,
+                      size: 13,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

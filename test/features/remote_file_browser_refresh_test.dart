@@ -10,6 +10,7 @@ import '../support/fake_tunnel_session.dart';
 
 class _FakeHandle extends DocumentHandle {
   int closes = 0;
+  int reloads = 0;
 
   @override
   String get title => 'fake.txt';
@@ -23,6 +24,11 @@ class _FakeHandle extends DocumentHandle {
   @override
   Future<void> close() async {
     closes++;
+  }
+
+  @override
+  Future<void> reloadExternalChanges() async {
+    reloads++;
   }
 }
 
@@ -66,6 +72,8 @@ void main() {
     await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
 
-    expect(created, 2);
+    // The tab keeps its document; a refresh re-reads it instead of
+    // building a second handle.
+    expect(created, 1);
   });
 }
