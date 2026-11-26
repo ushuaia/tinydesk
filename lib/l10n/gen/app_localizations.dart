@@ -1430,6 +1430,12 @@ abstract class AppLocalizations {
   /// **'Opening .{extension} files is not supported yet'**
   String unsupportedFile(String extension);
 
+  /// Snackbar when a binary file is opened in the text viewer
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is a binary file and cannot be opened as text'**
+  String binaryFile(String name);
+
   /// No description provided for @nonUtf8.
   ///
   /// In en, this message translates to:

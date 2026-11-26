@@ -24,6 +24,7 @@ import 'document_sync.dart';
 import 'file_browser_widgets.dart';
 import 'document_handles.dart';
 import 'explorer_tree.dart';
+import 'file_sniff.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import '../workspace/floating_window_header.dart';
 
@@ -533,6 +534,23 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       _activateTab(index);
       if (narrow) _setRail(false);
       return;
+    }
+    if (!_hasDedicatedReader(file)) {
+      // Everything else opens in the text viewer, but only if the content
+      // looks like text: check the first chunk instead of trusting the
+      // extension (or the absence of one).
+      try {
+        final head = await widget.session.readHead(file.path, 4096);
+        if (looksBinary(head)) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppL10n.t.binaryFile(file.name))),
+          );
+          return;
+        }
+      } catch (_) {
+        // Peeking failed (network, permissions); let the viewer try.
+      }
     }
     final handle = widget.documentHandleFactory(
       session: widget.session,
@@ -1154,6 +1172,16 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     if (file == null) return;
     await _openFile(file, reloadIfOpen: true);
   }
+
+  /// File types with a purpose-built reader; everything else goes through
+  /// the text viewer (subject to the binary sniff).
+  bool _hasDedicatedReader(RemoteFile file) =>
+      file.isMarkdown ||
+      file.isPdf ||
+      file.isCsv ||
+      file.isSpreadsheet ||
+      file.isWord ||
+      file.isImage;
 
   bool _isNarrow(BuildContext context) =>
       MediaQuery.of(context).size.width < 700;

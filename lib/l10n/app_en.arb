@@ -446,6 +446,15 @@
     }
   },
   "unsupportedFile": "Opening .{extension} files is not supported yet",
+  "binaryFile": "“{name}” is a binary file and cannot be opened as text",
+  "@binaryFile": {
+    "description": "Snackbar when a binary file is opened in the text viewer",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "@unsupportedFile": {
     "placeholders": {
       "extension": {

@@ -6,8 +6,7 @@ String documentKind(RemoteFile file) {
   if (file.isPdf) return 'pdf';
   if (file.isCsv || file.isSpreadsheet || file.isWord) return 'office';
   if (file.isImage) return 'image';
-  if (file.isText) return 'text';
-  return 'file';
+  return 'text';
 }
 
 /// The directory containing [path].

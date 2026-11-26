@@ -222,6 +222,15 @@
   "copyFailed": "复制失败：{error}",
   "savedTo": "已保存到 {path}",
   "unsupportedFile": "暂不支持打开 .{extension} 文件",
+  "binaryFile": "“{name}” 是二进制文件，无法以文本方式打开",
+  "@binaryFile": {
+    "description": "Snackbar when a binary file is opened in the text viewer",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "nonUtf8": "非 UTF-8 编码，只读打开",
   "binaryContent": "检测到二进制内容，无法编辑",
   "fileTooLarge2MB": "文件超过 2MB，只读打开",

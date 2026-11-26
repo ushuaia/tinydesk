@@ -768,6 +768,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String binaryFile(String name) {
+    return '“$name” is a binary file and cannot be opened as text';
+  }
+
+  @override
   String get nonUtf8 => 'Not UTF-8 encoded — opened read-only';
 
   @override

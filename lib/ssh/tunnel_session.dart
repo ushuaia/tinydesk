@@ -53,6 +53,10 @@ abstract class TunnelSession {
 
   Future<Uint8List> readBytes(String path);
 
+  /// Reads at most [length] bytes from the start of [path], without loading
+  /// the whole file (used to sniff binary content before opening a tab).
+  Future<Uint8List> readHead(String path, int length);
+
   Future<void> writeText(String path, String content);
 
   /// Deletes a file or directory (directories are removed recursively).
@@ -178,6 +182,22 @@ class SshTunnelSession implements TunnelSession {
     final file = await sftp.open(path);
     try {
       return await file.readBytes();
+    } finally {
+      await file.close();
+    }
+  }
+
+  @override
+  Future<Uint8List> readHead(String path, int length) async {
+    final sftp = await _sftpClient;
+    final file = await sftp.open(path);
+    try {
+      final bytes = <int>[];
+      await for (final chunk in file.read(length: length)) {
+        bytes.addAll(chunk);
+        if (bytes.length >= length) break;
+      }
+      return Uint8List.fromList(bytes);
     } finally {
       await file.close();
     }

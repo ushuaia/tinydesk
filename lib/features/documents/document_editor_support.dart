@@ -1,13 +1,12 @@
 import 'dart:convert';
 import '../../core/app_language.dart';
 import 'dart:io';
-import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../../data/remote_file.dart';
+import 'file_sniff.dart';
 import '../../ssh/tunnel_session.dart';
 
 class EditorDocument {
@@ -40,7 +39,7 @@ class DocumentEditorSupport {
     if (bytes.length > maxReadableBytes) {
       throw FormatException(AppL10n.t.fileTooLarge5MB);
     }
-    if (_looksBinary(bytes)) {
+    if (looksBinary(bytes)) {
       return EditorDocument(
         text: '',
         editable: false,
@@ -64,13 +63,6 @@ class DocumentEditorSupport {
     }
   }
 
-  static bool _looksBinary(Uint8List bytes) {
-    final limit = math.min(bytes.length, 8192);
-    for (var index = 0; index < limit; index++) {
-      if (bytes[index] == 0) return true;
-    }
-    return false;
-  }
 
   /// True when the remote file changed since it was opened (size or mtime).
   ///

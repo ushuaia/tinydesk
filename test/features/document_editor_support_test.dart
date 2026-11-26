@@ -22,6 +22,10 @@ class _FakeSession implements TunnelSession {
   Future<Uint8List> readBytes(String path) async => bytes;
 
   @override
+  Future<Uint8List> readHead(String path, int length) async =>
+      bytes.length > length ? bytes.sublist(0, length) : bytes;
+
+  @override
   Future<String> readText(String path) async => '';
 
   @override

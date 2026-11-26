@@ -17,7 +17,7 @@ void main() {
     expect(documentKind(_file('a.docx')), 'office');
     expect(documentKind(_file('a.png')), 'image');
     expect(documentKind(_file('a.txt')), 'text');
-    expect(documentKind(_file('a.bin')), 'file');
+    expect(documentKind(_file('a.bin')), 'text');
   });
 
   test('parentPath returns the containing directory', () {

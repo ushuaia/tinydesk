@@ -743,6 +743,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String binaryFile(String name) {
+    return '“$name” 是二进制文件，无法以文本方式打开';
+  }
+
+  @override
   String get nonUtf8 => '非 UTF-8 编码，只读打开';
 
   @override

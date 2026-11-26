@@ -273,6 +273,16 @@ class LocalSession implements TunnelSession {
   Future<Uint8List> readBytes(String path) => File(path).readAsBytes();
 
   @override
+  Future<Uint8List> readHead(String path, int length) async {
+    final file = await File(path).open();
+    try {
+      return await file.read(length);
+    } finally {
+      await file.close();
+    }
+  }
+
+  @override
   Future<void> writeText(String path, String content) =>
       File(path).writeAsString(content);
 

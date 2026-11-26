@@ -12,7 +12,8 @@ import 'office_reader_page.dart';
 import 'pdf_reader_page.dart';
 import 'text_document_view.dart';
 
-/// Builds the content handle for a file, or null when the type is unsupported.
+/// Builds the content handle for a file: dedicated readers for markdown,
+/// PDF, office and images; the text viewer for everything else.
 DocumentHandle? createDocumentHandle({
   required TunnelSession session,
   required RemoteFile file,
@@ -44,12 +45,12 @@ DocumentHandle? createDocumentHandle({
   if (file.isImage) {
     return ImageDocumentHandle(session: session, file: file);
   }
-  if (file.isText) {
-    return TextDocumentHandle(
-      controller: TextDocumentController(session: session, file: file),
-    );
-  }
-  return null;
+  // Everything else opens in the text viewer. Binary content is rejected by
+  // the caller's sniff before a tab is created, so this does not depend on
+  // an extension allow-list.
+  return TextDocumentHandle(
+    controller: TextDocumentController(session: session, file: file),
+  );
 }
 
 class MarkdownDocumentHandle extends DocumentHandle {
