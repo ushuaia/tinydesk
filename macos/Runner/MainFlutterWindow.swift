@@ -96,9 +96,17 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     }
     inputChannel = input
     eventMonitor = NSEvent.addLocalMonitorForEvents(
-      matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
+      matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel, .keyDown]
     ) { [weak self] event in
-      guard let self = self, event.window === self else {
+      guard let self = self else { return event }
+      // Cmd+` cycles the main page and the open overlays. Handling it here
+      // means it still works when a webview or the terminal owns the
+      // keyboard focus inside Flutter.
+      if event.type == .keyDown, self.isOverlayShortcut(event) {
+        self.windowChannel?.invokeMethod("cycleOverlay", arguments: nil)
+        return nil
+      }
+      guard event.window === self else {
         return event
       }
       // Double-clicking the merged title bar (native strip or our 40px
@@ -125,6 +133,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       }
       return event
     }
+
 
     super.awakeFromNib()
   }
@@ -165,6 +174,17 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
   private func activateRunningInstance() -> Bool {
     guard let other = otherRunningInstance() else { return false }
     return other.activate(options: [.activateAllWindows])
+  }
+
+  /// Cmd+` (the key left of 1, with or without shift).
+  private func isOverlayShortcut(_ event: NSEvent) -> Bool {
+    let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    guard mods.contains(.command),
+          !mods.contains(.option),
+          !mods.contains(.control) else {
+      return false
+    }
+    return event.charactersIgnoringModifiers == "`"
   }
 
   /// Route the yellow light explicitly. With the title bar merged into the

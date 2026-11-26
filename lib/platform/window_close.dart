@@ -10,19 +10,26 @@ class WindowCloseHandler {
 
   static Future<void> Function()? _onCloseRequested;
   static Future<bool> Function()? _onMinimizeRequested;
+  static Future<void> Function()? _onCycleRequested;
 
   /// Registers the Dart-side handlers. Safe to call on every platform: the
   /// channel simply never fires where the native side is absent.
   static void register(
     Future<void> Function() handler, {
     Future<bool> Function()? onMinimizeRequested,
+    Future<void> Function()? onCycleRequested,
   }) {
     _onCloseRequested = handler;
     _onMinimizeRequested = onMinimizeRequested;
+    _onCycleRequested = onCycleRequested;
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'closeRequested':
           await _onCloseRequested?.call();
+          return null;
+        case 'cycleOverlay':
+          debugPrint('[window] cycleOverlay');
+          await _onCycleRequested?.call();
           return null;
         case 'minimizeRequested':
           // Returning false tells the native side to run its default
