@@ -27,6 +27,8 @@ class ExplorerTree extends StatefulWidget {
     required this.onFileSelected,
     required this.onExpandedChanged,
     this.showHidden = true,
+    this.initialSelectedRoot,
+    this.onSelectedRootChanged,
     this.onDownload,
     this.onCopyPath,
     this.onDelete,
@@ -41,6 +43,12 @@ class ExplorerTree extends StatefulWidget {
 
   /// Whether dotfiles and dot directories are listed.
   final bool showHidden;
+
+  /// Root the tree should show first (restored from the last visit).
+  final String? initialSelectedRoot;
+
+  /// Fires when the user picks a root, so the page can persist it.
+  final ValueChanged<String>? onSelectedRootChanged;
   final String currentPath;
   final List<String> expandedPaths;
   final ValueChanged<String> onDirectorySelected;
@@ -79,6 +87,7 @@ class _ExplorerTreeState extends State<ExplorerTree> {
   late List<RemoteFile> _roots = [...widget.roots];
   /// Root shown in the tree; the other project roots live in the dropdown.
   String? _selectedRoot;
+  bool _userPickedRoot = false;
   final GlobalKey _rootButtonKey = GlobalKey();
   OverlayEntry? _rootMenuEntry;
   bool _rootMenuOpen = false;
@@ -101,7 +110,7 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       unawaited(_loadDirectory(key.substring(5)));
     }
     unawaited(_expandAncestors(widget.currentPath));
-    _selectedRoot = _rootFor(widget.currentPath);
+    _selectedRoot = widget.initialSelectedRoot ?? _rootFor(widget.currentPath);
     final selected = _selectedRoot;
     if (selected != null && !_children.containsKey(selected)) {
       unawaited(_loadDirectory(selected));
@@ -136,7 +145,9 @@ class _ExplorerTreeState extends State<ExplorerTree> {
 
   void _selectRoot(String path) {
     if (_selectedRoot == path) return;
+    _userPickedRoot = true;
     setState(() => _selectedRoot = path);
+    widget.onSelectedRootChanged?.call(path);
     if (!_children.containsKey(path)) {
       unawaited(_loadDirectory(path));
     }
@@ -182,6 +193,17 @@ class _ExplorerTreeState extends State<ExplorerTree> {
         setState(() => _selectedRoot = target);
         if (!_children.containsKey(target)) {
           unawaited(_loadDirectory(target));
+        }
+      }
+    }
+    if (widget.initialSelectedRoot != null &&
+        widget.initialSelectedRoot != oldWidget.initialSelectedRoot &&
+        !_userPickedRoot) {
+      final restored = widget.initialSelectedRoot!;
+      if (_selectedRoot != restored) {
+        setState(() => _selectedRoot = restored);
+        if (!_children.containsKey(restored)) {
+          unawaited(_loadDirectory(restored));
         }
       }
     }

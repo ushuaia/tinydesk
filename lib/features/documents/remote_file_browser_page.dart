@@ -124,6 +124,12 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   int _treeRefreshToken = 0;
   bool _railOpen = false;
   bool _showHidden = true;
+  /// Files to restore once the project roots have loaded.
+  List<String> _pendingRestorePaths = const [];
+  bool _stateLoaded = false;
+  bool _rootsLoaded = false;
+  String? _initialSelectedRoot;
+  bool _tabsRestored = false;
   bool _dividerDragging = false;
   late final MultiSplitViewController _splitController = MultiSplitViewController(
     areas: [
@@ -159,6 +165,23 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       _currentFile = _tabs[index].file;
       _isFavorite = _favoritePaths.contains(_currentFile!.path);
     });
+    _persistOpenDocs();
+  }
+
+  /// Remembers the open tabs and the visible one for the next visit.
+  void _persistOpenDocs() {
+    // Do not clobber the saved list before the restore has run.
+    if (_tabs.isEmpty && _pendingRestorePaths.isNotEmpty && !_tabsRestored) {
+      return;
+    }
+    final active = _activeDoc?.file.path ?? '';
+    unawaited(
+      _explorerStore.saveOpenDocs(
+        widget.hostId,
+        [for (final tab in _tabs) tab.file.path],
+        active,
+      ),
+    );
   }
 
   /// Removes and disposes one tab. [confirmed] skips the save prompt
@@ -190,6 +213,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         _isFavorite = _favoritePaths.contains(_currentFile!.path);
       }
     });
+    _persistOpenDocs();
     if (mounted) _treeRefreshToken++;
   }
 
@@ -327,6 +351,8 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     setState(() {
       _expanded = state.expandedPaths;
       _showHidden = state.showHidden;
+      _initialSelectedRoot =
+          state.selectedRoot.isEmpty ? null : state.selectedRoot;
       _treeWidth = state.treeWidth.clamp(220.0, 340.0);
       _splitController.areas = [
         Area(size: _treeWidth, min: 220, max: 340),
@@ -335,7 +361,64 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       // Entering the files page always shows the tree; opening a file later
       // collapses it to focus the content.
       _railOpen = true;
+      _pendingRestorePaths = state.openDocPaths;
     });
+    _stateLoaded = true;
+    unawaited(_restoreTabs());
+  }
+
+  /// Reopens the documents left open last time. Runs after the project roots
+  /// are known, so per-file project metadata resolves correctly.
+  Future<void> _restoreTabs() async {
+    // Both the persisted state and the project roots must be known, and the
+    // restore runs once.
+    if (_tabsRestored || !_stateLoaded || !_rootsLoaded) return;
+    if (_pendingRestorePaths.isEmpty) return;
+    _tabsRestored = true;
+    final paths = List.of(_pendingRestorePaths);
+    for (final path in paths) {
+      if (_tabs.any((tab) => tab.file.path == path)) continue;
+      final handle = widget.documentHandleFactory(
+        session: widget.session,
+        file: RemoteFile(
+          name: baseName(path),
+          path: path,
+          isDirectory: false,
+        ),
+        hostId: widget.hostId,
+        projectRoot: _projectRootFor(path),
+        userScope: widget.userScope,
+      );
+      if (handle == null) continue;
+      handle.addListener(_onDocChanged);
+      if (!mounted) return;
+      setState(() {
+        _tabs.add(_OpenDoc(handle: handle, file: RemoteFile(
+          name: baseName(path),
+          path: path,
+          isDirectory: false,
+        )));
+      });
+    }
+    if (!mounted) return;
+    // The file the browser was last showing wins; a file freshly requested
+    // from the terminal outranks both.
+    final active = _activeDoc?.file.path ??
+        paths.where((p) => _tabs.any((t) => t.file.path == p)).lastOrNull;
+    if (active != null) {
+      final index = _tabs.indexWhere((tab) => tab.file.path == active);
+      if (index >= 0) {
+        _activateTab(index);
+        return;
+      }
+    }
+    if (_tabs.isEmpty) {
+      setState(() {
+        _activeTab = -1;
+        _currentFile = null;
+        _isFavorite = false;
+      });
+    }
   }
 
   void _setRail(bool open) {
@@ -447,6 +530,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       _currentFile = file;
       _isFavorite = _favoritePaths.contains(file.path);
     });
+    _persistOpenDocs();
     if (narrow) {
       unawaited(_explorerStore.saveMiniRail(widget.hostId, false));
     }
@@ -510,6 +594,10 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       refreshToken: _treeRefreshToken,
       autoSync: widget.active,
       showHidden: _showHidden,
+      initialSelectedRoot: _initialSelectedRoot,
+      onSelectedRootChanged: (path) => unawaited(
+        _explorerStore.saveSelectedRoot(widget.hostId, path),
+      ),
       onDirectorySelected: _selectDirectory,
       onFileSelected: (file) => unawaited(_openFile(file)),
       onExpandedChanged: (paths) {
@@ -580,6 +668,8 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           ),
       ];
     });
+    _rootsLoaded = true;
+    unawaited(_restoreTabs());
   }
 
   /// Path levels for the breadcrumb bar: `/`, `/home`, `/home/user`, …
@@ -678,6 +768,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       } else if (mounted && _activeTab >= _tabs.length) {
         _activateTab(_tabs.length - 1);
       }
+      _persistOpenDocs();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppL10n.t.fileDeleted(file.name))),
