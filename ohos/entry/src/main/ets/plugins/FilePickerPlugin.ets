@@ -6,6 +6,11 @@ import { fileIo } from '@kit.CoreFileKit';
 import { util } from '@kit.ArkTS';
 import webview from '@ohos.web.webview';
 
+class CookieEntry {
+  name: string = '';
+  value: string = '';
+}
+
 export default class FilePickerPlugin implements FlutterPlugin, MethodCallHandler {
   private channel: MethodChannel | null = null;
   private webDataChannel: MethodChannel | null = null;
@@ -36,6 +41,31 @@ export default class FilePickerPlugin implements FlutterPlugin, MethodCallHandle
             result.success(true);
           } catch (error) {
             result.error('CLEAR_FAILED', (error as Error).message, null);
+          }
+        } else if (call.method === 'getSessionCookies') {
+          // The WebView cookie store is the single source of truth for the
+          // opencode session; native HTTP features (project roots, favorite
+          // sync) read it through this method, like the macOS/Android ports.
+          try {
+            const url = call.argument('url') as string;
+            const raw = webview.WebCookieManager.fetchCookieSync(url);
+            const cookies: Array<CookieEntry> = [];
+            if (raw && raw.length > 0) {
+              for (const pair of raw.split(';')) {
+                const trimmed = pair.trim();
+                const eq = trimmed.indexOf('=');
+                if (eq > 0) {
+                  const entry = new CookieEntry();
+                  entry.name = trimmed.slice(0, eq);
+                  entry.value = trimmed.slice(eq + 1);
+                  cookies.push(entry);
+                }
+              }
+            }
+            result.success(cookies);
+          } catch (error) {
+            // 17100002: no cookie for the URL yet — an empty jar is fine.
+            result.success([]);
           }
         } else {
           result.notImplemented();
