@@ -13,6 +13,7 @@ import '../platform/background_task.dart';
 import '../core/connection_controller.dart';
 import '../core/connection_state.dart';
 import 'host_session.dart';
+import 'window_chrome.dart';
 
 /// App-scoped owner of every open host session.
 ///
@@ -116,6 +117,38 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
     if (controller == null || !controller.expanded) return false;
     controller.minimize();
     return true;
+  }
+
+  /// Cmd+~: cycles through the main page and every open overlay (terminal /
+  /// file browser). Returns the stop it moved to, or null when no overlay is
+  /// open (the shortcut then does nothing).
+  Future<FrontWindow?> cycleOverlay() async {
+    final session = activeSession;
+    if (session == null) return null;
+    final current = frontWindowOf(session.terminal, session.fileBrowser);
+    final next = nextOverlayStep(
+      terminalOpen: session.terminal.visible,
+      browserOpen: session.fileBrowser.visible,
+      current: current,
+    );
+    if (next == null) return null;
+    switch (next) {
+      case FrontWindow.terminal:
+        await showTerminal();
+        session.terminal.focusNode.requestFocus();
+      case FrontWindow.fileBrowser:
+        showFileBrowser();
+      case FrontWindow.none:
+        switch (current) {
+          case FrontWindow.terminal:
+            session.terminal.minimize();
+          case FrontWindow.fileBrowser:
+            session.fileBrowser.minimize();
+          case FrontWindow.none:
+            break;
+        }
+    }
+    return next;
   }
 
   /// Shows the terminal for the active host and collapses the file browser.

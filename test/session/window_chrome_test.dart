@@ -42,6 +42,85 @@ void main() {
     expect(frontWindowOf(t, b), FrontWindow.terminal);
   });
 
+  group('Cmd+~ cycle', () {
+    test('nothing open does nothing', () {
+      expect(
+        nextOverlayStep(
+          terminalOpen: false,
+          browserOpen: false,
+          current: FrontWindow.none,
+        ),
+        isNull,
+      );
+    });
+
+    test('only the terminal open cycles terminal to main page to terminal', () {
+      expect(
+        nextOverlayStep(
+          terminalOpen: true,
+          browserOpen: false,
+          current: FrontWindow.none,
+        ),
+        FrontWindow.terminal,
+      );
+      expect(
+        nextOverlayStep(
+          terminalOpen: true,
+          browserOpen: false,
+          current: FrontWindow.terminal,
+        ),
+        FrontWindow.none,
+      );
+    });
+
+    test('only the browser open cycles browser to main page to browser', () {
+      expect(
+        nextOverlayStep(
+          terminalOpen: false,
+          browserOpen: true,
+          current: FrontWindow.none,
+        ),
+        FrontWindow.fileBrowser,
+      );
+      expect(
+        nextOverlayStep(
+          terminalOpen: false,
+          browserOpen: true,
+          current: FrontWindow.fileBrowser,
+        ),
+        FrontWindow.none,
+      );
+    });
+
+    test('both open cycle main page, terminal, browser', () {
+      const open = (terminalOpen: true, browserOpen: true);
+      expect(
+        nextOverlayStep(
+          terminalOpen: open.terminalOpen,
+          browserOpen: open.browserOpen,
+          current: FrontWindow.none,
+        ),
+        FrontWindow.terminal,
+      );
+      expect(
+        nextOverlayStep(
+          terminalOpen: open.terminalOpen,
+          browserOpen: open.browserOpen,
+          current: FrontWindow.terminal,
+        ),
+        FrontWindow.fileBrowser,
+      );
+      expect(
+        nextOverlayStep(
+          terminalOpen: open.terminalOpen,
+          browserOpen: open.browserOpen,
+          current: FrontWindow.fileBrowser,
+        ),
+        FrontWindow.none,
+      );
+    });
+  });
+
   test('no session and no windows means native behaviour', () {
     expect(frontWindowOf(null, null), FrontWindow.none);
   });

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'core/app_language.dart';
 import 'session/app_session_manager.dart';
@@ -44,6 +45,27 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _quitDialogOpen = false;
 
+  bool _isDesktop = false;
+
+  /// Cmd+~ cycles the main page and the open overlays. A global handler is
+  /// used because the key must work while the terminal or a webview owns
+  /// focus; the trade-off is that the terminal no longer receives it.
+  bool _handleOverlayShortcut(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (event.logicalKey != LogicalKeyboardKey.backquote) return false;
+    final keys = HardwareKeyboard.instance;
+    final modifier = defaultTargetPlatform == TargetPlatform.macOS
+        ? keys.isMetaPressed
+        : keys.isControlPressed;
+    if (!modifier) return false;
+    unawaited(_session.cycleOverlay().then((stop) {
+      if (stop == FrontWindow.none) {
+        FocusManager.instance.primaryFocus?.unfocus();
+      }
+    }));
+    return true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +75,12 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
     unawaited(
       _session.restore(repository: _repository, keyStore: _keyStore),
     );
+    _isDesktop = defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
+    if (_isDesktop) {
+      HardwareKeyboard.instance.addHandler(_handleOverlayShortcut);
+    }
     if (defaultTargetPlatform == TargetPlatform.macOS) {
       WindowCloseHandler.register(
         _handleWindowClose,
@@ -137,6 +165,9 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
 
   @override
   void dispose() {
+    if (_isDesktop) {
+      HardwareKeyboard.instance.removeHandler(_handleOverlayShortcut);
+    }
     if (defaultTargetPlatform == TargetPlatform.macOS) {
       WindowCloseHandler.unregister();
     }

@@ -21,3 +21,24 @@ FrontWindow frontWindowOf(
   }
   return FrontWindow.none;
 }
+
+/// Next stop when cycling overlays with Cmd+~.
+///
+/// Only overlays that are still open (expanded or collapsed to a ball) take
+/// part, so the cycle has exactly as many stops as the user has open:
+/// [main page] + terminal? + file browser?. Returns `null` when nothing is
+/// open, in which case the shortcut does nothing.
+FrontWindow? nextOverlayStep({
+  required bool terminalOpen,
+  required bool browserOpen,
+  required FrontWindow current,
+}) {
+  final stops = <FrontWindow>[
+    FrontWindow.none,
+    if (terminalOpen) FrontWindow.terminal,
+    if (browserOpen) FrontWindow.fileBrowser,
+  ];
+  if (stops.length == 1) return null;
+  final index = stops.indexOf(current);
+  return stops[(index + 1) % stops.length];
+}
