@@ -302,11 +302,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     ];
     _explorerStore = ExplorerStateStore();
     unawaited(_loadExplorerState(initial));
-    if (widget.initialPath.isEmpty && initial == null) {
-      unawaited(_bootstrapHome());
-    } else {
-      unawaited(_loadRoots());
-    }
     unawaited(_loadFavoritePaths());
     _docSyncTimer?.cancel();
     _docSyncTimer = Timer.periodic(
@@ -359,7 +354,15 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   Future<void> _loadExplorerState(RemoteFile? initial) async {
     final state = await _explorerStore.load(widget.hostId);
     if (!mounted) return;
+    final explicitStart = widget.initialPath.isNotEmpty || initial != null;
+    final restoredPath = state.currentPath;
     setState(() {
+      if (!explicitStart &&
+          restoredPath.isNotEmpty &&
+          restoredPath != '/' &&
+          _path.isEmpty) {
+        _path = restoredPath;
+      }
       _expanded = state.expandedPaths;
       _showHidden = state.showHidden;
       _initialSelectedRoot =
@@ -376,6 +379,11 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       _pendingActivePath = state.activeDocPath;
     });
     _stateLoaded = true;
+    if (!explicitStart && (restoredPath.isEmpty || restoredPath == '/')) {
+      await _bootstrapHome();
+    } else {
+      await _loadRoots();
+    }
     unawaited(_restoreTabs());
   }
 
@@ -423,10 +431,12 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     if (active != null) {
       final index = _tabs.indexWhere((tab) => tab.file.path == active);
       if (index >= 0) {
-        final root = _projectRootFor(active);
-        setState(() => _initialSelectedRoot = root);
         _activateTab(index);
-        unawaited(_explorerStore.saveSelectedRoot(widget.hostId, root));
+        if (_initialSelectedRoot == null || _initialSelectedRoot!.isEmpty) {
+          final root = _projectRootFor(_path.isEmpty ? active : _path);
+          setState(() => _initialSelectedRoot = root);
+          unawaited(_explorerStore.saveSelectedRoot(widget.hostId, root));
+        }
         return;
       }
     }
@@ -559,6 +569,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     // so browsing continues. The content area keeps the current file.
     if (_path == path) return;
     setState(() => _path = path);
+    unawaited(_explorerStore.saveCurrentPath(widget.hostId, path));
   }
 
   Future<void> _handleBack() async {
@@ -619,8 +630,12 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       onDirectorySelected: _selectDirectory,
       onFileSelected: (file) => unawaited(_openFile(file)),
       onExpandedChanged: (paths) {
-        setState(() => _expanded = paths);
-        unawaited(_explorerStore.saveExpanded(widget.hostId, paths));
+        // The tree also reports from didUpdateWidget, i.e. mid-build.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _expanded = paths);
+          unawaited(_explorerStore.saveExpanded(widget.hostId, paths));
+        });
       },
       onDownload: (file) => unawaited(_download(file)),
       onDelete: (file) => unawaited(_deleteFile(file)),

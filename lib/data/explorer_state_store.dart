@@ -12,6 +12,7 @@ class ExplorerState {
     this.selectedRoot = '',
     this.openDocPaths = const [],
     this.activeDocPath = '',
+    this.currentPath = '',
   });
 
   final List<String> expandedPaths;
@@ -24,6 +25,9 @@ class ExplorerState {
   /// visit so the same project and pages come back.
   final List<String> openDocPaths;
   final String activeDocPath;
+
+  /// Directory the tree was browsing, restored on the next visit.
+  final String currentPath;
 }
 
 class ExplorerStateStore {
@@ -34,6 +38,7 @@ class ExplorerStateStore {
   static const _rootPrefix = 'explorer.selectedRoot.v1.';
   static const _docsPrefix = 'explorer.openDocs.v1.';
   static const _activeDocPrefix = 'explorer.activeDoc.v1.';
+  static const _pathPrefix = 'explorer.currentPath.v1.';
 
   Future<ExplorerState> load(String hostId) async {
     try {
@@ -55,6 +60,7 @@ class ExplorerStateStore {
               .map((item) => item as String)
               .toList();
       final activeDoc = prefs.getString('$_activeDocPrefix$hostId') ?? '';
+      final current = prefs.getString('$_pathPrefix$hostId') ?? '';
       return ExplorerState(
         expandedPaths: expanded,
         treeWidth: width,
@@ -63,6 +69,7 @@ class ExplorerStateStore {
         selectedRoot: root,
         openDocPaths: docs,
         activeDocPath: activeDoc,
+        currentPath: current,
       );
     } catch (_) {
       return const ExplorerState();
@@ -99,6 +106,13 @@ class ExplorerStateStore {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('$_docsPrefix$hostId', jsonEncode(paths));
       await prefs.setString('$_activeDocPrefix$hostId', activePath);
+    } catch (_) {}
+  }
+
+  Future<void> saveCurrentPath(String hostId, String path) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('$_pathPrefix$hostId', path);
     } catch (_) {}
   }
 

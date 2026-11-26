@@ -26,6 +26,23 @@ class _TabHandle extends DocumentHandle {
   Future<void> close() async {}
 }
 
+/// Two-level listing: /p has one sub directory and one file; sub is empty.
+class _DirSession extends FakeTunnelSession {
+  _DirSession() : super(home: '/p');
+
+
+  @override
+  Future<List<RemoteFile>> listDirectory(String path) async {
+    if (path == '/p') {
+      return const [
+        RemoteFile(name: 'sub', path: '/p/sub', isDirectory: true),
+        RemoteFile(name: 'a.txt', path: '/p/a.txt', isDirectory: false),
+      ];
+    }
+    return const [];
+  }
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -142,5 +159,40 @@ void main() {
       tester.widget<IndexedStack>(find.byType(IndexedStack)).index,
       1,
     );
+  });
+
+  testWidgets('the browsed directory comes back on the next visit',
+      (tester) async {
+    Widget page() => MaterialApp(
+          home: RemoteFileBrowserPage(
+            session: _DirSession(),
+            projectRoot: '/p',
+            hostId: 'h1',
+            floating: false,
+            documentHandleFactory: ({
+              required session,
+              required file,
+              required hostId,
+              required projectRoot,
+              required userScope,
+            }) =>
+                _TabHandle(file),
+          ),
+        );
+
+    await tester.pumpWidget(page());
+    await tester.pumpAndSettle();
+
+    // Browse into the sub directory (no file opened).
+    await tester.tap(find.text('sub'));
+    await tester.pumpAndSettle();
+    expect(find.text('/p/sub'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(page());
+    await tester.pumpAndSettle();
+
+    // The empty state shows the restored working directory.
+    expect(find.text('/p/sub'), findsOneWidget);
   });
 }

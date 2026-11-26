@@ -201,7 +201,9 @@ class _ExplorerTreeState extends State<ExplorerTree> {
         !_userPickedRoot) {
       final restored = widget.initialSelectedRoot!;
       if (_selectedRoot != restored) {
-        setState(() => _selectedRoot = restored);
+        // didUpdateWidget is followed by a build; calling setState here can
+        // mark the page dirty mid-build.
+        _selectedRoot = restored;
         if (!_children.containsKey(restored)) {
           unawaited(_loadDirectory(restored));
         }
