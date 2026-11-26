@@ -47,8 +47,9 @@ class ExplorerTree extends StatefulWidget {
   /// Root the tree should show first (restored from the last visit).
   final String? initialSelectedRoot;
 
-  /// Fires when the user picks a root, so the page can persist it.
-  final ValueChanged<String>? onSelectedRootChanged;
+  /// Fires when the user picks a root. Returning false keeps the current
+  /// root (the page may need to ask about unsaved documents first).
+  final Future<bool> Function(String root)? onSelectedRootChanged;
   final String currentPath;
   final List<String> expandedPaths;
   final ValueChanged<String> onDirectorySelected;
@@ -144,11 +145,13 @@ class _ExplorerTreeState extends State<ExplorerTree> {
         (_roots.isEmpty ? null : _roots.first.path);
   }
 
-  void _selectRoot(String path) {
+  Future<void> _selectRoot(String path) async {
     if (_selectedRoot == path) return;
+    // The page asks about unsaved documents before the project changes.
+    final accepted = await widget.onSelectedRootChanged?.call(path) ?? true;
+    if (!accepted || !mounted) return;
     _userPickedRoot = true;
     setState(() => _selectedRoot = path);
-    widget.onSelectedRootChanged?.call(path);
     if (!_children.containsKey(path)) {
       unawaited(_loadDirectory(path));
     }
@@ -476,7 +479,7 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       ],
     );
     if (mounted) setState(() => _rootMenuOpen = false);
-    if (selected is String) _selectRoot(selected);
+    if (selected is String) await _selectRoot(selected);
   }
 
 

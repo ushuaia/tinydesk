@@ -506,6 +506,17 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     return true;
   }
 
+  /// Switching projects closes every open document first, asking about
+  /// unsaved ones. Returning false leaves the tree on the old project.
+  Future<bool> _switchProject(String root) async {
+    if (!await _confirmCloseDoc()) return false;
+    if (!mounted) return false;
+    setState(() => _path = root);
+    unawaited(_explorerStore.saveSelectedRoot(widget.hostId, root));
+    unawaited(_explorerStore.saveCurrentPath(widget.hostId, root));
+    return true;
+  }
+
   /// Toolbar ✕: closes just the visible tab (VSCode behaviour).
   Future<void> _closeDoc() async {
     if (_activeTab < 0) return;
@@ -633,12 +644,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       autoSync: widget.active,
       showHidden: _showHidden,
       initialSelectedRoot: _initialSelectedRoot,
-      onSelectedRootChanged: (path) {
-        // Switching the project moves the browser to that project's root.
-        setState(() => _path = path);
-        unawaited(_explorerStore.saveSelectedRoot(widget.hostId, path));
-        unawaited(_explorerStore.saveCurrentPath(widget.hostId, path));
-      },
+      onSelectedRootChanged: _switchProject,
       onDirectorySelected: _selectDirectory,
       onFileSelected: (file) => unawaited(_openFile(file)),
       onExpandedChanged: (paths) {
