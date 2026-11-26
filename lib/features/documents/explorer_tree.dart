@@ -72,6 +72,8 @@ class _ExplorerTreeState extends State<ExplorerTree> {
   // with the same path remain separate instances.
   final Set<String> _rootExpanded = {};
   late List<RemoteFile> _roots = [...widget.roots];
+  /// Root shown in the tree; the other project roots live in the dropdown.
+  String? _selectedRoot;
 
   @override
   void initState() {
@@ -91,6 +93,45 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       unawaited(_loadDirectory(key.substring(5)));
     }
     unawaited(_expandAncestors(widget.currentPath));
+    _selectedRoot = _rootFor(widget.currentPath);
+    final selected = _selectedRoot;
+    if (selected != null && !_children.containsKey(selected)) {
+      unawaited(_loadDirectory(selected));
+    }
+  }
+
+  /// Deepest root that contains [path] (or null when none does).
+  String? _rootFor(String path) {
+    String? best;
+    for (final root in _roots) {
+      if (root.path.isEmpty) continue;
+      final inside = path == root.path || path.startsWith('${root.path}/');
+      if (inside && (best == null || root.path.length > best.length)) {
+        best = root.path;
+      }
+    }
+    return best;
+  }
+
+  /// Selected root, falling back to the current path's root and then to the
+  /// first root when the previous selection disappeared.
+  String? get _effectiveRoot {
+    final selected = _selectedRoot;
+    if (selected != null && _roots.any((root) => root.path == selected)) {
+      return selected;
+    }
+    final fallback = _rootFor(widget.currentPath) ??
+        (_roots.isEmpty ? null : _roots.first.path);
+    _selectedRoot = fallback;
+    return fallback;
+  }
+
+  void _selectRoot(String path) {
+    if (_selectedRoot == path) return;
+    setState(() => _selectedRoot = path);
+    if (!_children.containsKey(path)) {
+      unawaited(_loadDirectory(path));
+    }
   }
 
   void _restoreExpansions(Iterable<String> paths) {
@@ -128,6 +169,13 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       if (!isRoot) {
         unawaited(_expandAncestors(widget.currentPath));
       }
+      final target = _rootFor(widget.currentPath);
+      if (target != null && target != _selectedRoot) {
+        setState(() => _selectedRoot = target);
+        if (!_children.containsKey(target)) {
+          unawaited(_loadDirectory(target));
+        }
+      }
     }
     final oldRoots = oldWidget.roots.map((r) => r.path).toSet();
     final newRoots = widget.roots.where((r) => !oldRoots.contains(r.path)).toList();
@@ -144,6 +192,10 @@ class _ExplorerTreeState extends State<ExplorerTree> {
         if (!_children.containsKey(path)) {
           unawaited(_loadDirectory(path));
         }
+      }
+      final selected = _effectiveRoot;
+      if (selected != null && !_children.containsKey(selected)) {
+        unawaited(_loadDirectory(selected));
       }
     }
   }
@@ -276,13 +328,107 @@ class _ExplorerTreeState extends State<ExplorerTree> {
 
   @override
   Widget build(BuildContext context) {
+    final root = _effectiveRoot;
     final rows = <Widget>[];
-    for (final root in _roots) {
-      _appendRows(rows, root.path, 0, isRoot: true, rootLabel: root.name);
+    if (root != null) {
+      _appendChildren(rows, root, 0);
     }
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      children: rows,
+    return Column(
+      children: [
+        if (_roots.isNotEmpty) _rootSelector(context, root),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 4),
+            children: rows,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Header dropdown: one project root at a time, instead of stacking every
+  /// project directory in the tree.
+  Widget _rootSelector(BuildContext context, String? selected) {
+    final scheme = Theme.of(context).colorScheme;
+    final current = _roots.firstWhere(
+      (root) => root.path == selected,
+      orElse: () => _roots.first,
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+      child: PopupMenuButton<String>(
+        tooltip: current.path,
+        position: PopupMenuPosition.under,
+        onSelected: _selectRoot,
+        itemBuilder: (context) => [
+          for (final root in _roots)
+            PopupMenuItem<String>(
+              value: root.path,
+              height: 44,
+              child: Row(
+                children: [
+                  Icon(
+                    root.path == current.path
+                        ? Icons.check
+                        : Icons.folder_outlined,
+                    size: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          root.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        Text(
+                          root.path,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.folder_open, size: 15, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  current.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Icon(Icons.arrow_drop_down, size: 18, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -296,15 +442,13 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     final expanded = isRoot
         ? _rootExpanded.contains('root:$path')
         : _expanded.contains(path);
-    final loading = _loading.contains(path);
-    final children = _children[path];
     rows.add(
       _TreeRow(
         label: rootLabel ?? _basename(path),
         depth: depth,
         isDirectory: true,
         expanded: expanded,
-        loading: loading,
+        loading: _loading.contains(path),
         highlighted: path == widget.currentPath,
         onTap: () => _toggle(RemoteFile(
           name: _basename(path),
@@ -314,9 +458,15 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       ),
     );
     if (!expanded) return;
+    _appendChildren(rows, path, depth + 1);
+  }
+
+  void _appendChildren(List<Widget> rows, String path, int depth) {
+    final loading = _loading.contains(path);
+    final children = _children[path];
     if (children == null) {
       if (loading) {
-        rows.add(_LoadingRow(depth: depth + 1));
+        rows.add(_LoadingRow(depth: depth));
       }
       return;
     }
@@ -324,7 +474,7 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     if (error != null) {
       rows.add(
         _ErrorRow(
-          depth: depth + 1,
+          depth: depth,
           message: error,
           onRetry: () {
             _errors.remove(path);
@@ -336,12 +486,12 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     }
     for (final file in children) {
       if (file.isDirectory) {
-        _appendRows(rows, file.path, depth + 1);
+        _appendRows(rows, file.path, depth);
       } else {
         rows.add(
           _TreeRow(
             label: file.name,
-            depth: depth + 1,
+            depth: depth,
             isDirectory: false,
             expanded: false,
             loading: false,
