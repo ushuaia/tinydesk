@@ -49,8 +49,14 @@ void main() {
     expect(find.text('b.txt'), findsNothing);
     expect(find.text('/b'), findsNothing);
 
-    await tester.tap(find.byType(PopupMenuButton<String>));
+    final buttonRect = tester.getRect(find.byKey(const ValueKey('root-button')));
+    await tester.tap(find.byKey(const ValueKey('root-button')));
     await tester.pumpAndSettle();
+
+    // The menu panel opens right under the button.
+    final menuTop = tester.getTopLeft(find.text('/b')).dy;
+    expect(menuTop, greaterThan(buttonRect.bottom));
+
     await tester.tap(find.text('b'));
     await tester.pumpAndSettle();
 

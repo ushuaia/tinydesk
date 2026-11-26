@@ -74,6 +74,9 @@ class _ExplorerTreeState extends State<ExplorerTree> {
   late List<RemoteFile> _roots = [...widget.roots];
   /// Root shown in the tree; the other project roots live in the dropdown.
   String? _selectedRoot;
+  final GlobalKey _rootButtonKey = GlobalKey();
+  OverlayEntry? _rootMenuEntry;
+  bool _rootMenuOpen = false;
 
   @override
   void initState() {
@@ -202,6 +205,8 @@ class _ExplorerTreeState extends State<ExplorerTree> {
 
   @override
   void dispose() {
+    _rootMenuEntry?.remove();
+    _rootMenuEntry = null;
     _autoSyncTimer?.cancel();
     super.dispose();
   }
@@ -356,56 +361,11 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
-      child: PopupMenuButton<String>(
-        tooltip: current.path,
-        position: PopupMenuPosition.under,
-        onSelected: _selectRoot,
-        itemBuilder: (context) => [
-          for (final root in _roots)
-            PopupMenuItem<String>(
-              value: root.path,
-              height: 44,
-              child: SizedBox(
-                width: 300,
-                child: Row(
-                children: [
-                  Icon(
-                    root.path == current.path
-                        ? Icons.check
-                        : Icons.folder_outlined,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          root.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        Text(
-                          root.path,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      child: GestureDetector(
+        key: const ValueKey('root-button'),
+        onTap: () => _toggleRootMenu(context),
         child: Container(
+          key: _rootButtonKey,
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
@@ -414,7 +374,11 @@ class _ExplorerTreeState extends State<ExplorerTree> {
           ),
           child: Row(
             children: [
-              Icon(Icons.folder_open, size: 15, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.folder_open,
+                size: 15,
+                color: scheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -427,12 +391,143 @@ class _ExplorerTreeState extends State<ExplorerTree> {
                   ),
                 ),
               ),
-              Icon(Icons.arrow_drop_down, size: 18, color: scheme.onSurfaceVariant),
+              AnimatedRotation(
+                turns: _rootMenuOpen ? 0.5 : 0,
+                duration: const Duration(milliseconds: 120),
+                child: Icon(
+                  Icons.arrow_drop_down,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// Anchors the menu panel directly under the button: a plain
+  /// PopupMenuButton placed inside the floating window's nested Navigator
+  /// opened its menu at an unrelated position.
+  void _toggleRootMenu(BuildContext context) {
+    if (_rootMenuOpen) {
+      _closeRootMenu();
+      return;
+    }
+    final overlayRender = Overlay.of(context).context.findRenderObject();
+    if (overlayRender is! RenderBox || !overlayRender.hasSize) return;
+    final buttonBox = _rootButtonKey.currentContext?.findRenderObject();
+    if (buttonBox is! RenderBox || !buttonBox.hasSize) return;
+    final buttonTopLeft = buttonBox.localToGlobal(
+      Offset.zero,
+      ancestor: overlayRender,
+    );
+    final buttonSize = buttonBox.size;
+    final overlaySize = overlayRender.size;
+
+    final currentPath = _effectiveRoot ?? '';
+    const menuWidth = 280.0;
+    final left = buttonTopLeft.dx
+        .clamp(0.0, (overlaySize.width - menuWidth).clamp(0.0, double.infinity))
+        .toDouble();
+    const itemExtent = 48.0;
+    final menuHeight = _roots.length * itemExtent + 8;
+    final below = buttonTopLeft.dy + buttonSize.height + 4;
+    final top = below + menuHeight > overlaySize.height
+        ? (buttonTopLeft.dy - menuHeight - 4)
+            .clamp(0.0, double.infinity)
+            .toDouble()
+        : below;
+
+    _rootMenuEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // Click-away barrier.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _closeRootMenu,
+            ),
+          ),
+          Positioned(
+            left: left,
+            top: top,
+            width: menuWidth,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 4),
+                  for (final root in _roots)
+                    InkWell(
+                      onTap: () {
+                        _closeRootMenu();
+                        _selectRoot(root.path);
+                      },
+                      child: Container(
+                        height: itemExtent,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          children: [
+                            Icon(
+                              root.path == currentPath
+                                  ? Icons.check
+                                  : Icons.folder_outlined,
+                              size: 16,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    root.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  Text(
+                                    root.path,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Overlay.of(context).insert(_rootMenuEntry!);
+    setState(() => _rootMenuOpen = true);
+  }
+
+  void _closeRootMenu() {
+    _rootMenuEntry?.remove();
+    _rootMenuEntry = null;
+    if (mounted) setState(() => _rootMenuOpen = false);
   }
 
   void _appendRows(
