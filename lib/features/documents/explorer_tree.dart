@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/remote_file.dart';
 import '../../ssh/tunnel_session.dart';
+import 'anchored_menu.dart';
 
 /// Lazily-loaded directory tree used by the file explorer.
 ///
@@ -407,14 +408,9 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     );
   }
 
-  /// Anchors the menu panel directly under the button: a plain
-  /// PopupMenuButton placed inside the floating window's nested Navigator
-  /// opened its menu at an unrelated position.
-  void _toggleRootMenu(BuildContext context) {
-    if (_rootMenuOpen) {
-      _closeRootMenu();
-      return;
-    }
+  /// Anchors the menu panel directly under the button.
+  Future<void> _toggleRootMenu(BuildContext context) async {
+    if (_rootMenuOpen) return;
     final overlayRender = Overlay.of(context).context.findRenderObject();
     if (overlayRender is! RenderBox || !overlayRender.hasSize) return;
     final buttonBox = _rootButtonKey.currentContext?.findRenderObject();
@@ -423,112 +419,37 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       Offset.zero,
       ancestor: overlayRender,
     );
-    final buttonSize = buttonBox.size;
-    final overlaySize = overlayRender.size;
-
-    final currentPath = _effectiveRoot ?? '';
-    const menuWidth = 280.0;
-    final left = buttonTopLeft.dx
-        .clamp(0.0, (overlaySize.width - menuWidth).clamp(0.0, double.infinity))
-        .toDouble();
-    const itemExtent = 48.0;
-    final menuHeight = _roots.length * itemExtent + 8;
-    final below = buttonTopLeft.dy + buttonSize.height + 4;
-    final top = below + menuHeight > overlaySize.height
-        ? (buttonTopLeft.dy - menuHeight - 4)
-            .clamp(0.0, double.infinity)
-            .toDouble()
-        : below;
-
-    _rootMenuEntry = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          // Click-away barrier.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _closeRootMenu,
-            ),
-          ),
-          Positioned(
-            left: left,
-            top: top,
-            width: menuWidth,
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 4),
-                  for (final root in _roots)
-                    InkWell(
-                      onTap: () {
-                        _closeRootMenu();
-                        _selectRoot(root.path);
-                      },
-                      child: Container(
-                        height: itemExtent,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          children: [
-                            Icon(
-                              root.path == currentPath
-                                  ? Icons.check
-                                  : Icons.folder_outlined,
-                              size: 16,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    root.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                  Text(
-                                    root.path,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 4),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    final anchor = Rect.fromLTWH(
+      buttonTopLeft.dx,
+      buttonTopLeft.dy,
+      buttonBox.size.width,
+      buttonBox.size.height,
     );
-    Overlay.of(context).insert(_rootMenuEntry!);
+    final currentPath = _effectiveRoot ?? '';
     setState(() => _rootMenuOpen = true);
+    final selected = await AnchoredMenu.show(
+      context: context,
+      anchor: anchor,
+      width: 280,
+      selectedValue: currentPath,
+      items: [
+        for (final root in _roots)
+          AnchoredMenuItem(
+            label: root.name,
+            subtitle: root.path,
+            value: root.path,
+            leading: Icon(
+              root.path == currentPath ? Icons.check : Icons.folder_outlined,
+              size: 16,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+      ],
+    );
+    if (mounted) setState(() => _rootMenuOpen = false);
+    if (selected is String) _selectRoot(selected);
   }
 
-  void _closeRootMenu() {
-    _rootMenuEntry?.remove();
-    _rootMenuEntry = null;
-    if (mounted) setState(() => _rootMenuOpen = false);
-  }
 
   void _appendRows(
     List<Widget> rows,
@@ -660,37 +581,40 @@ class _TreeRowState extends State<_TreeRow> {
   Future<void> _showMenu(BuildContext context) async {
     final file = widget.file;
     if (file == null) return;
-    final box = context.findRenderObject() as RenderBox;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-    final corner = box.localToGlobal(
-      Offset(box.size.width, box.size.height),
-      ancestor: overlay,
+    final overlayRender = Overlay.of(context).context.findRenderObject();
+    if (overlayRender is! RenderBox || !overlayRender.hasSize) return;
+    final rowBox = context.findRenderObject();
+    if (rowBox is! RenderBox || !rowBox.hasSize) return;
+    final rowTopLeft = rowBox.localToGlobal(
+      Offset.zero,
+      ancestor: overlayRender,
     );
-    const menuWidth = 160.0;
-    final left = (corner.dx - menuWidth)
-        .clamp(0.0, overlay.size.width - menuWidth);
-    final position = RelativeRect.fromLTRB(
-      left,
-      corner.dy,
-      overlay.size.width - left - menuWidth,
-      overlay.size.height - corner.dy,
-    );
-    final value = await showMenu<String>(
+    const menuWidth = 200.0;
+    final left = (rowTopLeft.dx + rowBox.size.width - menuWidth)
+        .clamp(0.0, overlayRender.size.width - menuWidth)
+        .toDouble();
+    final value = await AnchoredMenu.show(
       context: context,
-      position: position,
+      anchor: Rect.fromLTWH(
+        left,
+        rowTopLeft.dy,
+        menuWidth,
+        rowBox.size.height,
+      ),
+      width: menuWidth,
       items: [
-        PopupMenuItem(value: 'open', child: Text(AppL10n.t.open)),
+        AnchoredMenuItem(label: AppL10n.t.open, value: 'open'),
         if (widget.onToggleFavorite != null)
-          PopupMenuItem(
+          AnchoredMenuItem(
+            label: widget.favorite
+                ? AppL10n.t.unfavorite
+                : AppL10n.t.favorite,
             value: 'favorite',
-            child: Text(
-                widget.favorite ? AppL10n.t.unfavorite : AppL10n.t.favorite),
           ),
-        PopupMenuItem(value: 'download', child: Text(AppL10n.t.download)),
-        PopupMenuItem(value: 'copy', child: Text(AppL10n.t.copyPath)),
+        AnchoredMenuItem(label: AppL10n.t.download, value: 'download'),
+        AnchoredMenuItem(label: AppL10n.t.copyPath, value: 'copy'),
         if (widget.onDelete != null)
-          PopupMenuItem(value: 'delete', child: Text(AppL10n.t.delete)),
+          AnchoredMenuItem(label: AppL10n.t.delete, value: 'delete'),
       ],
     );
     if (!context.mounted) return;
