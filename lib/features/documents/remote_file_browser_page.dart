@@ -24,6 +24,7 @@ import 'document_sync.dart';
 import 'file_browser_widgets.dart';
 import 'document_handles.dart';
 import 'explorer_tree.dart';
+import 'package:multi_split_view/multi_split_view.dart';
 import '../workspace/floating_window_header.dart';
 
 /// The single files page: file content on the right, a collapsible
@@ -111,9 +112,16 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   final FavoriteIndex _favorites = FavoriteIndex();
   late final ExplorerStateStore _explorerStore;
   List<String> _expanded = const [];
-  double _treeWidth = 260;
+  double _treeWidth = 280;
   int _treeRefreshToken = 0;
   bool _railOpen = false;
+  bool _dividerDragging = false;
+  late final MultiSplitViewController _splitController = MultiSplitViewController(
+    areas: [
+      Area(size: _treeWidth, min: 220, max: 340),
+      Area(flex: 1),
+    ],
+  );
   bool _blockerRegistered = false;
   bool _blockerEngaged = false;
   Timer? _docSyncTimer;
@@ -261,6 +269,10 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     setState(() {
       _expanded = state.expandedPaths;
       _treeWidth = state.treeWidth.clamp(220.0, 340.0);
+      _splitController.areas = [
+        Area(size: _treeWidth, min: 220, max: 340),
+        Area(flex: 1),
+      ];
       // Entering the files page always shows the tree; opening a file later
       // collapses it to focus the content.
       _railOpen = true;
@@ -949,22 +961,22 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     // the overlay drawer it always had.
     if (!_isNarrow(context)) {
       if (!_railOpen) return _content(context);
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(width: _treeWidth, child: _treePanel(context)),
-          TreeDragBar(
-            onDragEnd: () => unawaited(
-              _explorerStore.saveWidth(widget.hostId, _treeWidth),
-            ),
-            onDrag: (delta) {
-              setState(() {
-                _treeWidth = (_treeWidth + delta).clamp(220.0, 340.0);
-              });
-            },
-          ),
-          Expanded(child: _content(context)),
-        ],
+      return MultiSplitViewTheme(
+        data: MultiSplitViewThemeData(dividerThickness: 6),
+        child: MultiSplitView(
+          axis: Axis.horizontal,
+          controller: _splitController,
+          builder: (context, area) {
+            if (area.index == 0) return _treePanel(context);
+            return _content(context);
+          },
+          dividerBuilder:
+              (axis, index, resizable, dragging, highlighted, themeData) =>
+                  _divider(context, dragging: dragging),
+          onDividerDoubleTap: (_) => _resetTreeWidth(),
+          onDividerDragStart: (_) => setState(() => _dividerDragging = true),
+          onDividerDragEnd: (_) => _saveTreeWidth(),
+        ),
       );
     }
     return _overlayBody(context);
@@ -1049,6 +1061,44 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     );
   }
 
+  /// VSCode-style sash: a hairline that widens and lights up on hover/drag.
+  Widget _divider(BuildContext context, {required bool dragging}) {
+    final scheme = Theme.of(context).colorScheme;
+    return StatefulBuilder(
+      builder: (context, setLocal) {
+        var hovered = false;
+        return MouseRegion(
+          cursor: SystemMouseCursors.resizeColumn,
+          onEnter: (_) => setLocal(() => hovered = true),
+          onExit: (_) => setLocal(() => hovered = false),
+          child: Center(
+            child: Container(
+              width: hovered || _dividerDragging ? 3 : 1,
+              color: hovered || _dividerDragging
+                  ? scheme.primary
+                  : scheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _saveTreeWidth() {
+    setState(() {
+      _dividerDragging = false;
+      final size = _splitController.areas.first.size;
+      if (size != null) _treeWidth = size.clamp(220.0, 340.0);
+    });
+    unawaited(_explorerStore.saveWidth(widget.hostId, _treeWidth));
+  }
+
+  void _resetTreeWidth() {
+    setState(() => _treeWidth = 280);
+    _splitController.areas[0].size = 280;
+    unawaited(_explorerStore.saveWidth(widget.hostId, _treeWidth));
+  }
+
   Widget _treePanel(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
@@ -1061,7 +1111,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: scheme.outlineVariant),
-                right: BorderSide(color: scheme.outlineVariant),
               ),
             ),
             child: Row(
