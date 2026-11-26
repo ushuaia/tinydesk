@@ -184,16 +184,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
         active,
       ),
     );
-    // The visible page also decides which project the tree shows next time,
-    // even when the user never touched the dropdown.
-    if (active.isNotEmpty) {
-      unawaited(
-        _explorerStore.saveSelectedRoot(
-          widget.hostId,
-          _projectRootFor(active),
-        ),
-      );
-    }
   }
 
   /// Removes and disposes one tab. [confirmed] skips the save prompt
@@ -356,7 +346,13 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
     final state = await _explorerStore.load(widget.hostId);
     if (!mounted) return;
     final explicitStart = widget.initialPath.isNotEmpty || initial != null;
-    final restoredPath = state.currentPath;
+    var restoredPath = state.currentPath;
+    final savedRoot = state.selectedRoot;
+    if (!explicitStart && savedRoot.isNotEmpty) {
+      if (restoredPath.isEmpty || !restoredPath.startsWith(savedRoot)) {
+        restoredPath = savedRoot;
+      }
+    }
     setState(() {
       if (!explicitStart &&
           restoredPath.isNotEmpty &&
@@ -433,11 +429,6 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       final index = _tabs.indexWhere((tab) => tab.file.path == active);
       if (index >= 0) {
         _activateTab(index);
-        if (_initialSelectedRoot == null || _initialSelectedRoot!.isEmpty) {
-          final root = _projectRootFor(_path.isEmpty ? active : _path);
-          setState(() => _initialSelectedRoot = root);
-          unawaited(_explorerStore.saveSelectedRoot(widget.hostId, root));
-        }
         return;
       }
     }
@@ -642,9 +633,12 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
       autoSync: widget.active,
       showHidden: _showHidden,
       initialSelectedRoot: _initialSelectedRoot,
-      onSelectedRootChanged: (path) => unawaited(
-        _explorerStore.saveSelectedRoot(widget.hostId, path),
-      ),
+      onSelectedRootChanged: (path) {
+        // Switching the project moves the browser to that project's root.
+        setState(() => _path = path);
+        unawaited(_explorerStore.saveSelectedRoot(widget.hostId, path));
+        unawaited(_explorerStore.saveCurrentPath(widget.hostId, path));
+      },
       onDirectorySelected: _selectDirectory,
       onFileSelected: (file) => unawaited(_openFile(file)),
       onExpandedChanged: (paths) {
@@ -1091,14 +1085,16 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
           ),
         if (wide) const ActionDivider(),
       ],
+      // The tree toggle stays available on phones too, even while a
+      // document is open: it is the only visible way back to the sidebar.
+      IconButton(
+        onPressed: () => _setRail(!_railOpen),
+        icon: const Icon(Icons.account_tree_outlined),
+        iconSize: 20,
+        tooltip: _railOpen ? AppL10n.t.collapseTree : AppL10n.t.expandTree,
+      ),
+      if (wide) const ActionDivider(),
       if (wide || doc == null) ...[
-        IconButton(
-          onPressed: () => _setRail(!_railOpen),
-          icon: const Icon(Icons.account_tree_outlined),
-          iconSize: 20,
-          tooltip: _railOpen ? AppL10n.t.collapseTree : AppL10n.t.expandTree,
-        ),
-        if (wide) const ActionDivider(),
         IconButton(
           onPressed: _createFile,
           icon: const Icon(Icons.note_add_outlined),
@@ -1277,7 +1273,7 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
             left: 0,
             top: 0,
             bottom: 0,
-            width: 16,
+            width: 24,
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onTap: () => _setRail(true),
