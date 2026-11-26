@@ -16,6 +16,9 @@ class _Handle extends DocumentHandle {
   int closes = 0;
 
   @override
+  bool get dirty => !canClose;
+
+  @override
   String get title => file.name;
 
   @override

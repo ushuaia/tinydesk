@@ -111,7 +111,10 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       unawaited(_loadDirectory(key.substring(5)));
     }
     unawaited(_expandAncestors(widget.currentPath));
-    _selectedRoot = widget.initialSelectedRoot ?? _rootFor(widget.currentPath);
+    // The page's live working directory wins: the tree is rebuilt whenever
+    // the drawer closes and reopens, while initialSelectedRoot is the value
+    // captured when the page itself mounted.
+    _selectedRoot = _rootFor(widget.currentPath) ?? widget.initialSelectedRoot;
     final selected = _selectedRoot;
     if (selected != null && !_children.containsKey(selected)) {
       unawaited(_loadDirectory(selected));

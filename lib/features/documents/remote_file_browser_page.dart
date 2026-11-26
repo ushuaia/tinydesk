@@ -190,13 +190,17 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   /// (the caller already asked).
   Future<void> _closeTabAt(int index, {bool confirmed = false}) async {
     if (index < 0 || index >= _tabs.length) return;
-    if (!confirmed) {
+    if (!confirmed && _tabs[index].handle.dirty) {
       final ok = await _tabs[index].handle.confirmClose(context);
       if (!ok || !mounted) return;
     }
     final tab = _tabs[index];
     tab.handle.removeListener(_onDocChanged);
-    await tab.handle.close();
+    // A viewer's cleanup must never block the UI (e.g. switching projects
+    // would hang forever); give it a moment, then move on.
+    await tab.handle
+        .close()
+        .timeout(const Duration(seconds: 3), onTimeout: () {});
     tab.handle.dispose();
     if (!mounted) return;
     setState(() {
@@ -497,8 +501,11 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   /// Confirms every dirty tab, then closes them all. Used when the whole
   /// window (or page) is going away.
   Future<bool> _confirmCloseDoc() async {
-    for (var i = 0; i < _tabs.length; i++) {
-      if (!await _tabs[i].handle.confirmClose(context)) return false;
+    // Only dirty documents need the save prompt; asking every tab risks
+    // blocking on viewers that never answer.
+    for (final tab in List.of(_tabs)) {
+      if (!tab.handle.dirty) continue;
+      if (!await tab.handle.confirmClose(context)) return false;
     }
     while (_tabs.isNotEmpty && mounted) {
       await _closeTabAt(_tabs.length - 1, confirmed: true);
@@ -509,9 +516,14 @@ class _RemoteFileBrowserPageState extends State<RemoteFileBrowserPage> {
   /// Switching projects closes every open document first, asking about
   /// unsaved ones. Returning false leaves the tree on the old project.
   Future<bool> _switchProject(String root) async {
-    if (!await _confirmCloseDoc()) return false;
+    if (!await _confirmCloseDoc()) {
+      return false;
+    }
     if (!mounted) return false;
-    setState(() => _path = root);
+    setState(() {
+      _path = root;
+      _initialSelectedRoot = root;
+    });
     unawaited(_explorerStore.saveSelectedRoot(widget.hostId, root));
     unawaited(_explorerStore.saveCurrentPath(widget.hostId, root));
     return true;
