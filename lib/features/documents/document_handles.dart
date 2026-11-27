@@ -215,18 +215,19 @@ class PdfDocumentHandle extends DocumentHandle {
 
   @override
   List<Widget> buildActions(BuildContext context) {
-    final state = _state;
-    if (state == null) return const [];
+    // The page state is only available after the viewer mounts; the zoom
+    // buttons must still be visible on the first build (the toolbar is a
+    // sibling and is not rebuilt when the page mounts).
     if (MediaQuery.of(context).size.width < 700) return const [];
     return [
       IconButton(
-        onPressed: () => state.zoomBy(-0.2),
+        onPressed: () => _state?.zoomBy(-0.2),
         icon: const Icon(Icons.zoom_out),
         iconSize: 18,
         tooltip: AppL10n.t.zoomOut,
       ),
       IconButton(
-        onPressed: () => state.zoomBy(0.2),
+        onPressed: () => _state?.zoomBy(0.2),
         icon: const Icon(Icons.zoom_in),
         iconSize: 18,
         tooltip: AppL10n.t.zoomIn,
