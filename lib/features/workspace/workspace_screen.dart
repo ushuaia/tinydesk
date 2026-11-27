@@ -341,10 +341,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   bool _languageListenerAdded = false;
   WebViewController? _webView;
   String? _currentUrl;
-  /// Conversations the user has opened in this run, in visit order. Cmd+L
-  /// cycles only within these: it must not navigate to a conversation that
-  /// was never opened.
-  final List<String> _visitedSessions = [];
   String? _savedUrl;
   bool _savedUrlLoaded = false;
   Timer? _saveUrlDebounce;
@@ -619,7 +615,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
         NavigationDelegate(
           onUrlChange: (change) {
             _currentUrl = change.url;
-            _rememberVisitedSession(change.url);
             _scheduleSaveUrl(change.url);
             if (_auth == _WorkspaceAuth.pairing) {
               unawaited(_completePairing(change.url));
@@ -817,43 +812,37 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     return false;
   }
 
-  void _rememberVisitedSession(String? url) {
-    if (url == null) return;
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    final segments = uri.pathSegments;
-    final marker = segments.indexOf('session');
-    if (marker < 0 || marker + 1 >= segments.length) return;
-    final id = segments[marker + 1];
-    if (id.isEmpty) return;
-    _visitedSessions.remove(id);
-    _visitedSessions.add(id);
-  }
-
-  /// Cmd+L: switches to the next conversation that is already open.
-  ///
-  /// Only conversations the user visited in this run participate, so the
-  /// shortcut never jumps into a history entry that was not opened.
+  /// Cmd+L: asks the opencode web UI to switch to its next open session
+  /// tab. Tabs (their order and which ones are open) live inside the web UI,
+  /// so dispatching its own shortcut keeps the same order the user sees and
+  /// never navigates to a conversation that was not opened.
   Future<void> cycleSession() async {
     final webView = _webView;
-    if (webView == null || _visitedSessions.length < 2) return;
-    final current = Uri.tryParse(_currentUrl ?? '');
-    final segments = current?.pathSegments ?? const <String>[];
-    final marker = segments.indexOf('session');
-    final currentId = marker >= 0 && marker + 1 < segments.length
-        ? segments[marker + 1]
-        : null;
-    final index = currentId == null ? -1 : _visitedSessions.indexOf(currentId);
-    final next = _visitedSessions[(index + 1) % _visitedSessions.length];
-    if (next == currentId) return;
-    // Keep the /server/<encoded> prefix of the current route.
-    final serverIndex = segments.indexOf('server');
-    final base = serverIndex >= 0 && segments.length > serverIndex + 1
-        ? '${current!.origin}/server/${segments[serverIndex + 1]}'
-        : current?.origin;
-    if (base == null) return;
-    debugPrint('[session-cycle] open=$_visitedSessions current=$currentId next=$next');
-    await webView.loadRequest(Uri.parse('$base/session/$next'));
+    debugPrint(
+      '[session-cycle] host=${widget.session.host.id} '
+      'webview=${webView != null} url=$_currentUrl',
+    );
+    if (webView == null) return;
+    const script = r"""
+      (function () {
+        var opts = {
+          key: 'ArrowDown',
+          code: 'ArrowDown',
+          keyCode: 40,
+          which: 40,
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        };
+        document.dispatchEvent(new KeyboardEvent('keydown', opts));
+        document.dispatchEvent(new KeyboardEvent('keyup', opts));
+      })();
+    """;
+    try {
+      await webView.runJavaScript(script);
+    } catch (error) {
+      debugPrint('[session-cycle] js failed: $error');
+    }
   }
 
   Future<void> openFiles() async {

@@ -263,6 +263,7 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
 
   void activate(String hostId) {
     if (!_sessions.containsKey(hostId) || _activeHostId == hostId) return;
+    debugPrint('[session] activate $hostId');
     _activeHostId = hostId;
     _notify();
     unawaited(_persist());

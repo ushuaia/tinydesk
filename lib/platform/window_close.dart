@@ -33,6 +33,9 @@ class WindowCloseHandler {
         case 'closeRequested':
           await _onCloseRequested?.call();
           return null;
+        case 'shortcutProbe':
+          debugPrint('[shortcut] probe=${call.arguments}');
+          return null;
         case 'cycleOverlay':
           debugPrint('[window] cycleOverlay');
           await _onCycleRequested?.call();
