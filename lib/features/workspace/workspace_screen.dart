@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -87,9 +86,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     if (request != _lastSessionCycleRequest) {
       _lastSessionCycleRequest = request;
       if (activeId != null) {
-        unawaited(
-          _keyFor(activeId).currentState?.cycleSession() ?? Future.value(),
+        final view = _keyFor(activeId).currentState;
+        debugPrint(
+          '[session-cycle] dispatch active=$activeId view=${view != null}',
         );
+        unawaited(view?.cycleSession() ?? Future.value());
+      } else {
+        debugPrint('[session-cycle] no active host to cycle');
       }
     }
     setState(() {});
@@ -338,6 +341,10 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   bool _languageListenerAdded = false;
   WebViewController? _webView;
   String? _currentUrl;
+  /// Conversations the user has opened in this run, in visit order. Cmd+L
+  /// cycles only within these: it must not navigate to a conversation that
+  /// was never opened.
+  final List<String> _visitedSessions = [];
   String? _savedUrl;
   bool _savedUrlLoaded = false;
   Timer? _saveUrlDebounce;
@@ -612,6 +619,7 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
         NavigationDelegate(
           onUrlChange: (change) {
             _currentUrl = change.url;
+            _rememberVisitedSession(change.url);
             _scheduleSaveUrl(change.url);
             if (_auth == _WorkspaceAuth.pairing) {
               unawaited(_completePairing(change.url));
@@ -809,57 +817,43 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
     return false;
   }
 
-  /// Cmd+L: opens the next opencode conversation of this host.
+  void _rememberVisitedSession(String? url) {
+    if (url == null) return;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    final segments = uri.pathSegments;
+    final marker = segments.indexOf('session');
+    if (marker < 0 || marker + 1 >= segments.length) return;
+    final id = segments[marker + 1];
+    if (id.isEmpty) return;
+    _visitedSessions.remove(id);
+    _visitedSessions.add(id);
+  }
+
+  /// Cmd+L: switches to the next conversation that is already open.
   ///
-  /// Reads `/api/session` with the same cookie the web view uses, then
-  /// navigates the web view to the following conversation (wrapping around).
+  /// Only conversations the user visited in this run participate, so the
+  /// shortcut never jumps into a history entry that was not opened.
   Future<void> cycleSession() async {
     final webView = _webView;
-    if (webView == null) return;
-    final port = widget.session.host.localPort;
-    final origin = 'http://127.0.0.1:$port';
-    final cookie = await const WebData().sessionCookie(port);
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
-    try {
-      final request = await client.getUrl(Uri.parse('$origin/api/session'));
-      if (cookie != null) {
-        request.headers.set(
-          HttpHeaders.cookieHeader,
-          '${cookie.key}=${cookie.value}',
-        );
-      }
-      final response =
-          await request.close().timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        await response.drain<void>();
-        return;
-      }
-      final body = await response.transform(utf8.decoder).join();
-      final decoded = jsonDecode(body);
-      final rawList = decoded is List
-          ? decoded
-          : (decoded is Map ? decoded['sessions'] : null);
-      final ids = <String>[
-        for (final item in (rawList is List ? rawList : const []))
-          if (item is Map && item['id'] is String) item['id'] as String,
-      ];
-      if (ids.isEmpty) return;
-      final current = Uri.tryParse(_currentUrl ?? '');
-      final onSession =
-          current != null && current.pathSegments.contains('session');
-      final currentId = onSession ? current.pathSegments.last : null;
-      final index = currentId == null ? -1 : ids.indexOf(currentId);
-      final next = ids[(index + 1) % ids.length];
-      debugPrint(
-        '[session-cycle] sessions=${ids.length} current=$currentId next=$next',
-      );
-      await webView.loadRequest(Uri.parse('$origin/session/$next'));
-    } catch (error) {
-      // No session list (old server, not signed in): leave the page as is.
-      debugPrint('[session-cycle] failed: $error');
-    } finally {
-      client.close(force: true);
-    }
+    if (webView == null || _visitedSessions.length < 2) return;
+    final current = Uri.tryParse(_currentUrl ?? '');
+    final segments = current?.pathSegments ?? const <String>[];
+    final marker = segments.indexOf('session');
+    final currentId = marker >= 0 && marker + 1 < segments.length
+        ? segments[marker + 1]
+        : null;
+    final index = currentId == null ? -1 : _visitedSessions.indexOf(currentId);
+    final next = _visitedSessions[(index + 1) % _visitedSessions.length];
+    if (next == currentId) return;
+    // Keep the /server/<encoded> prefix of the current route.
+    final serverIndex = segments.indexOf('server');
+    final base = serverIndex >= 0 && segments.length > serverIndex + 1
+        ? '${current!.origin}/server/${segments[serverIndex + 1]}'
+        : current?.origin;
+    if (base == null) return;
+    debugPrint('[session-cycle] open=$_visitedSessions current=$currentId next=$next');
+    await webView.loadRequest(Uri.parse('$base/session/$next'));
   }
 
   Future<void> openFiles() async {
