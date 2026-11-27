@@ -1,4 +1,5 @@
 import 'package:dartssh2/dartssh2.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'secret_store.dart';
@@ -22,6 +23,7 @@ class PrivateKeyStore {
   /// every Keychain read can be slow or prompt for authorisation, so cache
   /// the result. `save`/`delete` keep the cache in sync.
   final Map<String, (String, String?)> _cache = {};
+  final Map<String, Future<(String, String?)?>> _inflight = {};
 
   static const _prefix = 'host.';
   // The macOS keychain can prompt for authorisation (e.g. after a rebuild
@@ -83,16 +85,36 @@ class PrivateKeyStore {
   Future<(String, String?)?> read(
     String hostId, {
     bool hasPassphrase = true,
-  }) async {
+  }) {
     final cached = _cache[hostId];
-    if (cached != null) return cached;
+    if (cached != null) return Future.value(cached);
+    // Two entry points (connect + document tunnel, or a double tap) must not
+    // start two Keychain lookups: macOS would prompt twice.
+    final pending = _inflight[hostId];
+    if (pending != null) return pending;
+    final future = _read(hostId, hasPassphrase: hasPassphrase);
+    _inflight[hostId] = future;
+    return future.whenComplete(() => _inflight.remove(hostId));
+  }
+
+  Future<(String, String?)?> _read(
+    String hostId, {
+    required bool hasPassphrase,
+  }) async {
     await _ensureMigrated();
+    debugPrint('[keychain] read ${_keyName(hostId)}');
     final key = await _readSecret(_keyName(hostId));
-    if (key == null) return null;
+    if (key == null) {
+      debugPrint('[keychain] missing ${_keyName(hostId)}');
+      return null;
+    }
     // Hosts configured without a passphrase never store one, so skip the
     // second Keychain lookup entirely.
-    final passphrase =
-        hasPassphrase ? await _readSecret(_passName(hostId)) : null;
+    String? passphrase;
+    if (hasPassphrase) {
+      debugPrint('[keychain] read ${_passName(hostId)}');
+      passphrase = await _readSecret(_passName(hostId));
+    }
     final pair = (key, passphrase);
     _cache[hostId] = pair;
     return pair;
