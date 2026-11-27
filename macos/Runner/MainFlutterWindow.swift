@@ -232,9 +232,12 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     return String(data: data, encoding: .utf8)
   }
 
-  /// Access object whose ACL lets any application read the item without a
-  /// prompt ("Allow all applications to access this item").
-  private func secureAccessForAll() -> SecAccess? {
+  /// Access object that trusts only this application.
+  ///
+  /// The item is created by the app (stable Apple Development signature),
+  /// so reading it back never prompts, while any other process still needs
+  /// the user's authorisation.
+  private func secureAccessForSelf() -> SecAccess? {
     var access: SecAccess?
     guard SecAccessCreate(
       MainFlutterWindow.secureService as CFString,
@@ -242,14 +245,18 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       &access
     ) == errSecSuccess, let accessRef = access else { return nil }
 
+    var trustedApp: SecTrustedApplication?
+    guard SecTrustedApplicationCreateFromPath(nil, &trustedApp) == errSecSuccess,
+          let app = trustedApp else { return accessRef }
+    let trusted = [app] as CFArray
+
     var aclList: CFArray?
     guard SecAccessCopyACLList(accessRef, &aclList) == errSecSuccess,
           let list = aclList else { return accessRef }
     for index in 0..<CFArrayGetCount(list) {
       let acl = unsafeBitCast(CFArrayGetValueAtIndex(list, index), to: SecACL.self)
       let authorizations = SecACLCopyAuthorizations(acl)
-      // nil application list == any app may use the item, no prompt.
-      SecACLSetContents(acl, nil, MainFlutterWindow.secureService as CFString, [])
+      SecACLSetContents(acl, trusted, MainFlutterWindow.secureService as CFString, [])
       SecACLUpdateAuthorizations(acl, authorizations)
     }
     return accessRef
@@ -259,7 +266,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     SecItemDelete(secureQuery(key) as CFDictionary)
     var attributes = secureQuery(key)
     attributes[kSecValueData] = Data(value.utf8)
-    if let access = secureAccessForAll() {
+    if let access = secureAccessForSelf() {
       attributes[kSecAttrAccess] = access
     }
     return SecItemAdd(attributes as CFDictionary, nil)
