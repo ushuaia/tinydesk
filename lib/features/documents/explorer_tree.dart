@@ -734,16 +734,20 @@ class _TreeRowState extends State<_TreeRow> {
               ),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  widget.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: scheme.onSurface,
-                    fontWeight: widget.isDirectory
-                        ? FontWeight.w500
-                        : FontWeight.w400,
+                child: Tooltip(
+                  message: widget.label,
+                  waitDuration: const Duration(milliseconds: 500),
+                  child: Text(
+                    widget.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurface,
+                      fontWeight: widget.isDirectory
+                          ? FontWeight.w500
+                          : FontWeight.w400,
+                    ),
                   ),
                 ),
               ),

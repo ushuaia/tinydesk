@@ -1562,20 +1562,24 @@ class _DocTabChipState extends State<_DocTabChip> {
                   ),
                   const SizedBox(width: 6),
                 ],
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 150),
-                  child: Text(
-                    widget.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: widget.active
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: widget.active
-                          ? scheme.onSurface
-                          : scheme.onSurfaceVariant,
+                Tooltip(
+                  message: widget.title,
+                  waitDuration: const Duration(milliseconds: 500),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 150),
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: widget.active
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: widget.active
+                            ? scheme.onSurface
+                            : scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
