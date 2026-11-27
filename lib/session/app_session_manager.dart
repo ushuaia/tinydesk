@@ -333,7 +333,10 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
       var key = '';
       String? passphrase;
       if (!host.isLocal) {
-        final pair = await keyStore.read(id);
+        final pair = await keyStore.read(
+          id,
+          hasPassphrase: host.hasPassphrase,
+        );
         if (pair == null) continue;
         key = pair.$1;
         passphrase = pair.$2;

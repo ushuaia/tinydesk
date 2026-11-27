@@ -5,9 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeSecretStore implements SecretStore {
   final Map<String, String> values = {};
+  int reads = 0;
 
   @override
-  Future<String?> read(String key) async => values[key];
+  Future<String?> read(String key) async {
+    reads++;
+    return values[key];
+  }
 
   @override
   Future<void> write(String key, String value) async {
@@ -90,5 +94,43 @@ void main() {
 
     expect(secret.values['host.h1.passphrase'], isNull);
     expect((await store.read('h1'))?.$2, isNull);
+  });
+
+  test('repeat reads hit the secure store once', () async {
+    final secret = _FakeSecretStore()
+      ..values['host.h1.privateKey'] = 'KEY'
+      ..values['host.h1.passphrase'] = 'pass';
+    final store = PrivateKeyStore(secret);
+    secret.reads = 0;
+
+    await store.read('h1');
+    await store.read('h1');
+    await store.read('h1');
+
+    expect(secret.reads, 2); // key + passphrase, once
+  });
+
+  test('a host without a passphrase only reads the key', () async {
+    final secret = _FakeSecretStore()..values['host.h1.privateKey'] = 'KEY';
+    final store = PrivateKeyStore(secret);
+    secret.reads = 0;
+
+    final result = await store.read('h1', hasPassphrase: false);
+
+    expect(result?.$1, 'KEY');
+    expect(secret.reads, 1);
+  });
+
+  test('saving refreshes the cached value', () async {
+    final secret = _FakeSecretStore();
+    final store = PrivateKeyStore(secret);
+    await store.save('h1', 'OLD', 'pass');
+    await store.read('h1');
+
+    await store.save('h1', 'NEW', null);
+
+    final result = await store.read('h1');
+    expect(result?.$1, 'NEW');
+    expect(result?.$2, isNull);
   });
 }

@@ -240,7 +240,10 @@ class _HostListScreenState extends State<HostListScreen> {
 
     (String, String?)? key;
     if (!resolved.isLocal) {
-      key = await widget.keyStore.read(resolved.id);
+      key = await widget.keyStore.read(
+        resolved.id,
+        hasPassphrase: resolved.hasPassphrase,
+      );
       if (!mounted) return;
       if (key == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -314,7 +317,10 @@ class _HostListScreenState extends State<HostListScreen> {
   }
 
   Future<void> _exportKey(Host host) async {
-    final key = await widget.keyStore.read(host.id);
+    final key = await widget.keyStore.read(
+      host.id,
+      hasPassphrase: host.hasPassphrase,
+    );
     if (!mounted) return;
     if (key == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -398,7 +404,10 @@ class _HostListScreenState extends State<HostListScreen> {
   }
 
   Future<void> _exportPublicKey(Host host) async {
-    final key = await widget.keyStore.read(host.id);
+    final key = await widget.keyStore.read(
+      host.id,
+      hasPassphrase: host.hasPassphrase,
+    );
     if (!mounted) return;
     if (key == null) {
       ScaffoldMessenger.of(context).showSnackBar(

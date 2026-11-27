@@ -41,7 +41,10 @@ class _HostExportQrDialogState extends State<HostExportQrDialog> {
 
   Future<void> _prepare() async {
     try {
-      final key = await widget.keyStore.read(widget.host.id);
+      final key = await widget.keyStore.read(
+        widget.host.id,
+        hasPassphrase: widget.host.hasPassphrase,
+      );
       if (!mounted) return;
       if (key == null) {
         setState(() {

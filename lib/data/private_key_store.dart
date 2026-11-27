@@ -17,8 +17,17 @@ class PrivateKeyStore {
   final SecretStore _store;
   Future<void>? _migration;
 
+  /// Keys already fetched during this run. A connection sequence asks for
+  /// the same key several times (connect, document tunnel, reconnect) and
+  /// every Keychain read can be slow or prompt for authorisation, so cache
+  /// the result. `save`/`delete` keep the cache in sync.
+  final Map<String, (String, String?)> _cache = {};
+
   static const _prefix = 'host.';
-  static const _secureTimeout = Duration(seconds: 3);
+  // The macOS keychain can prompt for authorisation (e.g. after a rebuild
+  // changes the ad-hoc signature); the user needs time to type a password,
+  // so this must not be a short timeout.
+  static const _secureTimeout = Duration(seconds: 60);
   static const _keySuffix = '.privateKey';
   static const _passSuffix = '.passphrase';
 
@@ -49,6 +58,7 @@ class PrivateKeyStore {
         await _store.delete(_passName(hostId)).timeout(_secureTimeout);
       }
       await _clearLegacy(hostId);
+      _remember(hostId, privateKey, passphrase);
     } catch (_) {
       // Secure storage unavailable (tests, unsupported platform): keep the
       // app usable by falling back to the old sandboxed storage.
@@ -59,17 +69,37 @@ class PrivateKeyStore {
       } else {
         await prefs.remove(_passName(hostId));
       }
+      _remember(hostId, privateKey, passphrase);
     }
   }
 
-  Future<(String, String?)?> read(String hostId) async {
+  void _remember(String hostId, String privateKey, String? passphrase) {
+    _cache[hostId] = (
+      privateKey,
+      passphrase != null && passphrase.isNotEmpty ? passphrase : null,
+    );
+  }
+
+  Future<(String, String?)?> read(
+    String hostId, {
+    bool hasPassphrase = true,
+  }) async {
+    final cached = _cache[hostId];
+    if (cached != null) return cached;
     await _ensureMigrated();
     final key = await _readSecret(_keyName(hostId));
     if (key == null) return null;
-    return (key, await _readSecret(_passName(hostId)));
+    // Hosts configured without a passphrase never store one, so skip the
+    // second Keychain lookup entirely.
+    final passphrase =
+        hasPassphrase ? await _readSecret(_passName(hostId)) : null;
+    final pair = (key, passphrase);
+    _cache[hostId] = pair;
+    return pair;
   }
 
   Future<void> delete(String hostId) async {
+    _cache.remove(hostId);
     await _ensureMigrated();
     try {
       await _store.delete(_keyName(hostId)).timeout(_secureTimeout);

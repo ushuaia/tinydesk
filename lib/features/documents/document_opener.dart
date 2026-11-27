@@ -50,7 +50,10 @@ class DocumentOpener {
     var key = '';
     String? passphrase;
     if (!host.isLocal) {
-      final pair = await keyStore.read(host.id);
+      final pair = await keyStore.read(
+        host.id,
+        hasPassphrase: host.hasPassphrase,
+      );
       if (!context.mounted) return false;
       if (pair == null) {
         ScaffoldMessenger.of(context).showSnackBar(
