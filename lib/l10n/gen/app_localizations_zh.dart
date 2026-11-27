@@ -781,6 +781,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get step4Toolbar => '④ 工具栏';
 
   @override
+  String get shortcutsTitle => '快捷键（macOS）';
+
+  @override
+  String get shortcutOverlay => '⌘J — 在主页面与终端 / 文件阅读器之间切换';
+
+  @override
+  String get shortcutHost => '⌘K — 切换到下一个已打开的主机';
+
+  @override
+  String get shortcutSession => '⌘L — 切换到下一个 opencode 会话标签';
+
+  @override
   String get tabHint =>
       '顶部标签切换已打开的主机；标签内的 × 关闭该主机会话，只影响这一台。关闭最后一个标签后回到本页，点 + 随时打开新主机。';
 

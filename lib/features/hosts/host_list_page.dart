@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/app_language.dart';
@@ -472,6 +473,21 @@ class _QuickStartSection extends StatelessWidget {
               AppL10n.t.tabHint,
               style: small,
             ),
+            if (defaultTargetPlatform == TargetPlatform.macOS) ...[
+              const _QuickStartDivider(),
+              Text(
+                AppL10n.t.shortcutsTitle,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${AppL10n.t.shortcutOverlay}\n'
+                '${AppL10n.t.shortcutHost}\n'
+                '${AppL10n.t.shortcutSession}',
+                style: small,
+              ),
+            ],
             const _QuickStartDivider(),
             Text(
               AppL10n.t.step4Toolbar,

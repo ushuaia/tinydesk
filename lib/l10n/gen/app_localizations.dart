@@ -1502,6 +1502,30 @@ abstract class AppLocalizations {
   /// **'④ Toolbar'**
   String get step4Toolbar;
 
+  /// No description provided for @shortcutsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts (macOS)'**
+  String get shortcutsTitle;
+
+  /// No description provided for @shortcutOverlay.
+  ///
+  /// In en, this message translates to:
+  /// **'⌘J — switch the home page and the terminal / file browser'**
+  String get shortcutOverlay;
+
+  /// No description provided for @shortcutHost.
+  ///
+  /// In en, this message translates to:
+  /// **'⌘K — switch to the next open host'**
+  String get shortcutHost;
+
+  /// No description provided for @shortcutSession.
+  ///
+  /// In en, this message translates to:
+  /// **'⌘L — switch to the next opencode session tab'**
+  String get shortcutSession;
+
   /// No description provided for @tabHint.
   ///
   /// In en, this message translates to:

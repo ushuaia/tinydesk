@@ -807,6 +807,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get step4Toolbar => '④ Toolbar';
 
   @override
+  String get shortcutsTitle => 'Shortcuts (macOS)';
+
+  @override
+  String get shortcutOverlay =>
+      '⌘J — switch the home page and the terminal / file browser';
+
+  @override
+  String get shortcutHost => '⌘K — switch to the next open host';
+
+  @override
+  String get shortcutSession => '⌘L — switch to the next opencode session tab';
+
+  @override
   String get tabHint =>
       'Top tabs switch between open hosts; the × in a tab closes only that host session. Closing the last tab returns here — tap + to open a new host anytime.';
 
