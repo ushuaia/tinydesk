@@ -33,6 +33,11 @@ class PrivateKeyStore {
   static const _keySuffix = '.privateKey';
   static const _passSuffix = '.passphrase';
 
+  // Items written by this build carry the current (stable) signature in
+  // their ACL, so reading them never prompts. The unprefixed items were
+  // created by older ad-hoc builds and are only read once for migration.
+  static const _currentPrefix = 'v2.';
+
   String _keyName(String hostId) => '$_prefix$hostId$_keySuffix';
 
   String _passName(String hostId) => '$_prefix$hostId$_passSuffix';
@@ -53,11 +58,17 @@ class PrivateKeyStore {
   ) async {
     await _ensureMigrated();
     try {
-      await _store.write(_keyName(hostId), privateKey).timeout(_secureTimeout);
+      await _store
+          .write(_currentPrefix + _keyName(hostId), privateKey)
+          .timeout(_secureTimeout);
       if (passphrase != null && passphrase.isNotEmpty) {
-        await _store.write(_passName(hostId), passphrase).timeout(_secureTimeout);
+        await _store
+            .write(_currentPrefix + _passName(hostId), passphrase)
+            .timeout(_secureTimeout);
       } else {
-        await _store.delete(_passName(hostId)).timeout(_secureTimeout);
+        await _store
+            .delete(_currentPrefix + _passName(hostId))
+            .timeout(_secureTimeout);
       }
       await _clearLegacy(hostId);
       _remember(hostId, privateKey, passphrase);
@@ -102,18 +113,35 @@ class PrivateKeyStore {
     required bool hasPassphrase,
   }) async {
     await _ensureMigrated();
-    debugPrint('[keychain] read ${_keyName(hostId)}');
-    final key = await _readSecret(_keyName(hostId));
-    if (key == null) {
-      debugPrint('[keychain] missing ${_keyName(hostId)}');
-      return null;
-    }
-    // Hosts configured without a passphrase never store one, so skip the
-    // second Keychain lookup entirely.
+    final currentKey = _currentPrefix + _keyName(hostId);
+    debugPrint('[keychain] read $currentKey');
+    var key = await _readSecret(currentKey);
     String? passphrase;
-    if (hasPassphrase) {
-      debugPrint('[keychain] read ${_passName(hostId)}');
-      passphrase = await _readSecret(_passName(hostId));
+    if (key == null) {
+      // Legacy item from an ad-hoc build: read it once (may prompt), then
+      // copy it under the current signature so it never prompts again.
+      debugPrint('[keychain] migrate ${_keyName(hostId)}');
+      key = await _readSecret(_keyName(hostId));
+      if (key == null) {
+        debugPrint('[keychain] missing ${_keyName(hostId)}');
+        return null;
+      }
+      // Hosts without a passphrase skip the second lookup entirely.
+      if (hasPassphrase) {
+        passphrase = await _readSecret(_passName(hostId));
+      }
+      try {
+        await _store
+            .write(currentKey, key)
+            .timeout(_secureTimeout);
+        if (passphrase != null && passphrase.isNotEmpty) {
+          await _store
+              .write(_currentPrefix + _passName(hostId), passphrase)
+              .timeout(_secureTimeout);
+        }
+      } catch (_) {}
+    } else if (hasPassphrase) {
+      passphrase = await _readSecret(_currentPrefix + _passName(hostId));
     }
     final pair = (key, passphrase);
     _cache[hostId] = pair;
@@ -124,8 +152,12 @@ class PrivateKeyStore {
     _cache.remove(hostId);
     await _ensureMigrated();
     try {
-      await _store.delete(_keyName(hostId)).timeout(_secureTimeout);
-      await _store.delete(_passName(hostId)).timeout(_secureTimeout);
+      await _store
+          .delete(_currentPrefix + _keyName(hostId))
+          .timeout(_secureTimeout);
+      await _store
+          .delete(_currentPrefix + _passName(hostId))
+          .timeout(_secureTimeout);
     } catch (_) {}
     await _clearLegacy(hostId);
   }

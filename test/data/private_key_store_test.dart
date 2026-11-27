@@ -38,8 +38,8 @@ void main() {
     final result = await store.read('h1');
     expect(result?.$1, 'PRIVATE KEY');
     expect(result?.$2, 'pass');
-    expect(secret.values['host.h1.privateKey'], 'PRIVATE KEY');
-    expect(secret.values['host.h1.passphrase'], 'pass');
+    expect(secret.values['v2.host.h1.privateKey'], 'PRIVATE KEY');
+    expect(secret.values['v2.host.h1.passphrase'], 'pass');
   });
 
   test('does not write key material to SharedPreferences', () async {
@@ -66,7 +66,7 @@ void main() {
 
     expect(result?.$1, 'OLD KEY');
     expect(result?.$2, 'old pass');
-    expect(secret.values['host.h1.privateKey'], 'OLD KEY');
+    expect(secret.values['v2.host.h1.privateKey'], 'OLD KEY');
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('host.h1.privateKey'), isNull);
@@ -92,14 +92,14 @@ void main() {
 
     await store.save('h1', 'KEY', null);
 
-    expect(secret.values['host.h1.passphrase'], isNull);
+    expect(secret.values['v2.host.h1.passphrase'], isNull);
     expect((await store.read('h1'))?.$2, isNull);
   });
 
   test('repeat reads hit the secure store once', () async {
     final secret = _FakeSecretStore()
-      ..values['host.h1.privateKey'] = 'KEY'
-      ..values['host.h1.passphrase'] = 'pass';
+      ..values['v2.host.h1.privateKey'] = 'KEY'
+      ..values['v2.host.h1.passphrase'] = 'pass';
     final store = PrivateKeyStore(secret);
     secret.reads = 0;
 
@@ -111,7 +111,7 @@ void main() {
   });
 
   test('a host without a passphrase only reads the key', () async {
-    final secret = _FakeSecretStore()..values['host.h1.privateKey'] = 'KEY';
+    final secret = _FakeSecretStore()..values['v2.host.h1.privateKey'] = 'KEY';
     final store = PrivateKeyStore(secret);
     secret.reads = 0;
 
@@ -132,5 +132,21 @@ void main() {
     final result = await store.read('h1');
     expect(result?.$1, 'NEW');
     expect(result?.$2, isNull);
+  });
+
+  test('a legacy item is copied under the current signature once', () async {
+    final secret = _FakeSecretStore()..values['host.h1.privateKey'] = 'KEY';
+    final store = PrivateKeyStore(secret);
+
+    await store.read('h1');
+    expect(secret.values['v2.host.h1.privateKey'], 'KEY');
+
+    // A fresh instance (empty cache) reads only the v2 item.
+    final next = PrivateKeyStore(secret);
+    secret.reads = 0;
+    final result = await next.read('h1', hasPassphrase: false);
+
+    expect(result?.$1, 'KEY');
+    expect(secret.reads, 1);
   });
 }
