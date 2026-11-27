@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -54,6 +55,8 @@ class WorkspaceScreen extends StatefulWidget {
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
   final Map<String, GlobalKey<_HostWorkspaceViewState>> _viewKeys = {};
   bool _showHosts = false;
+  String? _lastActiveHostId;
+  int _lastSessionCycleRequest = 0;
 
   @override
   void initState() {
@@ -70,7 +73,26 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   void _onManagerChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final activeId = widget.session.activeSession?.host.id;
+    // Cmd+K changed the host: return from the new-tab page to the session.
+    if (activeId != _lastActiveHostId) {
+      _lastActiveHostId = activeId;
+      if (_showHosts && widget.session.sessions.isNotEmpty) {
+        _showHosts = false;
+      }
+    }
+    // Cmd+L: forward the session-cycle request to the visible web view.
+    final request = widget.session.sessionCycleRequest;
+    if (request != _lastSessionCycleRequest) {
+      _lastSessionCycleRequest = request;
+      if (activeId != null) {
+        unawaited(
+          _keyFor(activeId).currentState?.cycleSession() ?? Future.value(),
+        );
+      }
+    }
+    setState(() {});
   }
 
   GlobalKey<_HostWorkspaceViewState> _keyFor(String hostId) =>
@@ -785,6 +807,59 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
       return true;
     }
     return false;
+  }
+
+  /// Cmd+L: opens the next opencode conversation of this host.
+  ///
+  /// Reads `/api/session` with the same cookie the web view uses, then
+  /// navigates the web view to the following conversation (wrapping around).
+  Future<void> cycleSession() async {
+    final webView = _webView;
+    if (webView == null) return;
+    final port = widget.session.host.localPort;
+    final origin = 'http://127.0.0.1:$port';
+    final cookie = await const WebData().sessionCookie(port);
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+    try {
+      final request = await client.getUrl(Uri.parse('$origin/api/session'));
+      if (cookie != null) {
+        request.headers.set(
+          HttpHeaders.cookieHeader,
+          '${cookie.key}=${cookie.value}',
+        );
+      }
+      final response =
+          await request.close().timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) {
+        await response.drain<void>();
+        return;
+      }
+      final body = await response.transform(utf8.decoder).join();
+      final decoded = jsonDecode(body);
+      final rawList = decoded is List
+          ? decoded
+          : (decoded is Map ? decoded['sessions'] : null);
+      final ids = <String>[
+        for (final item in (rawList is List ? rawList : const []))
+          if (item is Map && item['id'] is String) item['id'] as String,
+      ];
+      if (ids.isEmpty) return;
+      final current = Uri.tryParse(_currentUrl ?? '');
+      final onSession =
+          current != null && current.pathSegments.contains('session');
+      final currentId = onSession ? current.pathSegments.last : null;
+      final index = currentId == null ? -1 : ids.indexOf(currentId);
+      final next = ids[(index + 1) % ids.length];
+      debugPrint(
+        '[session-cycle] sessions=${ids.length} current=$currentId next=$next',
+      );
+      await webView.loadRequest(Uri.parse('$origin/session/$next'));
+    } catch (error) {
+      // No session list (old server, not signed in): leave the page as is.
+      debugPrint('[session-cycle] failed: $error');
+    } finally {
+      client.close(force: true);
+    }
   }
 
   Future<void> openFiles() async {

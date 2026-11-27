@@ -242,6 +242,25 @@ class AppSessionManager extends ChangeNotifier with WidgetsBindingObserver {
     await session.connection.connect(host, privateKey, passphrase: passphrase);
   }
 
+  int _sessionCycleRequest = 0;
+
+  /// Increments when the user asks to switch opencode sessions (Cmd+L); the
+  /// workspace view listens and forwards it to the visible host's web view.
+  int get sessionCycleRequest => _sessionCycleRequest;
+
+  void requestSessionCycle() {
+    _sessionCycleRequest++;
+    _notify();
+  }
+
+  /// Cmd+K: switches to the next open host session (wraps around).
+  void cycleHost() {
+    if (_order.length < 2) return;
+    final current = _order.indexOf(_activeHostId ?? '');
+    final next = _order[(current + 1) % _order.length];
+    activate(next);
+  }
+
   void activate(String hostId) {
     if (!_sessions.containsKey(hostId) || _activeHostId == hostId) return;
     _activeHostId = hostId;

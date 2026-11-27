@@ -58,8 +58,29 @@ class _OpenCodeAppState extends State<OpenCodeApp> {
         _handleWindowClose,
         onMinimizeRequested: _minimizeOverlay,
         onCycleRequested: _cycleOverlay,
+        onCycleHostRequested: _cycleHost,
+        onCycleSessionRequested: _cycleSession,
       );
     }
+  }
+
+  /// True when no floating overlay is on screen (the "home page" state).
+  bool _onHomePage() {
+    final session = _session.activeSession;
+    return frontWindowOf(session?.terminal, session?.fileBrowser) ==
+        FrontWindow.none;
+  }
+
+  /// Cmd+K: cycles through the open host sessions.
+  Future<void> _cycleHost() async {
+    if (!_onHomePage()) return;
+    _session.cycleHost();
+  }
+
+  /// Cmd+L: cycles through the opencode sessions of the visible host.
+  Future<void> _cycleSession() async {
+    if (!_onHomePage()) return;
+    _session.requestSessionCycle();
   }
 
   /// Cmd+`: cycles the main page and the overlays that are still open.

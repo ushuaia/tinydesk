@@ -158,6 +158,31 @@ void main() {
     expect(sessions.single.isClosed, isTrue);
   });
 
+  test('cycleHost wraps around the open sessions', () async {
+    final sessions = <_FakeSession>[];
+    final manager = _manager(sessions);
+    addTearDown(manager.dispose);
+
+    await manager.connect(_host('h1'), 'KEY');
+    await manager.connect(_host('h2'), 'KEY');
+    manager.activate('h1');
+
+    manager.cycleHost();
+    expect(manager.activeHost?.id, 'h2');
+    manager.cycleHost();
+    expect(manager.activeHost?.id, 'h1');
+  });
+
+  test('cycleHost does nothing with a single session', () async {
+    final sessions = <_FakeSession>[];
+    final manager = _manager(sessions);
+    addTearDown(manager.dispose);
+
+    await manager.connect(_host('h1'), 'KEY');
+    manager.cycleHost();
+    expect(manager.activeHost?.id, 'h1');
+  });
+
   test('opening another host keeps the previous session alive', () async {
     final sessions = <_FakeSession>[];
     final manager = _manager(sessions);

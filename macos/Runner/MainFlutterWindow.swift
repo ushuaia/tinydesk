@@ -135,8 +135,8 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       // Cmd+J cycles the main page and the open overlays. Handling it here
       // means it still works when a webview or the terminal owns the
       // keyboard focus inside Flutter.
-      if event.type == .keyDown, self.isOverlayShortcut(event) {
-        self.windowChannel?.invokeMethod("cycleOverlay", arguments: nil)
+      if event.type == .keyDown, let action = self.shortcutAction(event) {
+        self.windowChannel?.invokeMethod(action, arguments: nil)
         return nil
       }
       guard event.window === self else {
@@ -276,14 +276,21 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     SecItemDelete(secureQuery(key) as CFDictionary)
   }
 
-  private func isOverlayShortcut(_ event: NSEvent) -> Bool {
+  /// Cmd+J cycles overlays, Cmd+K cycles open hosts, Cmd+L cycles the
+  /// opencode sessions of the visible host.
+  private func shortcutAction(_ event: NSEvent) -> String? {
     let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
     guard mods.contains(.command),
           !mods.contains(.option),
           !mods.contains(.control) else {
-      return false
+      return nil
     }
-    return event.charactersIgnoringModifiers?.lowercased() == "j"
+    switch event.charactersIgnoringModifiers?.lowercased() {
+    case "j": return "cycleOverlay"
+    case "k": return "cycleHost"
+    case "l": return "cycleSession"
+    default: return nil
+    }
   }
 
   /// Route the yellow light explicitly. With the title bar merged into the
