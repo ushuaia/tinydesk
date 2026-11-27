@@ -131,15 +131,16 @@ class PrivateKeyStore {
         passphrase = await _readSecret(_passName(hostId));
       }
       try {
-        await _store
-            .write(currentKey, key)
-            .timeout(_secureTimeout);
+        await _store.write(currentKey, key).timeout(_secureTimeout);
         if (passphrase != null && passphrase.isNotEmpty) {
           await _store
               .write(_currentPrefix + _passName(hostId), passphrase)
               .timeout(_secureTimeout);
         }
-      } catch (_) {}
+        debugPrint('[keychain] migrated $currentKey');
+      } catch (error) {
+        debugPrint('[keychain] migrate failed $currentKey: $error');
+      }
     } else if (hasPassphrase) {
       passphrase = await _readSecret(_currentPrefix + _passName(hostId));
     }

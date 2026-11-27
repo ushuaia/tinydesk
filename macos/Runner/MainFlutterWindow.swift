@@ -49,6 +49,39 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     RegisterGeneratedPlugins(registry: flutterViewController)
     TinyDeskChannels.register(with: flutterViewController)
 
+    // Secrets live in a keychain item whose ACL allows any application, so
+    // reads never prompt. flutter_secure_storage items are bound to the
+    // creating signature, and macOS asks twice (item + its protected key)
+    // whenever the app is re-signed.
+    let secure = FlutterMethodChannel(
+      name: "opencode/secure",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    secure.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else { return }
+      let args = call.arguments as? [String: Any] ?? [:]
+      switch call.method {
+      case "read":
+        result(self.secureRead(args["key"] as? String ?? ""))
+      case "write":
+        let status = self.secureWrite(
+          args["key"] as? String ?? "",
+          args["value"] as? String ?? ""
+        )
+        if status == errSecSuccess {
+          result(nil)
+        } else {
+          result(FlutterError(code: "secure_write", message: "OSStatus \(status)", details: nil))
+        }
+      case "delete":
+        let status = self.secureDelete(args["key"] as? String ?? "")
+        result(status == errSecSuccess || status == errSecItemNotFound ? nil :
+          FlutterError(code: "secure_delete", message: "OSStatus \(status)", details: nil))
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     // The red traffic-light button is intercepted so Flutter can decide
     // whether to close the current page or confirm quitting the app.
     let channel = FlutterMethodChannel(
@@ -177,6 +210,65 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
   }
 
   /// Cmd+J toggles between the main page and the open overlays.
+  // MARK: - Secret storage
+
+  private static let secureService = "cox.work.tinydesk"
+
+  private func secureQuery(_ key: String) -> [CFString: Any] {
+    [
+      kSecClass: kSecClassGenericPassword,
+      kSecAttrService: MainFlutterWindow.secureService,
+      kSecAttrAccount: key,
+    ]
+  }
+
+  private func secureRead(_ key: String) -> String? {
+    var query = secureQuery(key)
+    query[kSecReturnData] = true
+    query[kSecMatchLimit] = kSecMatchLimitOne
+    var item: CFTypeRef?
+    guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+          let data = item as? Data else { return nil }
+    return String(data: data, encoding: .utf8)
+  }
+
+  /// Access object whose ACL lets any application read the item without a
+  /// prompt ("Allow all applications to access this item").
+  private func secureAccessForAll() -> SecAccess? {
+    var access: SecAccess?
+    guard SecAccessCreate(
+      MainFlutterWindow.secureService as CFString,
+      [] as CFArray,
+      &access
+    ) == errSecSuccess, let accessRef = access else { return nil }
+
+    var aclList: CFArray?
+    guard SecAccessCopyACLList(accessRef, &aclList) == errSecSuccess,
+          let list = aclList else { return accessRef }
+    for index in 0..<CFArrayGetCount(list) {
+      let acl = unsafeBitCast(CFArrayGetValueAtIndex(list, index), to: SecACL.self)
+      let authorizations = SecACLCopyAuthorizations(acl)
+      // nil application list == any app may use the item, no prompt.
+      SecACLSetContents(acl, nil, MainFlutterWindow.secureService as CFString, [])
+      SecACLUpdateAuthorizations(acl, authorizations)
+    }
+    return accessRef
+  }
+
+  private func secureWrite(_ key: String, _ value: String) -> OSStatus {
+    SecItemDelete(secureQuery(key) as CFDictionary)
+    var attributes = secureQuery(key)
+    attributes[kSecValueData] = Data(value.utf8)
+    if let access = secureAccessForAll() {
+      attributes[kSecAttrAccess] = access
+    }
+    return SecItemAdd(attributes as CFDictionary, nil)
+  }
+
+  private func secureDelete(_ key: String) -> OSStatus {
+    SecItemDelete(secureQuery(key) as CFDictionary)
+  }
+
   private func isOverlayShortcut(_ event: NSEvent) -> Bool {
     let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
     guard mods.contains(.command),
