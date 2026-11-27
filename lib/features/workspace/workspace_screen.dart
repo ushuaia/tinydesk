@@ -86,13 +86,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     if (request != _lastSessionCycleRequest) {
       _lastSessionCycleRequest = request;
       if (activeId != null) {
-        final view = _keyFor(activeId).currentState;
-        debugPrint(
-          '[session-cycle] dispatch active=$activeId view=${view != null}',
+        unawaited(
+          _keyFor(activeId).currentState?.cycleSession() ?? Future.value(),
         );
-        unawaited(view?.cycleSession() ?? Future.value());
-      } else {
-        debugPrint('[session-cycle] no active host to cycle');
       }
     }
     setState(() {});
