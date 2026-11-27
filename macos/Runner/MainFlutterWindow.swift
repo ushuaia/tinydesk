@@ -136,7 +136,6 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       // means it still works when a webview or the terminal owns the
       // keyboard focus inside Flutter.
       if event.type == .keyDown, let action = self.shortcutAction(event) {
-        self.windowChannel?.invokeMethod("shortcutProbe", arguments: action)
         self.windowChannel?.invokeMethod(action, arguments: nil)
         return nil
       }

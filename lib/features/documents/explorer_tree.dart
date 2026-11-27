@@ -82,9 +82,6 @@ class _ExplorerTreeState extends State<ExplorerTree> {
   final Set<String> _loading = {};
   // Expansion of plain directories, keyed by path.
   final Set<String> _expanded = {};
-  // Expansion of root rows, keyed independently so a root and a folder
-  // with the same path remain separate instances.
-  final Set<String> _rootExpanded = {};
   late List<RemoteFile> _roots = [...widget.roots];
   /// Root shown in the tree; the other project roots live in the dropdown.
   String? _selectedRoot;
@@ -106,9 +103,6 @@ class _ExplorerTreeState extends State<ExplorerTree> {
     // lazy loads so the tree actually shows the contents.
     for (final path in _expanded) {
       unawaited(_loadDirectory(path));
-    }
-    for (final key in _rootExpanded) {
-      unawaited(_loadDirectory(key.substring(5)));
     }
     unawaited(_expandAncestors(widget.currentPath));
     // The page's live working directory wins: the tree is rebuilt whenever
@@ -161,20 +155,17 @@ class _ExplorerTreeState extends State<ExplorerTree> {
   }
 
   void _restoreExpansions(Iterable<String> paths) {
-    for (final entry in paths) {
-      if (entry.startsWith('root:')) {
-        final path = entry.substring(5);
-        if (_roots.any((root) => root.path == path)) {
-          _rootExpanded.add(entry);
-        }
-      } else if (_roots.any((root) => entry.startsWith(root.path))) {
-        _expanded.add(entry);
-      }
-    }
+    // Legacy "root:" entries from earlier versions are ignored on purpose:
+    // the tree now shows one project at a time behind the dropdown.
+    _expanded.addAll(
+      paths.where(
+        (entry) => !entry.startsWith('root:') && _roots.any((root) => entry.startsWith(root.path)),
+      ),
+    );
   }
 
-  /// Persisted expansion state: child folders plus root namespace keys.
-  List<String> _expansionPayload() => [..._expanded, ..._rootExpanded];
+  /// Persisted expansion state: child folders only.
+  List<String> _expansionPayload() => List.of(_expanded);
 
   @override
   void didUpdateWidget(ExplorerTree oldWidget) {
@@ -222,12 +213,6 @@ class _ExplorerTreeState extends State<ExplorerTree> {
       _roots = [...widget.roots];
       _restoreExpansions(widget.expandedPaths);
       for (final path in _expanded) {
-        if (!_children.containsKey(path)) {
-          unawaited(_loadDirectory(path));
-        }
-      }
-      for (final key in _rootExpanded) {
-        final path = key.substring(5);
         if (!_children.containsKey(path)) {
           unawaited(_loadDirectory(path));
         }
@@ -332,22 +317,7 @@ class _ExplorerTreeState extends State<ExplorerTree> {
   }
 
   void _toggle(RemoteFile directory) {
-    final rootKey = 'root:${directory.path}';
-    final isRoot = _roots.any((root) => root.path == directory.path);
-    if (isRoot) {
-      setState(() {
-        if (_rootExpanded.contains(rootKey)) {
-          _rootExpanded.remove(rootKey);
-        } else {
-          // 工程根互斥：同一时刻只展开一个工程。
-          _rootExpanded.clear();
-          _rootExpanded.add(rootKey);
-          if (!_children.containsKey(directory.path)) {
-            unawaited(_loadDirectory(directory.path));
-          }
-        }
-      });
-    } else if (_expanded.contains(directory.path)) {
+    if (_expanded.contains(directory.path)) {
       setState(() => _expanded.remove(directory.path));
     } else {
       setState(() => _expanded.add(directory.path));
@@ -486,19 +456,11 @@ class _ExplorerTreeState extends State<ExplorerTree> {
   }
 
 
-  void _appendRows(
-    List<Widget> rows,
-    String path,
-    int depth, {
-    bool isRoot = false,
-    String? rootLabel,
-  }) {
-    final expanded = isRoot
-        ? _rootExpanded.contains('root:$path')
-        : _expanded.contains(path);
+  void _appendRows(List<Widget> rows, String path, int depth) {
+    final expanded = _expanded.contains(path);
     rows.add(
       _TreeRow(
-        label: rootLabel ?? _basename(path),
+        label: _basename(path),
         depth: depth,
         isDirectory: true,
         expanded: expanded,

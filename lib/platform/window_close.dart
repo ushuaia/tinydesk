@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Intercepts the macOS window close button so Flutter can decide between
@@ -33,26 +32,19 @@ class WindowCloseHandler {
         case 'closeRequested':
           await _onCloseRequested?.call();
           return null;
-        case 'shortcutProbe':
-          debugPrint('[shortcut] probe=${call.arguments}');
-          return null;
         case 'cycleOverlay':
-          debugPrint('[window] cycleOverlay');
           await _onCycleRequested?.call();
           return null;
         case 'cycleHost':
-          debugPrint('[window] cycleHost');
           await _onCycleHostRequested?.call();
           return null;
         case 'cycleSession':
-          debugPrint('[window] cycleSession');
           await _onCycleSessionRequested?.call();
           return null;
         case 'minimizeRequested':
           // Returning false tells the native side to run its default
           // miniaturize (used on pages without a floating overlay).
           final handled = await _onMinimizeRequested?.call() ?? false;
-          debugPrint('[window] minimizeRequested handled=$handled');
           return handled;
       }
       return null;

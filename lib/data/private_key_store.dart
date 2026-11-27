@@ -114,16 +114,13 @@ class PrivateKeyStore {
   }) async {
     await _ensureMigrated();
     final currentKey = _currentPrefix + _keyName(hostId);
-    debugPrint('[keychain] read $currentKey');
     var key = await _readSecret(currentKey);
     String? passphrase;
     if (key == null) {
       // Legacy item from an ad-hoc build: read it once (may prompt), then
       // copy it under the current signature so it never prompts again.
-      debugPrint('[keychain] migrate ${_keyName(hostId)}');
       key = await _readSecret(_keyName(hostId));
       if (key == null) {
-        debugPrint('[keychain] missing ${_keyName(hostId)}');
         return null;
       }
       // Hosts without a passphrase skip the second lookup entirely.
@@ -137,9 +134,8 @@ class PrivateKeyStore {
               .write(_currentPrefix + _passName(hostId), passphrase)
               .timeout(_secureTimeout);
         }
-        debugPrint('[keychain] migrated $currentKey');
       } catch (error) {
-        debugPrint('[keychain] migrate failed $currentKey: $error');
+          debugPrint('[keychain] migrate failed $currentKey: $error');
       }
     } else if (hasPassphrase) {
       passphrase = await _readSecret(_currentPrefix + _passName(hostId));
@@ -193,7 +189,9 @@ class PrivateKeyStore {
         final value = prefs.getString(name);
         if (value == null) continue;
         try {
-          await _store.write(name, value).timeout(_secureTimeout);
+          await _store
+              .write(_currentPrefix + name, value)
+              .timeout(_secureTimeout);
           await prefs.remove(name);
         } catch (_) {
           // Keep the plaintext entry so a later attempt can migrate it.

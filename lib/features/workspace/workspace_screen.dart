@@ -818,10 +818,6 @@ class _HostWorkspaceViewState extends State<_HostWorkspaceView> {
   /// never navigates to a conversation that was not opened.
   Future<void> cycleSession() async {
     final webView = _webView;
-    debugPrint(
-      '[session-cycle] host=${widget.session.host.id} '
-      'webview=${webView != null} url=$_currentUrl',
-    );
     if (webView == null) return;
     const script = r"""
       (function () {
